@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { FileText, Search, Plus, ChevronRight, AlertCircle } from 'lucide-react'
 
@@ -25,6 +26,7 @@ const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('pt-BR')
 
 export default function Contratos() {
+  const navigate = useNavigate()
   const [contratos, setContratos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -49,7 +51,8 @@ export default function Contratos() {
           <p className="text-gray-500 text-sm mt-1">{contratos.length} contratos no sistema</p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-all"
+          onClick={() => navigate('/contratos/novo')}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
           style={{ background: '#FFAF06' }}
         >
           <Plus className="w-4 h-4" />

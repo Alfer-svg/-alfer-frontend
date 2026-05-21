@@ -7,6 +7,7 @@ import Clientes from './pages/Clientes'
 import Contratos from './pages/Contratos'
 import { Financeiro, Equipamentos, Caminhoes, Cacambas, Agenda } from './pages/outros'
 import NovoCliente from './pages/NovoCliente'
+import NovoContrato from './pages/NovoContrato'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="cacambas" element={<Cacambas />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="clientes/novo" element={<NovoCliente />} />
+        <Route path="contratos/novo" element={<NovoContrato />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
