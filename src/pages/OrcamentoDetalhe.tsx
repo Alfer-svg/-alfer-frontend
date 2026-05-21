@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
@@ -52,6 +52,67 @@ export default function OrcamentoDetalhe() {
     try { await api.post(`/orcamentos/${id}/enviar`); load() }
     catch (err: any) { setErro(err.response?.data?.message || 'Erro ao enviar.') }
     finally { setAcao('') }
+  }
+
+  const gerarMensagem = () => {
+    if (!o) return ''
+    const nomeContato = o.cliente?.contatos?.[0]?.nome
+    const linhas = [
+      `Olá${nomeContato ? `, ${nomeContato.split(' ')[0]}` : ''}!`,
+      '',
+      `Segue o orçamento *${o.numero}* da Alfer Equipamentos:`,
+      '',
+      o.descricao && `📋 ${o.descricao}`,
+      `💰 Valor: *${fmt(Number(o.valorFinal))}* / ${o.periodicidade.toLowerCase()}`,
+      o.desconto && `   (com desconto de ${Number(o.desconto)}%)`,
+      `💳 Condição: ${condicaoPagamentoLabel(o.condicaoPagamento)}`,
+      `🏦 Forma: ${formaPagamentoLabel(o.formaPagamento)}`,
+      o.dtInicio && o.dtFim && `📅 Vigência: ${fmtDate(o.dtInicio)} a ${fmtDate(o.dtFim)}`,
+      `⏰ Validade da proposta: ${o.validade} dias`,
+      '',
+      o.condicoes?.length > 0 && 'Condições:',
+      ...(o.condicoes || []).map((c: string) => `• ${c}`),
+      '',
+      'Qualquer dúvida, estamos à disposição!',
+      '',
+      'Alfer Equipamentos',
+    ].filter(Boolean).join('\n')
+    return linhas
+  }
+
+  const limparTelefone = (tel?: string) => {
+    if (!tel) return ''
+    const d = tel.replace(/\D/g, '')
+    // Adiciona 55 (BR) se não tiver código de país
+    return d.length === 10 || d.length === 11 ? `55${d}` : d
+  }
+
+  const enviarWhatsApp = async () => {
+    const telRaw = o?.cliente?.contatos?.[0]?.telefone
+    const tel = limparTelefone(telRaw)
+    if (!tel) {
+      setErro('Cliente sem telefone cadastrado.')
+      return
+    }
+    const msg = encodeURIComponent(gerarMensagem())
+    window.open(`https://wa.me/${tel}?text=${msg}`, '_blank')
+    if (o.status === 'RASCUNHO') {
+      try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
+    }
+  }
+
+  const enviarEmail = async () => {
+    const email = o?.cliente?.contatos?.[0]?.email
+    if (!email) {
+      setErro('Cliente sem email cadastrado.')
+      return
+    }
+    const subject = encodeURIComponent(`Orçamento ${o.numero} — Alfer Equipamentos`)
+    const body = encodeURIComponent(gerarMensagem())
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`
+    if (o.status === 'RASCUNHO') {
+      try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
+    }
   }
 
   const aprovar = async () => {
@@ -145,6 +206,27 @@ export default function OrcamentoDetalhe() {
         {erro && (<div className="mt-3 p-3 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}><AlertCircle className="w-4 h-4" /> {erro}</div>)}
 
         <div className="flex gap-2 flex-wrap pt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
+          {/* Botões de envio direto pro cliente */}
+          {(o.status === 'RASCUNHO' || o.status === 'ENVIADO') && (
+            <>
+              <button
+                onClick={enviarWhatsApp}
+                title={contato?.telefone ? `Enviar via WhatsApp para ${contato.telefone}` : 'Cliente sem telefone cadastrado'}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90"
+                style={{ background: '#25D366' }}
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </button>
+              <button
+                onClick={enviarEmail}
+                title={contato?.email ? `Enviar por email para ${contato.email}` : 'Cliente sem email cadastrado'}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90"
+                style={{ background: '#2D80D1' }}
+              >
+                <Mail className="w-4 h-4" /> Email
+              </button>
+            </>
+          )}
           {o.status === 'RASCUNHO' && (
             <button onClick={enviar} disabled={!!acao} className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-gray-900 disabled:opacity-50" style={{ background: '#FFAF06' }}>
               {acao === 'enviar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
