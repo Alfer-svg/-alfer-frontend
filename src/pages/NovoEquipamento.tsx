@@ -206,52 +206,6 @@ export default function NovoEquipamento() {
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-4">Manutenção</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Horímetro atual</label>
-              <input
-                value={form.horimetro}
-                onChange={(e) => set('horimetro', e.target.value)}
-                type="number"
-                min="0"
-                placeholder="horas"
-                className={inputCls}
-                style={inputStyle}
-                onFocus={onFocus}
-                onBlur={onBlur}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Próx. manut. (h)</label>
-              <input
-                value={form.proxManutHs}
-                onChange={(e) => set('proxManutHs', e.target.value)}
-                type="number"
-                min="0"
-                placeholder="horas"
-                className={inputCls}
-                style={inputStyle}
-                onFocus={onFocus}
-                onBlur={onBlur}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Última manutenção</label>
-              <input
-                value={form.ultimaManut}
-                onChange={(e) => set('ultimaManut', e.target.value)}
-                type="date"
-                className={inputCls}
-                style={inputStyle}
-                onFocus={onFocus}
-                onBlur={onBlur}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-4">Observações</h2>
           <textarea
             value={form.observacoes}

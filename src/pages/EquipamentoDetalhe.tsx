@@ -29,11 +29,9 @@ export default function EquipamentoDetalhe() {
   const [erroManut, setErroManut] = useState('')
   const [salvandoManut, setSalvandoManut] = useState(false)
   const [manut, setManut] = useState({
-    tipo: 'PREVENTIVA',
     dtManutencao: new Date().toISOString().slice(0, 10),
     descricao: '',
     custo: '',
-    proxManutHs: '',
   })
 
   const load = () => {
@@ -56,16 +54,16 @@ export default function EquipamentoDetalhe() {
   const submitManut = async (e: FormEvent) => {
     e.preventDefault()
     setErroManut('')
-    if (!manut.descricao) return setErroManut('Descreva a manutenção.')
+    if (!manut.descricao) return setErroManut('Descreva o que foi corrigido.')
     setSalvandoManut(true)
     try {
       await api.post(`/equipamentos/${id}/manutencao`, {
-        ...manut,
-        custo: manut.custo ? Number(manut.custo) : null,
-        proxManutHs: manut.proxManutHs ? Number(manut.proxManutHs) : null,
+        dtManutencao: manut.dtManutencao,
+        descricao: manut.descricao,
+        valor: manut.custo ? Number(manut.custo) : null,
       })
       setShowManut(false)
-      setManut({ tipo: 'PREVENTIVA', dtManutencao: new Date().toISOString().slice(0, 10), descricao: '', custo: '', proxManutHs: '' })
+      setManut({ dtManutencao: new Date().toISOString().slice(0, 10), descricao: '', custo: '' })
       load()
     } catch (err: any) {
       setErroManut(err.response?.data?.message || 'Erro ao registrar manutenção.')
@@ -160,39 +158,37 @@ export default function EquipamentoDetalhe() {
 
         {showManut && (
           <form onSubmit={submitManut} className="p-4 rounded-xl mb-4 space-y-3" style={{ background: '#F9F7F4', border: '1px solid #E0DDD8' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <select value={manut.tipo} onChange={(e) => setManut({ ...manut, tipo: e.target.value })} className={inputCls} style={inputStyle}>
-                <option value="PREVENTIVA">Preventiva</option>
-                <option value="CORRETIVA">Corretiva</option>
-                <option value="INSPECAO">Inspeção</option>
-              </select>
-              <input type="date" value={manut.dtManutencao} onChange={(e) => setManut({ ...manut, dtManutencao: e.target.value })} className={inputCls} style={inputStyle} />
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Data *</label>
+              <input
+                type="date"
+                value={manut.dtManutencao}
+                onChange={(e) => setManut({ ...manut, dtManutencao: e.target.value })}
+                required
+                className={inputCls}
+                style={inputStyle}
+              />
             </div>
-            <textarea
-              value={manut.descricao}
-              onChange={(e) => setManut({ ...manut, descricao: e.target.value })}
-              placeholder="Descreva a manutenção realizada..."
-              rows={2}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
-              style={inputStyle}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">O que foi corrigido *</label>
+              <textarea
+                value={manut.descricao}
+                onChange={(e) => setManut({ ...manut, descricao: e.target.value })}
+                placeholder="Ex: Troca de retentor, solda no chassi, pintura..."
+                rows={2}
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Custo (R$)</label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={manut.custo}
                 onChange={(e) => setManut({ ...manut, custo: e.target.value })}
-                placeholder="Custo R$"
-                className={inputCls}
-                style={inputStyle}
-              />
-              <input
-                type="number"
-                min="0"
-                value={manut.proxManutHs}
-                onChange={(e) => setManut({ ...manut, proxManutHs: e.target.value })}
-                placeholder="Próx. em (horas)"
+                placeholder="0,00"
                 className={inputCls}
                 style={inputStyle}
               />
@@ -220,12 +216,15 @@ export default function EquipamentoDetalhe() {
           <div className="space-y-2">
             {equip.manutencoes.map((m: any) => (
               <div key={m.id} className="p-3 rounded-lg flex items-start gap-3" style={{ background: '#F9F7F4' }}>
-                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: m.tipo === 'CORRETIVA' ? '#E74C3C' : '#FFAF06' }} />
+                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: '#FFAF06' }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-gray-700">{m.tipo}</span>
-                    <span className="text-xs text-gray-400">{fmtDate(m.dtManutencao)}</span>
-                    {m.custo && <span className="text-xs text-gray-500">R$ {Number(m.custo).toLocaleString('pt-BR')}</span>}
+                    <span className="text-xs font-semibold text-gray-700">{fmtDate(m.dtManutencao)}</span>
+                    {m.valor != null && (
+                      <span className="text-xs text-gray-500">
+                        R$ {Number(m.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-700 mt-0.5">{m.descricao}</p>
                 </div>
