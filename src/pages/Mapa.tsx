@@ -6,40 +6,36 @@ import 'leaflet/dist/leaflet.css'
 import api from '../services/api'
 import { Map as MapIcon, AlertCircle } from 'lucide-react'
 
-// Cria ícone customizado com emoji - evita problema do default broken do Leaflet
-const makeIcon = (color: string, emoji: string) =>
+// Ícone customizado usando imagens em /public/icones/
+const makeImgIcon = (file: string) =>
   L.divIcon({
     className: 'custom-marker',
     html: `
       <div style="
-        background: ${color};
-        width: 40px; height: 40px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        background: white;
+        width: 52px; height: 52px;
+        border-radius: 50%;
+        border: 3px solid #FFAF06;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
         display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
       ">
-        <span style="
-          transform: rotate(45deg);
-          font-size: 20px;
-          line-height: 1;
-        ">${emoji}</span>
+        <img src="/icones/${file}" alt="" style="width: 42px; height: 42px; object-fit: contain;" />
       </div>
     `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -40],
+    iconSize: [52, 52],
+    iconAnchor: [26, 52],
+    popupAnchor: [0, -52],
   })
 
 const iconePorTipoEquip: Record<string, L.DivIcon> = {
-  CONTAINER_SECO: makeIcon('#FFAF06', '📦'),
-  CONTAINER_REEFER: makeIcon('#2D80D1', '🧊'),
-  CACAMBA_ESTACIONARIA: makeIcon('#888888', '🗑️'),
-  CAMINHAO_MUNCK: makeIcon('#FFAF06', '🏗️'),
+  CONTAINER_SECO: makeImgIcon('container.png'),
+  CONTAINER_REEFER: makeImgIcon('container.png'),
+  CACAMBA_ESTACIONARIA: makeImgIcon('cacamba.png'),
+  CAMINHAO_MUNCK: makeImgIcon('munck.png'),
 }
-const iconCaminhao = makeIcon('#2D80D1', '🚚')
-const iconEquipDefault = makeIcon('#FFAF06', '📦')
+const iconCaminhao = makeImgIcon('caminhao.png')
+const iconEquipDefault = makeImgIcon('container.png')
 
 const tipoEquipLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -100,11 +96,17 @@ export default function Mapa() {
         <div className="flex gap-3 items-center flex-wrap">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={mostrarEquip} onChange={(e) => setMostrarEquip(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
-            <span className="flex items-center gap-1">📦 Equipamentos ({equipamentos.length})</span>
+            <span className="flex items-center gap-1">
+              <img src="/icones/container.png" alt="" className="w-5 h-5 object-contain" />
+              Equipamentos ({equipamentos.length})
+            </span>
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={mostrarCam} onChange={(e) => setMostrarCam(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#2D80D1' }} />
-            <span className="flex items-center gap-1">🚚 Caminhões ({caminhoes.length})</span>
+            <input type="checkbox" checked={mostrarCam} onChange={(e) => setMostrarCam(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
+            <span className="flex items-center gap-1">
+              <img src="/icones/caminhao.png" alt="" className="w-5 h-5 object-contain" />
+              Caminhões ({caminhoes.length})
+            </span>
           </label>
           <select
             value={filtroStatusEquip}
