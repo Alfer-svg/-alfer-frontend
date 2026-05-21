@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import AlferLogo from '../components/AlferLogo'
 
 export default function Login() {
   const [email, setEmail] = useState('admin@alferequipamentos.com.br')
@@ -27,21 +28,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex" style={{ background: '#1A1C1E' }}>
-      {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16" style={{ background: '#FFAF06' }}>
         <div>
-          <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#FFAF06">
-                <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5L20 8.5v7l-8 4-8-4v-7L12 4.5z"/>
-              </svg>
-            </div>
-            <span className="font-display text-white text-xl font-bold">Alfer Equipamentos</span>
+          <div className="mb-16">
+            <AlferLogo size={44} />
           </div>
           <h1 className="font-display text-white text-5xl font-bold leading-tight mb-6">
             Sistema de<br />Gestão<br />Operacional
           </h1>
-          <p className="text-orange-100 text-lg leading-relaxed max-w-sm">
+          <p className="text-yellow-100 text-lg leading-relaxed max-w-sm">
             Controle total da sua operação — contratos, frota, financeiro e logística em um único lugar.
           </p>
         </div>
@@ -51,24 +46,18 @@ export default function Login() {
             { label: 'Endpoints', value: '40+' },
             { label: 'Pernambuco', value: 'Brasil' },
           ].map((item) => (
-            <div key={item.label} className="bg-orange-600/40 rounded-xl p-4">
+            <div key={item.label} className="rounded-xl p-4" style={{ background: 'rgba(0,0,0,0.15)' }}>
               <div className="font-display text-white text-2xl font-bold">{item.value}</div>
-              <div className="text-orange-100 text-sm">{item.label}</div>
+              <div className="text-yellow-100 text-sm">{item.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right panel - Login form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#FFAF06' }}>
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="white">
-                <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5L20 8.5v7l-8 4-8-4v-7L12 4.5z"/>
-              </svg>
-            </div>
-            <span className="font-display text-white text-xl font-bold">Alfer Equipamentos</span>
+          <div className="lg:hidden mb-10">
+            <AlferLogo size={36} />
           </div>
 
           <div className="mb-10">
@@ -117,8 +106,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
-              style={{ background: loading ? '#B85008' : '#FFAF06' }}
+              className="w-full py-3 rounded-xl font-semibold text-gray-900 transition-all flex items-center justify-center gap-2"
+              style={{ background: loading ? '#CC8C00' : '#FFAF06' }}
             >
               {loading ? (
                 <>
