@@ -67,7 +67,7 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-60 flex flex-col z-40" style={{ background: '#1A1C1E', borderRight: '1px solid #2A2C2E' }}>
       <div className="p-5 border-b" style={{ borderColor: '#2A2C2E' }}>
-        <AlferLogo size={32} />
+        <AlferLogo size={56} />
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
         <div className="px-3 space-y-0.5">

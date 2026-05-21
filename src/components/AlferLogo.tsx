@@ -4,7 +4,7 @@ export default function AlferLogo({ size = 40, height }: { size?: number; height
     <img
       src="/logo.jpg"
       alt="Alfer Equipamentos"
-      style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: '200px' }}
+      style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: '400px' }}
     />
   )
 }

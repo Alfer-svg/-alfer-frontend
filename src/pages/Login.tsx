@@ -31,7 +31,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16" style={{ background: '#FFAF06' }}>
         <div>
           <div className="mb-16">
-            <AlferLogo size={44} />
+            <AlferLogo size={88} />
           </div>
           <h1 className="font-display text-white text-5xl font-bold leading-tight mb-6">
             Sistema de<br />Gestão<br />Operacional
@@ -57,7 +57,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-10">
-            <AlferLogo size={36} />
+            <AlferLogo size={64} />
           </div>
 
           <div className="mb-10">
