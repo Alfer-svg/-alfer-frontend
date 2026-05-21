@@ -232,6 +232,7 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
             <div>
               <label className="block text-xs text-gray-500 mb-1">Tipo</label>
               <select value={form.tipoLocacao} onChange={(e) => set('tipoLocacao', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="HORA">Hora</option>
                 <option value="DIARIA">Diária</option>
                 <option value="SEMANAL">Semanal</option>
                 <option value="MENSAL">Mensal</option>

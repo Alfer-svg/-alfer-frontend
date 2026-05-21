@@ -129,7 +129,7 @@ export default function EquipamentoDetalhe() {
               {equip.valorLocacao != null && (
                 <span className="font-medium text-gray-700">
                   R$ {Number(equip.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  {equip.tipoLocacao === 'DIARIA' ? ' / dia' : equip.tipoLocacao === 'SEMANAL' ? ' / semana' : ' / mês'}
+                  {equip.tipoLocacao === 'HORA' ? ' / hora' : equip.tipoLocacao === 'DIARIA' ? ' / dia' : equip.tipoLocacao === 'SEMANAL' ? ' / semana' : ' / mês'}
                 </span>
               )}
             </div>

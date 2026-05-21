@@ -310,6 +310,7 @@ export default function NovoEquipamento() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de locação</label>
               <div className="flex gap-2">
                 {[
+                  { v: 'HORA', l: 'Hora' },
                   { v: 'DIARIA', l: 'Diária' },
                   { v: 'SEMANAL', l: 'Semanal' },
                   { v: 'MENSAL', l: 'Mensal' },

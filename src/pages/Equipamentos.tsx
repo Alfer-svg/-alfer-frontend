@@ -174,7 +174,7 @@ export default function Equipamentos() {
                     {e.valorLocacao != null && (
                       <span className="font-medium text-gray-700">
                         R$ {Number(e.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        {e.tipoLocacao === 'DIARIA' ? '/dia' : e.tipoLocacao === 'SEMANAL' ? '/sem' : '/mês'}
+                        {e.tipoLocacao === 'HORA' ? '/h' : e.tipoLocacao === 'DIARIA' ? '/dia' : e.tipoLocacao === 'SEMANAL' ? '/sem' : '/mês'}
                       </span>
                     )}
                     {e.manutencoes?.length > 0 && (
