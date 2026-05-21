@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { Search, Plus, Building2, Phone, Mail, Pencil } from 'lucide-react'
+import { Search, Plus, Building2, Phone, Mail, Pencil, Trash2, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
@@ -23,6 +23,25 @@ export default function Clientes() {
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
+  const [erroAcao, setErroAcao] = useState('')
+  const [excluindoId, setExcluindoId] = useState('')
+
+  const recarregar = () => api.get('/clientes').then((r) => setClientes(r.data))
+
+  const excluir = async (c: any) => {
+    if (!confirm(`Excluir o cliente "${c.razaoSocial}"? Esta ação não pode ser desfeita.`)) return
+    if (!confirm('Confirma de novo? Se houver contratos, lançamentos ou locações, a exclusão será bloqueada.')) return
+    setErroAcao('')
+    setExcluindoId(c.id)
+    try {
+      await api.delete(`/clientes/${c.id}`)
+      recarregar()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao excluir cliente.')
+    } finally {
+      setExcluindoId('')
+    }
+  }
 
   useEffect(() => {
     api.get('/clientes').then((r) => setClientes(r.data)).finally(() => setLoading(false))
@@ -62,6 +81,12 @@ export default function Clientes() {
           style={{ border: '1px solid #E0DDD8', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         />
       </div>
+
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -108,13 +133,24 @@ export default function Clientes() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => navigate(`/clientes/${c.id}/editar`)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
-                  style={{ border: '1px solid #E0DDD8' }}
-                >
-                  <Pencil className="w-3 h-3" /> Editar
-                </button>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => navigate(`/clientes/${c.id}/editar`)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    <Pencil className="w-3 h-3" /> Editar
+                  </button>
+                  <button
+                    onClick={() => excluir(c)}
+                    disabled={excluindoId === c.id}
+                    title="Excluir cliente"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    style={{ border: '1px solid #FACACA' }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )
           })}

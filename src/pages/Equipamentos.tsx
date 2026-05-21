@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Package, Search, Plus, ChevronRight, MapPin, Wrench } from 'lucide-react'
+import { Package, Search, Plus, MapPin, Wrench, Pencil, Trash2, AlertCircle } from 'lucide-react'
 
 const tipoLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -24,6 +24,23 @@ export default function Equipamentos() {
   const [busca, setBusca] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [erroAcao, setErroAcao] = useState('')
+  const [excluindoId, setExcluindoId] = useState('')
+
+  const excluir = async (e: any) => {
+    if (!confirm(`Excluir o equipamento "${e.codigo} — ${e.modelo}"?`)) return
+    if (!confirm('Confirma de novo? Se houver histórico vinculado, a exclusão será bloqueada.')) return
+    setErroAcao('')
+    setExcluindoId(e.id)
+    try {
+      await api.delete(`/equipamentos/${e.id}`)
+      setEquipamentos((prev) => prev.filter((x) => x.id !== e.id))
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao excluir equipamento.')
+    } finally {
+      setExcluindoId('')
+    }
+  }
 
   useEffect(() => {
     const params: any = {}
@@ -93,6 +110,12 @@ export default function Equipamentos() {
         </select>
       </div>
 
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -146,7 +169,24 @@ export default function Equipamentos() {
                     )}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                <div className="flex gap-2 flex-shrink-0" onClick={(ev) => ev.stopPropagation()}>
+                  <button
+                    onClick={() => navigate(`/equipamentos/${e.id}/editar`)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    <Pencil className="w-3 h-3" /> Editar
+                  </button>
+                  <button
+                    onClick={() => excluir(e)}
+                    disabled={excluindoId === e.id}
+                    title="Excluir equipamento"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    style={{ border: '1px solid #FACACA' }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )
           })}
