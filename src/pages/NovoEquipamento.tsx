@@ -31,6 +31,8 @@ export default function NovoEquipamento() {
     ultimaManut: '',
     descricao: '',
     fotoUrl: '',
+    valorLocacao: '',
+    tipoLocacao: 'MENSAL',
     observacoes: '',
   })
 
@@ -55,6 +57,8 @@ export default function NovoEquipamento() {
           ultimaManut: e.ultimaManut ? new Date(e.ultimaManut).toISOString().slice(0, 10) : '',
           descricao: e.descricao || '',
           fotoUrl: e.fotoUrl || '',
+          valorLocacao: e.valorLocacao != null ? String(e.valorLocacao) : '',
+          tipoLocacao: e.tipoLocacao || 'MENSAL',
           observacoes: e.observacoes || '',
         })
       })
@@ -79,6 +83,8 @@ export default function NovoEquipamento() {
       capacidade: m.capacidade || f.capacidade,
       descricao: m.descricao || f.descricao,
       fotoUrl: m.fotoUrl || f.fotoUrl,
+      valorLocacao: m.valorLocacao != null && !f.valorLocacao ? String(m.valorLocacao) : f.valorLocacao,
+      tipoLocacao: m.tipoLocacao || f.tipoLocacao,
     }))
   }
 
@@ -116,6 +122,8 @@ export default function NovoEquipamento() {
         localizacao: form.localizacao || null,
         descricao: form.descricao || null,
         fotoUrl: form.fotoUrl || null,
+        valorLocacao: form.valorLocacao ? Number(form.valorLocacao) : null,
+        tipoLocacao: form.tipoLocacao,
         observacoes: form.observacoes || null,
       }
       if (isEdit) {
@@ -276,6 +284,51 @@ export default function NovoEquipamento() {
                 onFocus={onFocus}
                 onBlur={onBlur}
               />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Valor de locação</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+              <input
+                value={form.valorLocacao}
+                onChange={(e) => set('valorLocacao', e.target.value)}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
+                className={inputCls}
+                style={inputStyle}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de locação</label>
+              <div className="flex gap-2">
+                {[
+                  { v: 'DIARIA', l: 'Diária' },
+                  { v: 'SEMANAL', l: 'Semanal' },
+                  { v: 'MENSAL', l: 'Mensal' },
+                ].map(({ v, l }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => set('tipoLocacao', v)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                    style={{
+                      background: form.tipoLocacao === v ? '#FFAF06' : '#F5F0EB',
+                      color: form.tipoLocacao === v ? '#1A1C1E' : '#888',
+                      border: form.tipoLocacao === v ? '2px solid #FFAF06' : '2px solid transparent',
+                    }}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

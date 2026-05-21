@@ -126,6 +126,12 @@ export default function EquipamentoDetalhe() {
               <span>Ano {equip.ano}</span>
               {equip.localizacao && (<span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {equip.localizacao}</span>)}
               {equip.horimetro != null && <span>{equip.horimetro}h</span>}
+              {equip.valorLocacao != null && (
+                <span className="font-medium text-gray-700">
+                  R$ {Number(equip.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {equip.tipoLocacao === 'DIARIA' ? ' / dia' : equip.tipoLocacao === 'SEMANAL' ? ' / semana' : ' / mês'}
+                </span>
+              )}
             </div>
           </div>
         </div>

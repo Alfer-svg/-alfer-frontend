@@ -152,6 +152,8 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
     capacidade: modelo?.capacidade || '',
     descricao: modelo?.descricao || '',
     fotoUrl: modelo?.fotoUrl || '',
+    valorLocacao: modelo?.valorLocacao != null ? String(modelo.valorLocacao) : '',
+    tipoLocacao: modelo?.tipoLocacao || 'MENSAL',
   })
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
@@ -184,6 +186,8 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
         capacidade: form.capacidade || null,
         descricao: form.descricao || null,
         fotoUrl: form.fotoUrl || null,
+        valorLocacao: form.valorLocacao ? Number(form.valorLocacao) : null,
+        tipoLocacao: form.tipoLocacao,
       }
       if (isEdit) await api.put(`/modelos/${modelo.id}`, payload)
       else await api.post('/modelos', payload)
@@ -219,6 +223,20 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
           <div>
             <label className="block text-xs text-gray-500 mb-1">Capacidade padrão</label>
             <input value={form.capacidade} onChange={(e) => set('capacidade', e.target.value)} placeholder="Ex: 28t / 33m³" className={inputCls} style={inputStyle} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Valor locação (R$)</label>
+              <input value={form.valorLocacao} onChange={(e) => set('valorLocacao', e.target.value)} type="number" step="0.01" min="0" placeholder="0,00" className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Tipo</label>
+              <select value={form.tipoLocacao} onChange={(e) => set('tipoLocacao', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="DIARIA">Diária</option>
+                <option value="SEMANAL">Semanal</option>
+                <option value="MENSAL">Mensal</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Descrição padrão</label>
