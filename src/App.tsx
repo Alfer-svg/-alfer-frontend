@@ -24,6 +24,7 @@ import NovoOrcamento from './pages/NovoOrcamento'
 import OrcamentoDetalhe from './pages/OrcamentoDetalhe'
 import Pedidos from './pages/Pedidos'
 import PedidoDetalhe from './pages/PedidoDetalhe'
+import Mapa from './pages/Mapa'
 import NovoEquipamento from './pages/NovoEquipamento'
 import NovoCaminhao from './pages/NovoCaminhao'
 import NovaLocacaoCacamba from './pages/NovaLocacaoCacamba'
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="modelos/novo" element={<NovoModelo />} />
         <Route path="modelos/:id/editar" element={<NovoModelo />} />
         <Route path="agenda" element={<Agenda />} />
+        <Route path="mapa" element={<Mapa />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

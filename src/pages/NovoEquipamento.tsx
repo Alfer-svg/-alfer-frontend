@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X, Plus, Trash2, MapPin } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
+import { geocodificarEndereco } from '../utils/geocoding'
 
 const tipos = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -31,9 +32,27 @@ export default function NovoEquipamento() {
     ultimaManut: '',
     descricao: '',
     fotoUrl: '',
+    latitude: '',
+    longitude: '',
     observacoes: '',
   })
   const [precos, setPrecos] = useState<{ tipoLocacao: string; valor: string }[]>([])
+  const [geocoding, setGeocoding] = useState(false)
+  const [erroGeocoding, setErroGeocoding] = useState('')
+
+  const buscarCoords = async () => {
+    if (!form.localizacao) return setErroGeocoding('Digite o endereço primeiro.')
+    setErroGeocoding('')
+    setGeocoding(true)
+    try {
+      const c = await geocodificarEndereco(form.localizacao)
+      setForm((f) => ({ ...f, latitude: String(c.latitude), longitude: String(c.longitude) }))
+    } catch (err: any) {
+      setErroGeocoding(err.message || 'Erro ao buscar coordenadas.')
+    } finally {
+      setGeocoding(false)
+    }
+  }
 
   const [modelosDisp, setModelosDisp] = useState<any[]>([])
   const [modeloSelecionado, setModeloSelecionado] = useState<string>('')
@@ -56,6 +75,8 @@ export default function NovoEquipamento() {
           ultimaManut: e.ultimaManut ? new Date(e.ultimaManut).toISOString().slice(0, 10) : '',
           descricao: e.descricao || '',
           fotoUrl: e.fotoUrl || '',
+          latitude: e.latitude != null ? String(e.latitude) : '',
+          longitude: e.longitude != null ? String(e.longitude) : '',
           observacoes: e.observacoes || '',
         })
         if (Array.isArray(e.precos) && e.precos.length) {
@@ -135,6 +156,8 @@ export default function NovoEquipamento() {
         proxManutHs: form.proxManutHs ? Number(form.proxManutHs) : null,
         ultimaManut: form.ultimaManut || null,
         localizacao: form.localizacao || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
         descricao: form.descricao || null,
         fotoUrl: form.fotoUrl || null,
         observacoes: form.observacoes || null,
@@ -289,15 +312,36 @@ export default function NovoEquipamento() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Localização atual</label>
-              <input
-                value={form.localizacao}
-                onChange={(e) => set('localizacao', e.target.value)}
-                placeholder="Ex: Pátio Recife, Cliente XYZ..."
-                className={inputCls}
-                style={inputStyle}
-                onFocus={onFocus}
-                onBlur={onBlur}
-              />
+              <div className="flex gap-2">
+                <input
+                  value={form.localizacao}
+                  onChange={(e) => set('localizacao', e.target.value)}
+                  placeholder="Ex: Av. Conde da Boa Vista, 1500, Recife-PE"
+                  className={inputCls}
+                  style={inputStyle}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+                <button
+                  type="button"
+                  onClick={buscarCoords}
+                  disabled={geocoding || !form.localizacao}
+                  title="Buscar latitude/longitude pelo endereço"
+                  className="flex items-center gap-1 px-3 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#FFAF06' }}
+                >
+                  {geocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                  Coords
+                </button>
+              </div>
+              {erroGeocoding && (
+                <div className="mt-1 text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {erroGeocoding}</div>
+              )}
+              {form.latitude && form.longitude && (
+                <div className="mt-1 text-xs text-green-700">
+                  ✓ Coords: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} — vai aparecer no mapa
+                </div>
+              )}
             </div>
           </div>
         </div>

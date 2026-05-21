@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, MapPin } from 'lucide-react'
+import { geocodificarEndereco } from '../utils/geocoding'
 
 const tipos = [
   { v: 'MUNCK', l: 'Munck' },
@@ -26,8 +27,27 @@ export default function NovoCaminhao() {
     kmAtual: '0',
     proxManutKm: '',
     status: 'DISPONIVEL',
+    localizacao: '',
+    latitude: '',
+    longitude: '',
     observacoes: '',
   })
+  const [geocoding, setGeocoding] = useState(false)
+  const [erroGeocoding, setErroGeocoding] = useState('')
+
+  const buscarCoords = async () => {
+    if (!form.localizacao) return setErroGeocoding('Digite o endereço primeiro.')
+    setErroGeocoding('')
+    setGeocoding(true)
+    try {
+      const c = await geocodificarEndereco(form.localizacao)
+      setForm((f) => ({ ...f, latitude: String(c.latitude), longitude: String(c.longitude) }))
+    } catch (err: any) {
+      setErroGeocoding(err.message || 'Erro ao buscar coordenadas.')
+    } finally {
+      setGeocoding(false)
+    }
+  }
 
   useEffect(() => {
     if (!isEdit) return
@@ -44,6 +64,9 @@ export default function NovoCaminhao() {
           kmAtual: String(c.kmAtual ?? 0),
           proxManutKm: c.proxManutKm != null ? String(c.proxManutKm) : '',
           status: c.status || 'DISPONIVEL',
+          localizacao: c.localizacao || '',
+          latitude: c.latitude != null ? String(c.latitude) : '',
+          longitude: c.longitude != null ? String(c.longitude) : '',
           observacoes: c.observacoes || '',
         })
       })
@@ -65,6 +88,9 @@ export default function NovoCaminhao() {
         ano: Number(form.ano),
         kmAtual: Number(form.kmAtual || 0),
         proxManutKm: form.proxManutKm ? Number(form.proxManutKm) : null,
+        localizacao: form.localizacao || null,
+        latitude: form.latitude ? Number(form.latitude) : null,
+        longitude: form.longitude ? Number(form.longitude) : null,
         observacoes: form.observacoes || null,
       }
       if (isEdit) {
@@ -156,6 +182,40 @@ export default function NovoCaminhao() {
               <input value={form.proxManutKm} onChange={(e) => set('proxManutKm', e.target.value)} type="number" min="0" placeholder="Opcional" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Localização atual</h2>
+          <div className="flex gap-2">
+            <input
+              value={form.localizacao}
+              onChange={(e) => set('localizacao', e.target.value)}
+              placeholder="Ex: Av. Conde da Boa Vista, 1500, Recife-PE"
+              className={inputCls}
+              style={inputStyle}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+            <button
+              type="button"
+              onClick={buscarCoords}
+              disabled={geocoding || !form.localizacao}
+              title="Buscar latitude/longitude pelo endereço"
+              className="flex items-center gap-1 px-3 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#FFAF06' }}
+            >
+              {geocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+              Coords
+            </button>
+          </div>
+          {erroGeocoding && (
+            <div className="mt-1 text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {erroGeocoding}</div>
+          )}
+          {form.latitude && form.longitude && (
+            <div className="mt-1 text-xs text-green-700">
+              ✓ Coords: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)} — vai aparecer no mapa
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

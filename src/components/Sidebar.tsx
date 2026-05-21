@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -40,6 +40,7 @@ const nav: NavItem[] = [
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
   { to: '/motoristas', icon: User, label: 'Motoristas' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
+  { to: '/mapa', icon: Map, label: 'Mapa' },
 ]
 
 export default function Sidebar() {
