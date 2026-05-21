@@ -1,12 +1,15 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
-import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle } from 'lucide-react'
+import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power } from 'lucide-react'
 
 export default function Motoristas() {
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroAtivo, setFiltroAtivo] = useState('true')
   const [showNovo, setShowNovo] = useState(false)
+
+  const [acaoErro, setAcaoErro] = useState('')
+  const [acaoLoadingId, setAcaoLoadingId] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -15,6 +18,34 @@ export default function Motoristas() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroAtivo])
+
+  const alternarAtivo = async (m: any) => {
+    setAcaoErro('')
+    setAcaoLoadingId(m.id)
+    try {
+      await api.put(`/motoristas/${m.id}`, { ativo: !m.ativo })
+      load()
+    } catch (err: any) {
+      setAcaoErro(err.response?.data?.message || 'Erro ao alterar status.')
+    } finally {
+      setAcaoLoadingId('')
+    }
+  }
+
+  const excluir = async (m: any) => {
+    if (!confirm(`Excluir DEFINITIVAMENTE o motorista "${m.nome}"? Esta ação não pode ser desfeita.`)) return
+    if (!confirm('Confirma de novo? Se houver histórico vinculado, a exclusão será bloqueada.')) return
+    setAcaoErro('')
+    setAcaoLoadingId(m.id)
+    try {
+      await api.delete(`/motoristas/${m.id}`)
+      load()
+    } catch (err: any) {
+      setAcaoErro(err.response?.data?.message || 'Erro ao excluir motorista.')
+    } finally {
+      setAcaoLoadingId('')
+    }
+  }
 
   return (
     <div className="p-8 animate-fade-in">
@@ -45,6 +76,12 @@ export default function Motoristas() {
           <option value="">Todos</option>
         </select>
       </div>
+
+      {acaoErro && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {acaoErro}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -77,6 +114,27 @@ export default function Motoristas() {
                     {m.cnh && (<span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> CNH {m.cnh}</span>)}
                     {caminhao && <span>Caminhão: {caminhao.codigo} ({caminhao.placa})</span>}
                   </div>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => alternarAtivo(m)}
+                    disabled={acaoLoadingId === m.id}
+                    title={m.ativo ? 'Inativar' : 'Reativar'}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                    style={{ background: m.ativo ? '#F1EFE8' : '#EAF3DE', color: m.ativo ? '#888' : '#27500A' }}
+                  >
+                    {m.ativo ? <PowerOff className="w-3 h-3" /> : <Power className="w-3 h-3" />}
+                    {m.ativo ? 'Inativar' : 'Reativar'}
+                  </button>
+                  <button
+                    onClick={() => excluir(m)}
+                    disabled={acaoLoadingId === m.id}
+                    title="Excluir permanentemente"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    style={{ border: '1px solid #FACACA' }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             )
