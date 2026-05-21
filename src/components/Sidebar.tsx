@@ -17,7 +17,7 @@ const nav: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   {
-    label: 'Contratos',
+    label: 'Comercial',
     icon: FileSignature,
     basePath: '/contratos',
     children: [
