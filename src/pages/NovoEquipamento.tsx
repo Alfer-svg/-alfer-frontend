@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X } from 'lucide-react'
+
+const MAX_FOTO_BYTES = 2 * 1024 * 1024 // 2MB
 
 const tipos = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -28,6 +30,8 @@ export default function NovoEquipamento() {
     horimetro: '',
     proxManutHs: '',
     ultimaManut: '',
+    descricao: '',
+    fotoUrl: '',
     observacoes: '',
   })
 
@@ -47,6 +51,8 @@ export default function NovoEquipamento() {
           horimetro: e.horimetro != null ? String(e.horimetro) : '',
           proxManutHs: e.proxManutHs != null ? String(e.proxManutHs) : '',
           ultimaManut: e.ultimaManut ? new Date(e.ultimaManut).toISOString().slice(0, 10) : '',
+          descricao: e.descricao || '',
+          fotoUrl: e.fotoUrl || '',
           observacoes: e.observacoes || '',
         })
       })
@@ -54,6 +60,17 @@ export default function NovoEquipamento() {
   }, [id, isEdit])
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  const handleFoto = (file: File | undefined) => {
+    setErro('')
+    if (!file) return
+    if (!file.type.startsWith('image/')) return setErro('O arquivo precisa ser uma imagem.')
+    if (file.size > MAX_FOTO_BYTES) return setErro(`Imagem muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo: 2MB.`)
+    const reader = new FileReader()
+    reader.onload = () => set('fotoUrl', reader.result as string)
+    reader.onerror = () => setErro('Erro ao ler a imagem.')
+    reader.readAsDataURL(file)
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -68,6 +85,8 @@ export default function NovoEquipamento() {
         proxManutHs: form.proxManutHs ? Number(form.proxManutHs) : null,
         ultimaManut: form.ultimaManut || null,
         localizacao: form.localizacao || null,
+        descricao: form.descricao || null,
+        fotoUrl: form.fotoUrl || null,
         observacoes: form.observacoes || null,
       }
       if (isEdit) {
@@ -203,6 +222,51 @@ export default function NovoEquipamento() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Descrição</h2>
+          <textarea
+            value={form.descricao}
+            onChange={(e) => set('descricao', e.target.value)}
+            placeholder="Descreva o equipamento (estado de conservação, acessórios, particularidades...)"
+            rows={4}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+            style={inputStyle}
+          />
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Foto</h2>
+          {form.fotoUrl ? (
+            <div className="relative inline-block">
+              <img src={form.fotoUrl} alt="Foto do equipamento" className="rounded-xl max-h-64 object-contain" style={{ border: '1px solid #E0DDD8' }} />
+              <button
+                type="button"
+                onClick={() => set('fotoUrl', '')}
+                className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white shadow flex items-center justify-center text-red-600 hover:bg-red-50"
+                style={{ border: '1px solid #FACACA' }}
+                title="Remover foto"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label
+              className="flex flex-col items-center justify-center gap-2 cursor-pointer rounded-xl py-10 px-4 text-gray-500 hover:bg-gray-50 transition-all"
+              style={{ border: '2px dashed #E0DDD8' }}
+            >
+              <ImagePlus className="w-8 h-8" style={{ color: '#FFAF06' }} />
+              <span className="text-sm font-medium">Clique para enviar uma foto</span>
+              <span className="text-xs text-gray-400">JPG ou PNG • até 2MB</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFoto(e.target.files?.[0])}
+              />
+            </label>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

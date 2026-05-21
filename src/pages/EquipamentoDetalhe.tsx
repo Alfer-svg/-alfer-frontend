@@ -104,6 +104,11 @@ export default function EquipamentoDetalhe() {
       </div>
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        {equip.fotoUrl && (
+          <div className="mb-5">
+            <img src={equip.fotoUrl} alt={equip.codigo} className="rounded-xl w-full max-h-80 object-contain" style={{ background: '#F9F7F4' }} />
+          </div>
+        )}
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#FEF3E2' }}>
             <Package className="w-7 h-7" style={{ color: '#FFAF06' }} />
@@ -143,6 +148,13 @@ export default function EquipamentoDetalhe() {
           ))}
         </div>
       </div>
+
+      {equip.descricao && (
+        <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-3">Descrição</h2>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{equip.descricao}</p>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-center justify-between mb-4">
