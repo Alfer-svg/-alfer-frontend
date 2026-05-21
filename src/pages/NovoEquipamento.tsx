@@ -35,6 +35,9 @@ export default function NovoEquipamento() {
     observacoes: '',
   })
 
+  const [modelosDisp, setModelosDisp] = useState<any[]>([])
+  const [modeloSelecionado, setModeloSelecionado] = useState<string>('')
+
   useEffect(() => {
     if (!isEdit) return
     api.get(`/equipamentos/${id}`)
@@ -58,6 +61,27 @@ export default function NovoEquipamento() {
       })
       .finally(() => setCarregando(false))
   }, [id, isEdit])
+
+  useEffect(() => {
+    api.get('/modelos', { params: { tipo: form.tipo } })
+      .then((r) => setModelosDisp(r.data))
+      .catch(() => setModelosDisp([]))
+    if (!isEdit) setModeloSelecionado('')
+  }, [form.tipo, isEdit])
+
+  const aplicarModelo = (modeloId: string) => {
+    setModeloSelecionado(modeloId)
+    if (!modeloId) return
+    const m = modelosDisp.find((x) => x.id === modeloId)
+    if (!m) return
+    setForm((f) => ({
+      ...f,
+      modelo: m.nome,
+      capacidade: m.capacidade || f.capacidade,
+      descricao: m.descricao || f.descricao,
+      fotoUrl: m.fotoUrl || f.fotoUrl,
+    }))
+  }
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -155,7 +179,34 @@ export default function NovoEquipamento() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Modelo cadastrado {modelosDisp.length === 0 && (
+                  <span className="text-xs font-normal text-gray-400">
+                    — nenhum modelo deste tipo.{' '}
+                    <button type="button" onClick={() => navigate('/modelos')} className="font-medium" style={{ color: '#FFAF06' }}>
+                      Cadastre um modelo
+                    </button>
+                  </span>
+                )}
+              </label>
+              <select
+                value={modeloSelecionado}
+                onChange={(e) => aplicarModelo(e.target.value)}
+                disabled={modelosDisp.length === 0}
+                className={inputCls}
+                style={inputStyle}
+              >
+                <option value="">— Selecione um modelo ou digite abaixo —</option>
+                {modelosDisp.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}{m.capacidade ? ` (${m.capacidade})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Selecionar um modelo preenche capacidade, descrição e foto automaticamente.</p>
+            </div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Modelo *</label>
               <input
                 value={form.modelo}

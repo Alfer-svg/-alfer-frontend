@@ -1,17 +1,32 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
-const nav = [
+type SimpleItem = { to: string; icon: any; label: string }
+type GroupItem = { label: string; icon: any; basePath: string; children: { to: string; label: string }[] }
+type NavItem = SimpleItem | GroupItem
+
+const isGroup = (i: NavItem): i is GroupItem => 'children' in i
+
+const nav: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/contratos', icon: FileText, label: 'Contratos' },
   { to: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-  { to: '/equipamentos', icon: Package, label: 'Equipamentos' },
+  {
+    label: 'Equipamentos',
+    icon: Package,
+    basePath: '/equipamentos',
+    children: [
+      { to: '/equipamentos', label: 'Cadastrar equipamentos' },
+      { to: '/modelos', label: 'Cadastrar modelos' },
+    ],
+  },
   { to: '/caminhoes', icon: Truck, label: 'Caminhões' },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
   { to: '/motoristas', icon: User, label: 'Motoristas' },
@@ -21,6 +36,15 @@ const nav = [
 export default function Sidebar() {
   const { usuario, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const initialOpen: Record<string, boolean> = {}
+  nav.forEach((i) => {
+    if (isGroup(i)) {
+      initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to)) || location.pathname.startsWith(i.basePath) || location.pathname.startsWith('/modelos')
+    }
+  })
+  const [open, setOpen] = useState(initialOpen)
 
   const handleLogout = () => {
     logout()
@@ -34,21 +58,62 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
         <div className="px-3 space-y-0.5">
-          {nav.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                }`
-              }
-              style={({ isActive }) => isActive ? { background: '#FFAF06' } : {}}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
-            </NavLink>
-          ))}
+          {nav.map((item) => {
+            if (isGroup(item)) {
+              const Icon = item.icon
+              const isOpen = !!open[item.label]
+              const childActive = item.children.some((c) => location.pathname.startsWith(c.to))
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => setOpen((o) => ({ ...o, [item.label]: !o[item.label] }))}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      childActive ? 'text-white bg-white/5' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+                  {isOpen && (
+                    <div className="mt-0.5 ml-2 pl-3 space-y-0.5" style={{ borderLeft: '1px solid #2A2C2E' }}>
+                      {item.children.map((c) => (
+                        <NavLink
+                          key={c.to}
+                          to={c.to}
+                          end
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                              isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                            }`
+                          }
+                          style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
+                        >
+                          {c.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            const { to, icon: Icon, label } = item
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`
+                }
+                style={({ isActive }) => isActive ? { background: '#FFAF06' } : {}}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {label}
+              </NavLink>
+            )
+          })}
         </div>
       </nav>
       <div className="p-4 border-t" style={{ borderColor: '#2A2C2E' }}>
