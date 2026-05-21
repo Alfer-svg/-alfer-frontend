@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, Plus, Trash2, Search, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
+import { buscarCep, limparCep, formatarCep } from '../utils/cep'
 
 interface Contato {
   nome: string; cargo: string; telefone: string; email: string; principal: boolean
@@ -121,6 +122,47 @@ export default function NovoCliente() {
     setSucessoCnpj(false)
     const formatted = tipoPessoa === 'PJ' ? formatarCnpj(v) : v
     set('cnpj', formatted)
+  }
+
+  const [cepBuscando, setCepBuscando] = useState<Record<number, boolean>>({})
+  const [cepErro, setCepErro] = useState<Record<number, string>>({})
+
+  const handleCepChange = (i: number, v: string) => {
+    const formatted = formatarCep(v)
+    setEndereco(i, 'cep', formatted)
+    setCepErro((m) => ({ ...m, [i]: '' }))
+    // Auto-buscar quando completar 8 dígitos
+    if (limparCep(formatted).length === 8) {
+      void buscarCepEndereco(i, formatted)
+    }
+  }
+
+  const buscarCepEndereco = async (i: number, cep: string) => {
+    if (limparCep(cep).length !== 8) {
+      setCepErro((m) => ({ ...m, [i]: 'CEP precisa ter 8 dígitos.' }))
+      return
+    }
+    setCepBuscando((m) => ({ ...m, [i]: true }))
+    setCepErro((m) => ({ ...m, [i]: '' }))
+    try {
+      const d = await buscarCep(cep)
+      setEnderecos((es) => es.map((e, idx) => {
+        if (idx !== i) return e
+        return {
+          ...e,
+          cep: d.cep,
+          logradouro: e.logradouro || d.logradouro,
+          complemento: e.complemento || d.complemento,
+          bairro: e.bairro || d.bairro,
+          cidade: e.cidade || d.cidade,
+          estado: e.estado || d.estado || 'PE',
+        }
+      }))
+    } catch (err: any) {
+      setCepErro((m) => ({ ...m, [i]: err.message || 'Erro ao buscar CEP.' }))
+    } finally {
+      setCepBuscando((m) => ({ ...m, [i]: false }))
+    }
   }
   const setContato = (i: number, k: string, v: string) => setContatos(cs => cs.map((c, idx) => idx === i ? { ...c, [k]: v } : c))
   const setEndereco = (i: number, k: string, v: string) => setEnderecos(es => es.map((e, idx) => idx === i ? { ...e, [k]: v } : e))
@@ -336,7 +378,26 @@ export default function NovoCliente() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">CEP</label>
-                    <input value={e.cep} onChange={ev => setEndereco(i, 'cep', ev.target.value)} placeholder="00000-000" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                    <div className="relative">
+                      <input
+                        value={e.cep}
+                        onChange={ev => handleCepChange(i, ev.target.value)}
+                        placeholder="00000-000"
+                        maxLength={9}
+                        className={inputCls}
+                        style={inputStyle}
+                        onFocus={onFocus}
+                        onBlur={onBlur}
+                      />
+                      {cepBuscando[i] && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin" style={{ color: '#FFAF06' }} />
+                      )}
+                    </div>
+                    {cepErro[i] && (
+                      <div className="mt-1 text-xs text-red-700 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> {cepErro[i]}
+                      </div>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs text-gray-500 mb-1">Logradouro *</label>
