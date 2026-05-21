@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -16,7 +16,16 @@ const isGroup = (i: NavItem): i is GroupItem => 'children' in i
 const nav: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/contratos', icon: FileText, label: 'Contratos' },
+  {
+    label: 'Contratos',
+    icon: FileSignature,
+    basePath: '/contratos',
+    children: [
+      { to: '/orcamentos', label: 'Orçamentos' },
+      { to: '/pedidos', label: 'Pedidos' },
+      { to: '/contratos', label: 'Contratos' },
+    ],
+  },
   { to: '/financeiro', icon: DollarSign, label: 'Financeiro' },
   {
     label: 'Equipamentos',
@@ -41,7 +50,10 @@ export default function Sidebar() {
   const initialOpen: Record<string, boolean> = {}
   nav.forEach((i) => {
     if (isGroup(i)) {
-      initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to)) || location.pathname.startsWith(i.basePath) || location.pathname.startsWith('/modelos')
+      const extras = i.label === 'Equipamentos' ? ['/modelos'] : []
+      initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
+        || location.pathname.startsWith(i.basePath)
+        || extras.some((e) => location.pathname.startsWith(e))
     }
   })
   const [open, setOpen] = useState(initialOpen)

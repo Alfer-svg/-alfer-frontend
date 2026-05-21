@@ -19,6 +19,11 @@ import NovoModelo from './pages/NovoModelo'
 import NovoCliente from './pages/NovoCliente'
 import NovoContrato from './pages/NovoContrato'
 import EditarContrato from './pages/EditarContrato'
+import Orcamentos from './pages/Orcamentos'
+import NovoOrcamento from './pages/NovoOrcamento'
+import OrcamentoDetalhe from './pages/OrcamentoDetalhe'
+import Pedidos from './pages/Pedidos'
+import PedidoDetalhe from './pages/PedidoDetalhe'
 import NovoEquipamento from './pages/NovoEquipamento'
 import NovoCaminhao from './pages/NovoCaminhao'
 import NovaLocacaoCacamba from './pages/NovaLocacaoCacamba'
@@ -49,6 +54,12 @@ function AppRoutes() {
         <Route path="contratos/novo" element={<NovoContrato />} />
         <Route path="contratos/:id/editar" element={<EditarContrato />} />
         <Route path="contratos/:id" element={<ContratoDetalhe />} />
+        <Route path="orcamentos" element={<Orcamentos />} />
+        <Route path="orcamentos/novo" element={<NovoOrcamento />} />
+        <Route path="orcamentos/:id/editar" element={<NovoOrcamento />} />
+        <Route path="orcamentos/:id" element={<OrcamentoDetalhe />} />
+        <Route path="pedidos" element={<Pedidos />} />
+        <Route path="pedidos/:id" element={<PedidoDetalhe />} />
         <Route path="financeiro" element={<Financeiro />} />
         <Route path="equipamentos" element={<Equipamentos />} />
         <Route path="equipamentos/novo" element={<NovoEquipamento />} />
