@@ -1,7 +1,7 @@
-import { useEffect, useState, FormEvent } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Layers3, Plus, Pencil, Trash2, X, Loader2, AlertCircle, ImagePlus, DollarSign } from 'lucide-react'
-import { comprimirImagem } from '../utils/imagem'
+import { Layers3, Plus, Pencil, Trash2, AlertCircle } from 'lucide-react'
 
 const tipos = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -11,13 +11,13 @@ const tipos = [
 ]
 
 const tipoLabel = (v: string) => tipos.find((t) => t.v === v)?.l || v
+const unidade = (t: string) => (t === 'HORA' ? '/h' : t === 'DIARIA' ? '/dia' : t === 'SEMANAL' ? '/sem' : '/mês')
 
 export default function Modelos() {
+  const navigate = useNavigate()
   const [modelos, setModelos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroTipo, setFiltroTipo] = useState('')
-  const [showNovo, setShowNovo] = useState(false)
-  const [editando, setEditando] = useState<any>(null)
   const [erroAcao, setErroAcao] = useState('')
   const [excluindoId, setExcluindoId] = useState('')
 
@@ -53,7 +53,7 @@ export default function Modelos() {
           </p>
         </div>
         <button
-          onClick={() => setShowNovo(true)}
+          onClick={() => navigate('/modelos/novo')}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
           style={{ background: '#FFAF06' }}
         >
@@ -88,7 +88,7 @@ export default function Modelos() {
         <div className="text-center py-16 text-gray-400">
           <Layers3 className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>Nenhum modelo cadastrado</p>
-          <p className="text-xs mt-1">Cadastre modelos pra reutilizar capacidade, descrição e foto ao criar equipamentos.</p>
+          <p className="text-xs mt-1">Cadastre modelos pra reutilizar capacidade, preços, descrição e foto ao criar equipamentos.</p>
         </div>
       ) : (
         <div className="space-y-3 stagger">
@@ -110,12 +110,22 @@ export default function Modelos() {
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                   {m.capacidade && <span>{m.capacidade}</span>}
-                  {m.descricao && <span className="truncate max-w-md">{m.descricao}</span>}
+                  {Array.isArray(m.precos) && m.precos.length > 0
+                    ? m.precos.map((p: any) => (
+                        <span key={p.id || p.tipoLocacao} className="font-medium text-gray-700">
+                          R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{unidade(p.tipoLocacao)}
+                        </span>
+                      ))
+                    : m.valorLocacao != null && (
+                        <span className="font-medium text-gray-700">
+                          R$ {Number(m.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{unidade(m.tipoLocacao)}
+                        </span>
+                      )}
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <button
-                  onClick={() => setEditando(m)}
+                  onClick={() => navigate(`/modelos/${m.id}/editar`)}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
                   style={{ border: '1px solid #E0DDD8' }}
                 >
@@ -135,204 +145,6 @@ export default function Modelos() {
           ))}
         </div>
       )}
-
-      {showNovo && <ModeloModal onClose={() => setShowNovo(false)} onSuccess={() => { setShowNovo(false); load() }} />}
-      {editando && <ModeloModal modelo={editando} onClose={() => setEditando(null)} onSuccess={() => { setEditando(null); load() }} />}
-    </div>
-  )
-}
-
-function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: () => void; onSuccess: () => void }) {
-  const isEdit = !!modelo
-  const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
-  const [form, setForm] = useState({
-    tipo: modelo?.tipo || 'CONTAINER_SECO',
-    nome: modelo?.nome || '',
-    capacidade: modelo?.capacidade || '',
-    descricao: modelo?.descricao || '',
-    fotoUrl: modelo?.fotoUrl || '',
-  })
-  const [precos, setPrecos] = useState<{ tipoLocacao: string; valor: string }[]>(
-    Array.isArray(modelo?.precos) && modelo.precos.length
-      ? modelo.precos.map((p: any) => ({ tipoLocacao: p.tipoLocacao, valor: String(p.valor) }))
-      : modelo?.valorLocacao != null
-        ? [{ tipoLocacao: modelo.tipoLocacao || 'MENSAL', valor: String(modelo.valorLocacao) }]
-        : []
-  )
-
-  const addPreco = () => {
-    const usados = new Set(precos.map((p) => p.tipoLocacao))
-    const disponivel = ['HORA', 'DIARIA', 'SEMANAL', 'MENSAL'].find((t) => !usados.has(t)) || 'MENSAL'
-    setPrecos((ps) => [...ps, { tipoLocacao: disponivel, valor: '' }])
-  }
-  const setPreco = (i: number, k: 'tipoLocacao' | 'valor', v: string) =>
-    setPrecos((ps) => ps.map((p, idx) => (idx === i ? { ...p, [k]: v } : p)))
-  const removePreco = (i: number) => setPrecos((ps) => ps.filter((_, idx) => idx !== i))
-
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
-
-  const [processandoFoto, setProcessandoFoto] = useState(false)
-
-  const handleFoto = async (file: File | undefined) => {
-    setErro('')
-    if (!file) return
-    setProcessandoFoto(true)
-    try {
-      const dataUrl = await comprimirImagem(file)
-      set('fotoUrl', dataUrl)
-    } catch (err: any) {
-      setErro(err?.message || 'Erro ao processar a imagem.')
-    } finally {
-      setProcessandoFoto(false)
-    }
-  }
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setErro('')
-    if (!form.nome.trim()) return setErro('Nome é obrigatório.')
-    setLoading(true)
-    try {
-      const payload = {
-        tipo: form.tipo,
-        nome: form.nome.trim(),
-        capacidade: form.capacidade || null,
-        descricao: form.descricao || null,
-        fotoUrl: form.fotoUrl || null,
-        precos: precos.filter((p) => p.valor !== '').map((p) => ({ tipoLocacao: p.tipoLocacao, valor: Number(p.valor) })),
-      }
-      if (isEdit) await api.put(`/modelos/${modelo.id}`, payload)
-      else await api.post('/modelos', payload)
-      onSuccess()
-    } catch (err: any) {
-      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} modelo.`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
-  const inputStyle = { border: '1px solid #E0DDD8' }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar modelo' : 'Novo modelo'}</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
-        </div>
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Tipo *</label>
-            <select value={form.tipo} onChange={(e) => set('tipo', e.target.value)} className={inputCls} style={inputStyle}>
-              {tipos.map((t) => (<option key={t.v} value={t.v}>{t.l}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Nome do modelo *</label>
-            <input value={form.nome} onChange={(e) => set('nome', e.target.value)} required placeholder="Ex: 20ft Dry Standard" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Capacidade padrão</label>
-            <input value={form.capacidade} onChange={(e) => set('capacidade', e.target.value)} placeholder="Ex: 28t / 33m³" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-gray-500 flex items-center gap-1">
-                <DollarSign className="w-3 h-3" /> Tabela de preços padrão
-              </label>
-              <button
-                type="button"
-                onClick={addPreco}
-                disabled={precos.length >= 4}
-                className="text-xs font-medium px-2 py-1 rounded-lg disabled:opacity-50"
-                style={{ color: '#FFAF06', background: '#FFF8E6' }}
-              >
-                + Adicionar
-              </button>
-            </div>
-            {precos.length === 0 ? (
-              <p className="text-xs text-gray-400 py-2">Sem preços. Os equipamentos deste modelo herdam estes valores.</p>
-            ) : (
-              <div className="space-y-2">
-                {precos.map((p, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <select
-                      value={p.tipoLocacao}
-                      onChange={(e) => setPreco(i, 'tipoLocacao', e.target.value)}
-                      className="px-2 py-2 rounded-lg text-sm outline-none bg-white"
-                      style={{ border: '1px solid #E0DDD8', minWidth: '95px' }}
-                    >
-                      <option value="HORA">Hora</option>
-                      <option value="DIARIA">Diária</option>
-                      <option value="SEMANAL">Semanal</option>
-                      <option value="MENSAL">Mensal</option>
-                    </select>
-                    <span className="text-sm text-gray-500">R$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={p.valor}
-                      onChange={(e) => setPreco(i, 'valor', e.target.value)}
-                      placeholder="0,00"
-                      className="flex-1 px-3 py-2 rounded-lg text-sm outline-none bg-white"
-                      style={{ border: '1px solid #E0DDD8' }}
-                    />
-                    <button type="button" onClick={() => removePreco(i)} className="text-red-400 hover:text-red-600 p-1">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Descrição padrão</label>
-            <textarea value={form.descricao} onChange={(e) => set('descricao', e.target.value)} rows={3} placeholder="Aparece pré-preenchida ao criar equipamentos deste modelo" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none" style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Foto padrão</label>
-            {form.fotoUrl ? (
-              <div className="relative inline-block">
-                <img src={form.fotoUrl} alt="Foto do modelo" className="rounded-xl max-h-40 object-contain" style={{ border: '1px solid #E0DDD8' }} />
-                <button
-                  type="button"
-                  onClick={() => set('fotoUrl', '')}
-                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center text-red-600 hover:bg-red-50"
-                  style={{ border: '1px solid #FACACA' }}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 cursor-pointer rounded-xl py-3 px-4 text-gray-500 hover:bg-gray-50 transition-all text-sm" style={{ border: '2px dashed #E0DDD8' }}>
-                {processandoFoto ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFAF06' }} />
-                    <span>Processando...</span>
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus className="w-4 h-4" style={{ color: '#FFAF06' }} />
-                    <span>Enviar foto (comprimida automaticamente)</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" className="hidden" disabled={processandoFoto} onChange={(e) => handleFoto(e.target.files?.[0])} />
-              </label>
-            )}
-          </div>
-          {erro && (<div className="text-xs text-red-700 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> {erro}</div>)}
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
-            <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isEdit ? 'Salvar alterações' : 'Cadastrar modelo'}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   )
 }

@@ -15,6 +15,7 @@ import Cacambas from './pages/Cacambas'
 import Agenda from './pages/Agenda'
 import Motoristas from './pages/Motoristas'
 import Modelos from './pages/Modelos'
+import NovoModelo from './pages/NovoModelo'
 import NovoCliente from './pages/NovoCliente'
 import NovoContrato from './pages/NovoContrato'
 import EditarContrato from './pages/EditarContrato'
@@ -61,6 +62,8 @@ function AppRoutes() {
         <Route path="cacambas/nova" element={<NovaLocacaoCacamba />} />
         <Route path="motoristas" element={<Motoristas />} />
         <Route path="modelos" element={<Modelos />} />
+        <Route path="modelos/novo" element={<NovoModelo />} />
+        <Route path="modelos/:id/editar" element={<NovoModelo />} />
         <Route path="agenda" element={<Agenda />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
