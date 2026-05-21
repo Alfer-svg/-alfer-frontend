@@ -4,37 +4,42 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '../services/api'
-import { Map as MapIcon, Package, Truck, AlertCircle } from 'lucide-react'
+import { Map as MapIcon, AlertCircle } from 'lucide-react'
 
-// Cria ícone customizado (SVG inline) - evita problema do default broken do Leaflet com bundlers
-const makeIcon = (color: string, letter: string) =>
+// Cria ícone customizado com emoji - evita problema do default broken do Leaflet
+const makeIcon = (color: string, emoji: string) =>
   L.divIcon({
     className: 'custom-marker',
     html: `
       <div style="
         background: ${color};
-        width: 32px; height: 32px;
+        width: 40px; height: 40px;
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
-        border: 2px solid white;
+        border: 3px solid white;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         display: flex; align-items: center; justify-content: center;
       ">
         <span style="
           transform: rotate(45deg);
-          color: white;
-          font-weight: bold;
-          font-size: 13px;
-        ">${letter}</span>
+          font-size: 20px;
+          line-height: 1;
+        ">${emoji}</span>
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
   })
 
-const iconEquip = makeIcon('#FFAF06', 'E')
-const iconCaminhao = makeIcon('#2D80D1', 'C')
+const iconePorTipoEquip: Record<string, L.DivIcon> = {
+  CONTAINER_SECO: makeIcon('#FFAF06', '📦'),
+  CONTAINER_REEFER: makeIcon('#2D80D1', '🧊'),
+  CACAMBA_ESTACIONARIA: makeIcon('#888888', '🗑️'),
+  CAMINHAO_MUNCK: makeIcon('#FFAF06', '🏗️'),
+}
+const iconCaminhao = makeIcon('#2D80D1', '🚚')
+const iconEquipDefault = makeIcon('#FFAF06', '📦')
 
 const tipoEquipLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -95,11 +100,11 @@ export default function Mapa() {
         <div className="flex gap-3 items-center flex-wrap">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={mostrarEquip} onChange={(e) => setMostrarEquip(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
-            <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" style={{ color: '#FFAF06' }} /> Equipamentos ({equipamentos.length})</span>
+            <span className="flex items-center gap-1">📦 Equipamentos ({equipamentos.length})</span>
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={mostrarCam} onChange={(e) => setMostrarCam(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#2D80D1' }} />
-            <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" style={{ color: '#2D80D1' }} /> Caminhões ({caminhoes.length})</span>
+            <span className="flex items-center gap-1">🚚 Caminhões ({caminhoes.length})</span>
           </label>
           <select
             value={filtroStatusEquip}
@@ -138,7 +143,7 @@ export default function Mapa() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {mostrarEquip && equipamentos.map((e) => (
-              <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconEquip}>
+              <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip[e.tipo] || iconEquipDefault}>
                 <Popup>
                   <div className="text-sm">
                     <div className="font-semibold">{e.codigo}</div>
