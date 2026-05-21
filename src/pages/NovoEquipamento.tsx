@@ -2,8 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X } from 'lucide-react'
-
-const MAX_FOTO_BYTES = 2 * 1024 * 1024 // 2MB
+import { comprimirImagem } from '../utils/imagem'
 
 const tipos = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -85,15 +84,21 @@ export default function NovoEquipamento() {
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
-  const handleFoto = (file: File | undefined) => {
-    setErro('')
+  const [erroFoto, setErroFoto] = useState('')
+  const [processandoFoto, setProcessandoFoto] = useState(false)
+
+  const handleFoto = async (file: File | undefined) => {
+    setErroFoto('')
     if (!file) return
-    if (!file.type.startsWith('image/')) return setErro('O arquivo precisa ser uma imagem.')
-    if (file.size > MAX_FOTO_BYTES) return setErro(`Imagem muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo: 2MB.`)
-    const reader = new FileReader()
-    reader.onload = () => set('fotoUrl', reader.result as string)
-    reader.onerror = () => setErro('Erro ao ler a imagem.')
-    reader.readAsDataURL(file)
+    setProcessandoFoto(true)
+    try {
+      const dataUrl = await comprimirImagem(file)
+      set('fotoUrl', dataUrl)
+    } catch (err: any) {
+      setErroFoto(err?.message || 'Erro ao processar a imagem.')
+    } finally {
+      setProcessandoFoto(false)
+    }
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -307,16 +312,31 @@ export default function NovoEquipamento() {
               className="flex flex-col items-center justify-center gap-2 cursor-pointer rounded-xl py-10 px-4 text-gray-500 hover:bg-gray-50 transition-all"
               style={{ border: '2px dashed #E0DDD8' }}
             >
-              <ImagePlus className="w-8 h-8" style={{ color: '#FFAF06' }} />
-              <span className="text-sm font-medium">Clique para enviar uma foto</span>
-              <span className="text-xs text-gray-400">JPG ou PNG • até 2MB</span>
+              {processandoFoto ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#FFAF06' }} />
+                  <span className="text-sm font-medium">Processando imagem...</span>
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="w-8 h-8" style={{ color: '#FFAF06' }} />
+                  <span className="text-sm font-medium">Clique para enviar uma foto</span>
+                  <span className="text-xs text-gray-400">JPG, PNG ou HEIC • até 10MB (comprimido automaticamente)</span>
+                </>
+              )}
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={processandoFoto}
                 onChange={(e) => handleFoto(e.target.files?.[0])}
               />
             </label>
+          )}
+          {erroFoto && (
+            <div className="mt-3 p-3 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroFoto}
+            </div>
           )}
         </div>
 

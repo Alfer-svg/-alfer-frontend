@@ -1,8 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Layers3, Plus, Pencil, Trash2, X, Loader2, AlertCircle, ImagePlus } from 'lucide-react'
-
-const MAX_FOTO_BYTES = 2 * 1024 * 1024
+import { comprimirImagem } from '../utils/imagem'
 
 const tipos = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -157,14 +156,20 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
-  const handleFoto = (file: File | undefined) => {
+  const [processandoFoto, setProcessandoFoto] = useState(false)
+
+  const handleFoto = async (file: File | undefined) => {
     setErro('')
     if (!file) return
-    if (!file.type.startsWith('image/')) return setErro('O arquivo precisa ser uma imagem.')
-    if (file.size > MAX_FOTO_BYTES) return setErro(`Imagem muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo: 2MB.`)
-    const reader = new FileReader()
-    reader.onload = () => set('fotoUrl', reader.result as string)
-    reader.readAsDataURL(file)
+    setProcessandoFoto(true)
+    try {
+      const dataUrl = await comprimirImagem(file)
+      set('fotoUrl', dataUrl)
+    } catch (err: any) {
+      setErro(err?.message || 'Erro ao processar a imagem.')
+    } finally {
+      setProcessandoFoto(false)
+    }
   }
 
   const submit = async (e: FormEvent) => {
@@ -235,9 +240,18 @@ function ModeloModal({ modelo, onClose, onSuccess }: { modelo?: any; onClose: ()
               </div>
             ) : (
               <label className="flex items-center gap-2 cursor-pointer rounded-xl py-3 px-4 text-gray-500 hover:bg-gray-50 transition-all text-sm" style={{ border: '2px dashed #E0DDD8' }}>
-                <ImagePlus className="w-4 h-4" style={{ color: '#FFAF06' }} />
-                <span>Enviar foto (até 2MB)</span>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFoto(e.target.files?.[0])} />
+                {processandoFoto ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#FFAF06' }} />
+                    <span>Processando...</span>
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus className="w-4 h-4" style={{ color: '#FFAF06' }} />
+                    <span>Enviar foto (comprimida automaticamente)</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" disabled={processandoFoto} onChange={(e) => handleFoto(e.target.files?.[0])} />
               </label>
             )}
           </div>
