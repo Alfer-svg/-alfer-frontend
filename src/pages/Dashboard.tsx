@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import {
   Package, FileText, DollarSign, AlertTriangle,
-  TrendingUp, Truck, Layers, Clock, CheckCircle, XCircle
+  Layers, Clock, CheckCircle, XCircle, Map as MapIcon, ChevronRight
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import MapaEquipamentos from '../components/MapaEquipamentos'
 
 interface DashData {
   frota: { total: number; locados: number; manutencao: number; livres: number }
@@ -27,18 +29,22 @@ const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { usuario } = useAuth()
   const [data, setData] = useState<DashData | null>(null)
   const [alertas, setAlertas] = useState<any>(null)
+  const [equipamentosLoc, setEquipamentosLoc] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       api.get('/dashboard'),
       api.get('/dashboard/alertas'),
-    ]).then(([dashRes, alertRes]) => {
+      api.get('/equipamentos', { params: { status: 'LOCADO' } }),
+    ]).then(([dashRes, alertRes, equipRes]) => {
       setData(dashRes.data)
       setAlertas(alertRes.data)
+      setEquipamentosLoc(equipRes.data.filter((e: any) => e.latitude != null && e.longitude != null))
     }).catch(console.error)
     .finally(() => setLoading(false))
   }, [])
@@ -197,6 +203,35 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mapa dos equipamentos locados */}
+      <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <MapIcon className="w-5 h-5" style={{ color: '#FFAF06' }} />
+            <h2 className="font-semibold text-gray-900">Equipamentos locados — mapa</h2>
+            <span className="text-xs text-gray-400">({equipamentosLoc.length} com localização)</span>
+          </div>
+          <button
+            onClick={() => navigate('/mapa')}
+            className="flex items-center gap-1 text-xs font-medium hover:opacity-80"
+            style={{ color: '#FFAF06' }}
+          >
+            Ver mapa completo <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        {equipamentosLoc.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-sm">
+            <MapIcon className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>Nenhum equipamento locado com coordenadas cadastradas.</p>
+            <p className="text-xs mt-1">
+              Edite um equipamento e use o botão "Coords" no campo de localização.
+            </p>
+          </div>
+        ) : (
+          <MapaEquipamentos equipamentos={equipamentosLoc} height="320px" iconSize={36} />
+        )}
       </div>
 
       {/* Alertas */}
