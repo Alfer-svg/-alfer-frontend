@@ -6,26 +6,20 @@ import 'leaflet/dist/leaflet.css'
 import api from '../services/api'
 import { Map as MapIcon, AlertCircle } from 'lucide-react'
 
-// Ícone customizado usando imagens em /public/icones/
+// Ícone com fundo transparente (PNGs já vêm sem fundo); sombra direto na imagem
 const makeImgIcon = (file: string) =>
   L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="
-        background: white;
-        width: 52px; height: 52px;
-        border-radius: 50%;
-        border: 3px solid #FFAF06;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden;
-      ">
-        <img src="/icones/${file}" alt="" style="width: 42px; height: 42px; object-fit: contain;" />
-      </div>
+      <img
+        src="/icones/${file}"
+        alt=""
+        style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"
+      />
     `,
     iconSize: [52, 52],
-    iconAnchor: [26, 52],
-    popupAnchor: [0, -52],
+    iconAnchor: [26, 48],
+    popupAnchor: [0, -48],
   })
 
 const iconePorTipoEquip: Record<string, L.DivIcon> = {

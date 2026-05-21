@@ -7,21 +7,15 @@ const makeImgIcon = (file: string, size = 40) =>
   L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="
-        background: white;
-        width: ${size}px; height: ${size}px;
-        border-radius: 50%;
-        border: 2px solid #FFAF06;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden;
-      ">
-        <img src="/icones/${file}" alt="" style="width: ${size - 8}px; height: ${size - 8}px; object-fit: contain;" />
-      </div>
+      <img
+        src="/icones/${file}"
+        alt=""
+        style="width: ${size}px; height: ${size}px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"
+      />
     `,
     iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
+    iconAnchor: [size / 2, size - 4],
+    popupAnchor: [0, -(size - 4)],
   })
 
 const iconePorTipoEquip = (tipo: string, size = 40) => {
