@@ -1,7 +1,8 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, Trash2, Search, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
 
 interface Contato {
   nome: string; cargo: string; telefone: string; email: string; principal: boolean
@@ -59,6 +60,68 @@ export default function NovoCliente() {
   }, [id, isEdit])
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false)
+  const [erroCnpj, setErroCnpj] = useState('')
+  const [sucessoCnpj, setSucessoCnpj] = useState(false)
+
+  const fazerBuscaCnpj = async (cnpjRaw?: string) => {
+    const cnpj = cnpjRaw ?? form.cnpj
+    if (limparCnpj(cnpj).length !== 14) {
+      setErroCnpj('Digite os 14 dígitos do CNPJ.')
+      return
+    }
+    setErroCnpj('')
+    setSucessoCnpj(false)
+    setBuscandoCnpj(true)
+    try {
+      const d = await buscarCnpj(cnpj)
+      setForm(f => ({
+        ...f,
+        cnpj: d.cnpj,
+        razaoSocial: f.razaoSocial || d.razaoSocial,
+      }))
+      // Preenche o primeiro contato com email/telefone da Receita (se ainda vazio)
+      setContatos(cs => {
+        const novos = [...cs]
+        if (novos[0]) {
+          if (!novos[0].telefone && d.telefone) novos[0].telefone = d.telefone
+          if (!novos[0].email && d.email) novos[0].email = d.email
+          if (!novos[0].nome && d.nomeFantasia) novos[0].nome = d.nomeFantasia
+        }
+        return novos
+      })
+      // Preenche o primeiro endereço com o da Receita (se ainda vazio)
+      setEnderecos(es => {
+        const novos = [...es]
+        if (novos[0] && !novos[0].logradouro) {
+          novos[0] = {
+            ...novos[0],
+            logradouro: d.endereco.logradouro,
+            numero: d.endereco.numero,
+            complemento: d.endereco.complemento,
+            bairro: d.endereco.bairro,
+            cidade: d.endereco.cidade,
+            estado: d.endereco.estado || novos[0].estado,
+            cep: d.endereco.cep,
+          }
+        }
+        return novos
+      })
+      setSucessoCnpj(true)
+    } catch (err: any) {
+      setErroCnpj(err.message || 'Erro ao buscar CNPJ.')
+    } finally {
+      setBuscandoCnpj(false)
+    }
+  }
+
+  const handleCnpjChange = (v: string) => {
+    setErroCnpj('')
+    setSucessoCnpj(false)
+    const formatted = tipoPessoa === 'PJ' ? formatarCnpj(v) : v
+    set('cnpj', formatted)
+  }
   const setContato = (i: number, k: string, v: string) => setContatos(cs => cs.map((c, idx) => idx === i ? { ...c, [k]: v } : c))
   const setEndereco = (i: number, k: string, v: string) => setEnderecos(es => es.map((e, idx) => idx === i ? { ...e, [k]: v } : e))
   const addContato = () => setContatos(cs => [...cs, { nome: '', cargo: '', telefone: '', email: '', principal: false }])
@@ -148,7 +211,49 @@ export default function NovoCliente() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{tipoPessoa === 'PJ' ? 'CNPJ' : 'CPF'} *</label>
-              <input value={form.cnpj} onChange={e => set('cnpj', e.target.value)} required placeholder={tipoPessoa === 'PJ' ? '00.000.000/0001-00' : '000.000.000-00'} className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              <div className="flex gap-2">
+                <input
+                  value={form.cnpj}
+                  onChange={e => handleCnpjChange(e.target.value)}
+                  onBlur={() => {
+                    onBlur({ target: { style: { borderColor: '#E0DDD8' } } } as any)
+                    if (tipoPessoa === 'PJ' && limparCnpj(form.cnpj).length === 14 && !sucessoCnpj && !buscandoCnpj) {
+                      fazerBuscaCnpj()
+                    }
+                  }}
+                  required
+                  placeholder={tipoPessoa === 'PJ' ? '00.000.000/0001-00' : '000.000.000-00'}
+                  className={inputCls}
+                  style={inputStyle}
+                  onFocus={onFocus}
+                />
+                {tipoPessoa === 'PJ' && (
+                  <button
+                    type="button"
+                    onClick={() => fazerBuscaCnpj()}
+                    disabled={buscandoCnpj || limparCnpj(form.cnpj).length !== 14}
+                    title="Buscar dados na Receita Federal"
+                    className="flex items-center gap-1 px-3 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: '#FFAF06' }}
+                  >
+                    {buscandoCnpj ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    Buscar
+                  </button>
+                )}
+              </div>
+              {erroCnpj && (
+                <div className="mt-2 text-xs text-red-700 flex items-center gap-1.5">
+                  <AlertCircle className="w-3 h-3" /> {erroCnpj}
+                </div>
+              )}
+              {sucessoCnpj && (
+                <div className="mt-2 text-xs text-green-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3 h-3" /> Dados preenchidos da Receita Federal
+                </div>
+              )}
+              {tipoPessoa === 'PJ' && !erroCnpj && !sucessoCnpj && (
+                <p className="text-xs text-gray-400 mt-1">Digite o CNPJ e clique em buscar pra preencher razão social, endereço e contato automaticamente.</p>
+              )}
             </div>
             {tipoPessoa === 'PJ' && (
               <div>
