@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2 } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -47,6 +47,19 @@ export default function ContratoDetalhe() {
     }
   }
 
+  const [erroExcluir, setErroExcluir] = useState('')
+  const excluir = async () => {
+    if (!confirm('Excluir este contrato? Esta ação não pode ser desfeita.')) return
+    if (!confirm('Confirma de novo? Se houver pedido, renovações ou lançamentos, a exclusão será bloqueada.')) return
+    setErroExcluir('')
+    try {
+      await api.delete(`/contratos/${id}`)
+      navigate('/contratos')
+    } catch (err: any) {
+      setErroExcluir(err.response?.data?.message || 'Erro ao excluir contrato.')
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!c) return <div className="p-8 text-gray-400">Contrato não encontrado.</div>
 
@@ -59,14 +72,29 @@ export default function ContratoDetalhe() {
         <button onClick={() => navigate('/contratos')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm transition-all">
           <ArrowLeft className="w-4 h-4" /> Voltar para contratos
         </button>
-        <button
-          onClick={() => navigate(`/contratos/${id}/editar`)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
-          style={{ border: '1px solid #E0DDD8' }}
-        >
-          <Pencil className="w-3 h-3" /> Editar
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/contratos/${id}/editar`)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <Pencil className="w-3 h-3" /> Editar
+          </button>
+          <button
+            onClick={excluir}
+            title="Excluir contrato (bloqueado se houver pedido, renovações ou lançamentos)"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50"
+            style={{ border: '1px solid #FACACA' }}
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
       </div>
+      {erroExcluir && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroExcluir}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-start gap-4 mb-4">
