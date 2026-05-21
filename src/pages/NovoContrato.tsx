@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Package } from 'lucide-react'
 
 const tiposEquipamento = [
   { v: 'CONTAINER_SECO', l: 'Container Seco' },
@@ -16,6 +16,8 @@ export default function NovoContrato() {
   const [erro, setErro] = useState('')
   const [clientes, setClientes] = useState<any[]>([])
   const [carregandoClientes, setCarregandoClientes] = useState(true)
+  const [equipamentosDisp, setEquipamentosDisp] = useState<any[]>([])
+  const [equipamentosSel, setEquipamentosSel] = useState<string[]>([])
   const [form, setForm] = useState({
     clienteId: '',
     tipoModelo: 'CONTAINER_SECO',
@@ -42,6 +44,17 @@ export default function NovoContrato() {
       .catch(() => setClientes([]))
       .finally(() => setCarregandoClientes(false))
   }, [])
+
+  useEffect(() => {
+    api.get('/equipamentos', { params: { tipo: form.tipoModelo, status: 'DISPONIVEL' } })
+      .then((r) => setEquipamentosDisp(r.data))
+      .catch(() => setEquipamentosDisp([]))
+    setEquipamentosSel([])
+  }, [form.tipoModelo])
+
+  const toggleEquip = (id: string) => {
+    setEquipamentosSel((prev) => prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id])
+  }
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -86,6 +99,7 @@ export default function NovoContrato() {
       }
       if (form.segundoAlertaDias) payload.segundoAlertaDias = Number(form.segundoAlertaDias)
       if (form.multaRescisaoPct) payload.multaRescisaoPct = Number(form.multaRescisaoPct)
+      if (equipamentosSel.length) payload.equipamentosIds = equipamentosSel
 
       await api.post('/contratos', payload)
       navigate('/contratos')
@@ -171,6 +185,52 @@ export default function NovoContrato() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Equipamentos */}
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Package className="w-4 h-4" /> Equipamentos a vincular</h2>
+            {equipamentosSel.length > 0 && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#FFF8E6', color: '#FFAF06' }}>
+                {equipamentosSel.length} selecionado(s)
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mb-4">Apenas equipamentos disponíveis do tipo escolhido aparecem aqui. Opcional.</p>
+          {equipamentosDisp.length === 0 ? (
+            <div className="text-center py-6 text-sm text-gray-400">
+              Nenhum equipamento disponível deste tipo.{' '}
+              <button type="button" onClick={() => navigate('/equipamentos/novo')} className="font-medium" style={{ color: '#FFAF06' }}>
+                Cadastrar
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {equipamentosDisp.map((eq) => {
+                const sel = equipamentosSel.includes(eq.id)
+                return (
+                  <button
+                    key={eq.id}
+                    type="button"
+                    onClick={() => toggleEquip(eq.id)}
+                    className="w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all"
+                    style={{
+                      background: sel ? '#FFF8E6' : '#F9F7F4',
+                      border: sel ? '2px solid #FFAF06' : '2px solid transparent',
+                    }}
+                  >
+                    <Package className="w-4 h-4" style={{ color: sel ? '#FFAF06' : '#888' }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-gray-900">{eq.codigo} — {eq.modelo}</div>
+                      <div className="text-xs text-gray-500">{eq.capacidade} • Ano {eq.ano}</div>
+                    </div>
+                    <input type="checkbox" checked={sel} readOnly className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Vigência */}

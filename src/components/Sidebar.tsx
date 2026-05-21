@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers
+  Truck, Package, Calendar, LogOut, Layers, User
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -14,6 +14,7 @@ const nav = [
   { to: '/equipamentos', icon: Package, label: 'Equipamentos' },
   { to: '/caminhoes', icon: Truck, label: 'Caminhões' },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
+  { to: '/motoristas', icon: User, label: 'Motoristas' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
 ]
 

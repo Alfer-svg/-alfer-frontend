@@ -1,4 +1,4 @@
-// Financeiro
+// Financeiro — outras páginas agora têm arquivos próprios
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react'
@@ -85,29 +85,3 @@ export function Financeiro() {
     </div>
   )
 }
-
-// Placeholder genérico para módulos em construção
-function Placeholder({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="p-8 animate-fade-in">
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-gray-900">{title}</h1>
-        <p className="text-gray-500 text-sm mt-1">{subtitle}</p>
-      </div>
-      <div className="bg-white rounded-2xl p-16 text-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: '#FEF3E2' }}>
-          <DollarSign className="w-8 h-8" style={{ color: '#FFAF06' }} />
-        </div>
-        <h3 className="font-semibold text-gray-900 mb-2">Módulo em desenvolvimento</h3>
-        <p className="text-gray-400 text-sm max-w-sm mx-auto">
-          Este módulo estará disponível em breve. O backend já está pronto e conectado!
-        </p>
-      </div>
-    </div>
-  )
-}
-
-export function Equipamentos() { return <Placeholder title="Equipamentos" subtitle="Frota de guindastes, containers e caçambas" /> }
-export function Caminhoes() { return <Placeholder title="Caminhões" subtitle="Munck, Poliguindaste e Cavalo Mecânico" /> }
-export function Cacambas() { return <Placeholder title="Caçambas" subtitle="Locações, trocas e rastreabilidade ambiental" /> }
-export function Agenda() { return <Placeholder title="Agenda" subtitle="Calendário de operações e logística" /> }

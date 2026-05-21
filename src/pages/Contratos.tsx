@@ -104,6 +104,7 @@ export default function Contratos() {
             return (
               <div
                 key={c.id}
+                onClick={() => navigate(`/contratos/${c.id}`)}
                 className="bg-white rounded-2xl p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all animate-fade-in"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
               >
