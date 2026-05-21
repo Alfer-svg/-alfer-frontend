@@ -1,10 +1,10 @@
-export default function AlferLogo({ height = 40 }: { height?: number }) {
+export default function AlferLogo({ size = 40, height }: { size?: number; height?: number }) {
+  const h = height || size * 0.6
   return (
     <img
       src="/logo.jpg"
       alt="Alfer Equipamentos"
-      style={{ height, width: 'auto', objectFit: 'contain' }}
+      style={{ height: h, width: 'auto', objectFit: 'contain' }}
     />
   )
 }
-// Qui 21 Mai 2026 14:14:53 -03
