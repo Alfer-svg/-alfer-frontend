@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { Search, Plus, Building2, Phone, Mail, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -18,6 +19,7 @@ const segLabel: Record<string, string> = {
 }
 
 export default function Clientes() {
+  const navigate = useNavigate()
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -39,7 +41,8 @@ export default function Clientes() {
           <p className="text-gray-500 text-sm mt-1">{clientes.length} clientes cadastrados</p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium transition-all hover:opacity-90"
+          onClick={() => navigate('/clientes/novo')}
           style={{ background: '#FFAF06' }}
         >
           <Plus className="w-4 h-4" />
