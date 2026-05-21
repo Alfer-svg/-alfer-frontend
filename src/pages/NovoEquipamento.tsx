@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, ImagePlus, X, Plus, Trash2 } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
 
 const tipos = [
@@ -31,10 +31,9 @@ export default function NovoEquipamento() {
     ultimaManut: '',
     descricao: '',
     fotoUrl: '',
-    valorLocacao: '',
-    tipoLocacao: 'MENSAL',
     observacoes: '',
   })
+  const [precos, setPrecos] = useState<{ tipoLocacao: string; valor: string }[]>([])
 
   const [modelosDisp, setModelosDisp] = useState<any[]>([])
   const [modeloSelecionado, setModeloSelecionado] = useState<string>('')
@@ -57,10 +56,14 @@ export default function NovoEquipamento() {
           ultimaManut: e.ultimaManut ? new Date(e.ultimaManut).toISOString().slice(0, 10) : '',
           descricao: e.descricao || '',
           fotoUrl: e.fotoUrl || '',
-          valorLocacao: e.valorLocacao != null ? String(e.valorLocacao) : '',
-          tipoLocacao: e.tipoLocacao || 'MENSAL',
           observacoes: e.observacoes || '',
         })
+        if (Array.isArray(e.precos) && e.precos.length) {
+          setPrecos(e.precos.map((p: any) => ({ tipoLocacao: p.tipoLocacao, valor: String(p.valor) })))
+        } else if (e.valorLocacao != null) {
+          // Compatibilidade: equip antigo com valorLocacao único
+          setPrecos([{ tipoLocacao: e.tipoLocacao || 'MENSAL', valor: String(e.valorLocacao) }])
+        }
       })
       .finally(() => setCarregando(false))
   }, [id, isEdit])
@@ -83,10 +86,22 @@ export default function NovoEquipamento() {
       capacidade: m.capacidade || f.capacidade,
       descricao: m.descricao || f.descricao,
       fotoUrl: m.fotoUrl || f.fotoUrl,
-      valorLocacao: m.valorLocacao != null && !f.valorLocacao ? String(m.valorLocacao) : f.valorLocacao,
-      tipoLocacao: m.tipoLocacao || f.tipoLocacao,
     }))
+    if (Array.isArray(m.precos) && m.precos.length && precos.length === 0) {
+      setPrecos(m.precos.map((p: any) => ({ tipoLocacao: p.tipoLocacao, valor: String(p.valor) })))
+    } else if (m.valorLocacao != null && precos.length === 0) {
+      setPrecos([{ tipoLocacao: m.tipoLocacao || 'MENSAL', valor: String(m.valorLocacao) }])
+    }
   }
+
+  const addPreco = () => {
+    const usados = new Set(precos.map((p) => p.tipoLocacao))
+    const disponivel = ['HORA', 'DIARIA', 'SEMANAL', 'MENSAL'].find((t) => !usados.has(t)) || 'MENSAL'
+    setPrecos((ps) => [...ps, { tipoLocacao: disponivel, valor: '' }])
+  }
+  const setPreco = (i: number, k: 'tipoLocacao' | 'valor', v: string) =>
+    setPrecos((ps) => ps.map((p, idx) => (idx === i ? { ...p, [k]: v } : p)))
+  const removePreco = (i: number) => setPrecos((ps) => ps.filter((_, idx) => idx !== i))
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -122,9 +137,8 @@ export default function NovoEquipamento() {
         localizacao: form.localizacao || null,
         descricao: form.descricao || null,
         fotoUrl: form.fotoUrl || null,
-        valorLocacao: form.valorLocacao ? Number(form.valorLocacao) : null,
-        tipoLocacao: form.tipoLocacao,
         observacoes: form.observacoes || null,
+        precos: precos.filter((p) => p.valor !== '').map((p) => ({ tipoLocacao: p.tipoLocacao, valor: Number(p.valor) })),
       }
       if (isEdit) {
         await api.put(`/equipamentos/${id}`, payload)
@@ -289,49 +303,67 @@ export default function NovoEquipamento() {
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-4">Valor de locação</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-              <input
-                value={form.valorLocacao}
-                onChange={(e) => set('valorLocacao', e.target.value)}
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                className={inputCls}
-                style={inputStyle}
-                onFocus={onFocus}
-                onBlur={onBlur}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de locação</label>
-              <div className="flex gap-2">
-                {[
-                  { v: 'HORA', l: 'Hora' },
-                  { v: 'DIARIA', l: 'Diária' },
-                  { v: 'SEMANAL', l: 'Semanal' },
-                  { v: 'MENSAL', l: 'Mensal' },
-                ].map(({ v, l }) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => set('tipoLocacao', v)}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    style={{
-                      background: form.tipoLocacao === v ? '#FFAF06' : '#F5F0EB',
-                      color: form.tipoLocacao === v ? '#1A1C1E' : '#888',
-                      border: form.tipoLocacao === v ? '2px solid #FFAF06' : '2px solid transparent',
-                    }}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">Tabela de preços de locação</h2>
+            <button
+              type="button"
+              onClick={addPreco}
+              disabled={precos.length >= 4}
+              className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg disabled:opacity-50"
+              style={{ color: '#FFAF06', background: '#FFF8E6' }}
+            >
+              <Plus className="w-3.5 h-3.5" /> Adicionar preço
+            </button>
           </div>
+          {precos.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Nenhum preço cadastrado. Clique em "Adicionar preço" para criar (ex: R$ 50/hora, R$ 300/dia, R$ 5000/mês).
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {precos.map((p, i) => (
+                <div key={i} className="flex gap-2 items-center p-3 rounded-xl" style={{ background: '#F9F7F4', border: '1px solid #E0DDD8' }}>
+                  <select
+                    value={p.tipoLocacao}
+                    onChange={(e) => setPreco(i, 'tipoLocacao', e.target.value)}
+                    className="px-3 py-2 rounded-lg text-sm outline-none bg-white"
+                    style={{ border: '1px solid #E0DDD8', minWidth: '110px' }}
+                  >
+                    <option value="HORA">Hora</option>
+                    <option value="DIARIA">Diária</option>
+                    <option value="SEMANAL">Semanal</option>
+                    <option value="MENSAL">Mensal</option>
+                  </select>
+                  <div className="flex items-center gap-1 flex-1">
+                    <span className="text-sm text-gray-500">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={p.valor}
+                      onChange={(e) => setPreco(i, 'valor', e.target.value)}
+                      placeholder="0,00"
+                      className="flex-1 px-3 py-2 rounded-lg text-sm outline-none bg-white"
+                      style={{ border: '1px solid #E0DDD8' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePreco(i)}
+                    className="text-red-400 hover:text-red-600 p-1"
+                    title="Remover"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {precos.length > 0 && new Set(precos.map((p) => p.tipoLocacao)).size !== precos.length && (
+            <p className="mt-2 text-xs text-orange-600 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> Modalidades duplicadas serão consolidadas ao salvar.
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

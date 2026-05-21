@@ -126,12 +126,6 @@ export default function EquipamentoDetalhe() {
               <span>Ano {equip.ano}</span>
               {equip.localizacao && (<span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {equip.localizacao}</span>)}
               {equip.horimetro != null && <span>{equip.horimetro}h</span>}
-              {equip.valorLocacao != null && (
-                <span className="font-medium text-gray-700">
-                  R$ {Number(equip.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  {equip.tipoLocacao === 'HORA' ? ' / hora' : equip.tipoLocacao === 'DIARIA' ? ' / dia' : equip.tipoLocacao === 'SEMANAL' ? ' / semana' : ' / mês'}
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -154,6 +148,28 @@ export default function EquipamentoDetalhe() {
           ))}
         </div>
       </div>
+
+      {((Array.isArray(equip.precos) && equip.precos.length > 0) || equip.valorLocacao != null) && (
+        <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-3">Tabela de preços</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {(Array.isArray(equip.precos) && equip.precos.length > 0
+              ? equip.precos
+              : [{ tipoLocacao: equip.tipoLocacao || 'MENSAL', valor: equip.valorLocacao }]
+            ).map((p: any) => {
+              const label = p.tipoLocacao === 'HORA' ? 'por hora' : p.tipoLocacao === 'DIARIA' ? 'por dia' : p.tipoLocacao === 'SEMANAL' ? 'por semana' : 'por mês'
+              return (
+                <div key={p.id || p.tipoLocacao} className="p-4 rounded-xl text-center" style={{ background: '#F9F7F4' }}>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">{label}</div>
+                  <div className="font-display text-lg font-bold text-gray-900 mt-1">
+                    R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {equip.descricao && (
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

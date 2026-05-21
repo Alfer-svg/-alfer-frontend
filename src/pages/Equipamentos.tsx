@@ -171,12 +171,19 @@ export default function Equipamentos() {
                         <MapPin className="w-3 h-3" /> {e.localizacao}
                       </span>
                     )}
-                    {e.valorLocacao != null && (
-                      <span className="font-medium text-gray-700">
-                        R$ {Number(e.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        {e.tipoLocacao === 'HORA' ? '/h' : e.tipoLocacao === 'DIARIA' ? '/dia' : e.tipoLocacao === 'SEMANAL' ? '/sem' : '/mês'}
-                      </span>
-                    )}
+                    {Array.isArray(e.precos) && e.precos.length > 0
+                      ? e.precos.map((p: any) => (
+                          <span key={p.id || p.tipoLocacao} className="font-medium text-gray-700">
+                            R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {p.tipoLocacao === 'HORA' ? '/h' : p.tipoLocacao === 'DIARIA' ? '/dia' : p.tipoLocacao === 'SEMANAL' ? '/sem' : '/mês'}
+                          </span>
+                        ))
+                      : e.valorLocacao != null && (
+                          <span className="font-medium text-gray-700">
+                            R$ {Number(e.valorLocacao).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {e.tipoLocacao === 'HORA' ? '/h' : e.tipoLocacao === 'DIARIA' ? '/dia' : e.tipoLocacao === 'SEMANAL' ? '/sem' : '/mês'}
+                          </span>
+                        )}
                     {e.manutencoes?.length > 0 && (
                       <span className="flex items-center gap-1">
                         <Wrench className="w-3 h-3" /> {e.manutencoes.length} manut.
