@@ -1,12 +1,13 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
-import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power } from 'lucide-react'
+import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil } from 'lucide-react'
 
 export default function Motoristas() {
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroAtivo, setFiltroAtivo] = useState('true')
   const [showNovo, setShowNovo] = useState(false)
+  const [editando, setEditando] = useState<any>(null)
 
   const [acaoErro, setAcaoErro] = useState('')
   const [acaoLoadingId, setAcaoLoadingId] = useState('')
@@ -117,6 +118,14 @@ export default function Motoristas() {
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
+                    onClick={() => setEditando(m)}
+                    title="Editar"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    <Pencil className="w-3 h-3" /> Editar
+                  </button>
+                  <button
                     onClick={() => alternarAtivo(m)}
                     disabled={acaoLoadingId === m.id}
                     title={m.ativo ? 'Inativar' : 'Reativar'}
@@ -142,29 +151,49 @@ export default function Motoristas() {
         </div>
       )}
 
-      {showNovo && <NovoMotoristaModal onClose={() => setShowNovo(false)} onSuccess={() => { setShowNovo(false); load() }} />}
+      {showNovo && <MotoristaModal onClose={() => setShowNovo(false)} onSuccess={() => { setShowNovo(false); load() }} />}
+      {editando && <MotoristaModal motorista={editando} onClose={() => setEditando(null)} onSuccess={() => { setEditando(null); load() }} />}
     </div>
   )
 }
 
-function NovoMotoristaModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; onClose: () => void; onSuccess: () => void }) {
+  const isEdit = !!motorista
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({
-    nome: '', matricula: '', pin: '', telefone: '', cnh: '', cnhValida: '',
+    nome: motorista?.nome || '',
+    matricula: motorista?.matricula || '',
+    pin: '',
+    telefone: motorista?.telefone || '',
+    cnh: motorista?.cnh || '',
+    cnhValida: motorista?.cnhValida ? new Date(motorista.cnhValida).toISOString().slice(0, 10) : '',
   })
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setErro('')
-    if (!form.nome || !form.matricula || !form.pin) return setErro('Nome, matrícula e PIN são obrigatórios.')
-    if (form.pin.length < 4) return setErro('PIN deve ter pelo menos 4 dígitos.')
+    if (!form.nome || !form.matricula) return setErro('Nome e matrícula são obrigatórios.')
+    if (!isEdit && !form.pin) return setErro('PIN é obrigatório no cadastro.')
+    if (form.pin && form.pin.length < 4) return setErro('PIN deve ter pelo menos 4 dígitos.')
     setLoading(true)
     try {
-      await api.post('/motoristas', { ...form, cnhValida: form.cnhValida || null })
+      const payload: any = {
+        nome: form.nome,
+        matricula: form.matricula,
+        telefone: form.telefone || null,
+        cnh: form.cnh || null,
+        cnhValida: form.cnhValida || null,
+      }
+      if (form.pin) payload.pin = form.pin
+      if (isEdit) {
+        await api.put(`/motoristas/${motorista.id}`, payload)
+      } else {
+        await api.post('/motoristas', payload)
+      }
       onSuccess()
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cadastrar motorista.')
+      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} motorista.`)
     } finally {
       setLoading(false)
     }
@@ -177,7 +206,7 @@ function NovoMotoristaModal({ onClose, onSuccess }: { onClose: () => void; onSuc
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Novo motorista</h2>
+          <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar motorista' : 'Novo motorista'}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <form onSubmit={submit} className="space-y-3">
@@ -191,8 +220,16 @@ function NovoMotoristaModal({ onClose, onSuccess }: { onClose: () => void; onSuc
               <input value={form.matricula} onChange={(e) => setForm({ ...form, matricula: e.target.value })} required placeholder="MOT-001" className={inputCls} style={inputStyle} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">PIN (login app) *</label>
-              <input value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value })} required maxLength={6} placeholder="4-6 dígitos" className={inputCls} style={inputStyle} />
+              <label className="block text-xs text-gray-500 mb-1">PIN (login app) {isEdit ? '' : '*'}</label>
+              <input
+                value={form.pin}
+                onChange={(e) => setForm({ ...form, pin: e.target.value })}
+                required={!isEdit}
+                maxLength={6}
+                placeholder={isEdit ? 'Deixe em branco para manter' : '4-6 dígitos'}
+                className={inputCls}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div>
@@ -216,7 +253,7 @@ function NovoMotoristaModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </button>
             <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Cadastrar
+              {isEdit ? 'Salvar alterações' : 'Cadastrar'}
             </button>
           </div>
         </form>

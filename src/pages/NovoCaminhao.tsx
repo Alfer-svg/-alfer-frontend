@@ -1,5 +1,5 @@
-import { FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { FormEvent, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
 
@@ -11,7 +11,10 @@ const tipos = [
 
 export default function NovoCaminhao() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEdit = !!id
   const [loading, setLoading] = useState(false)
+  const [carregando, setCarregando] = useState(isEdit)
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({
     codigo: '',
@@ -26,6 +29,27 @@ export default function NovoCaminhao() {
     observacoes: '',
   })
 
+  useEffect(() => {
+    if (!isEdit) return
+    api.get(`/caminhoes/${id}`)
+      .then((r) => {
+        const c = r.data
+        setForm({
+          codigo: c.codigo || '',
+          tipo: c.tipo || 'MUNCK',
+          modelo: c.modelo || '',
+          placa: c.placa || '',
+          ano: String(c.ano || new Date().getFullYear()),
+          capacidade: c.capacidade || '',
+          kmAtual: String(c.kmAtual ?? 0),
+          proxManutKm: c.proxManutKm != null ? String(c.proxManutKm) : '',
+          status: c.status || 'DISPONIVEL',
+          observacoes: c.observacoes || '',
+        })
+      })
+      .finally(() => setCarregando(false))
+  }, [id, isEdit])
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
   const handleSubmit = async (e: FormEvent) => {
@@ -36,19 +60,29 @@ export default function NovoCaminhao() {
     }
     setLoading(true)
     try {
-      await api.post('/caminhoes', {
+      const payload = {
         ...form,
         ano: Number(form.ano),
         kmAtual: Number(form.kmAtual || 0),
         proxManutKm: form.proxManutKm ? Number(form.proxManutKm) : null,
         observacoes: form.observacoes || null,
-      })
-      navigate('/caminhoes')
+      }
+      if (isEdit) {
+        await api.put(`/caminhoes/${id}`, payload)
+        navigate(`/caminhoes/${id}`)
+      } else {
+        await api.post('/caminhoes', payload)
+        navigate('/caminhoes')
+      }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cadastrar caminhão.')
+      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} caminhão.`)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (carregando) {
+    return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   }
 
   const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
@@ -65,8 +99,8 @@ export default function NovoCaminhao() {
         <ArrowLeft className="w-4 h-4" /> Voltar para caminhões
       </button>
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-gray-900">Novo caminhão</h1>
-        <p className="text-gray-500 text-sm mt-1">Cadastre um caminhão da frota</p>
+        <h1 className="font-display text-2xl font-bold text-gray-900">{isEdit ? 'Editar caminhão' : 'Novo caminhão'}</h1>
+        <p className="text-gray-500 text-sm mt-1">{isEdit ? 'Atualize os dados do caminhão' : 'Cadastre um caminhão da frota'}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -152,7 +186,7 @@ export default function NovoCaminhao() {
             className="flex-1 py-3 rounded-xl font-semibold text-gray-900 transition-all flex items-center justify-center gap-2"
             style={{ background: loading ? '#CC8C00' : '#FFAF06' }}
           >
-            {loading ? (<><Loader2 className="w-4 h-4 animate-spin" />Salvando...</>) : 'Salvar caminhão'}
+            {loading ? (<><Loader2 className="w-4 h-4 animate-spin" />Salvando...</>) : (isEdit ? 'Salvar alterações' : 'Salvar caminhão')}
           </button>
         </div>
       </form>

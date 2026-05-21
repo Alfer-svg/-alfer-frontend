@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, FormEvent } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react'
 
@@ -12,7 +12,10 @@ interface Endereco {
 
 export default function NovoCliente() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEdit = !!id
   const [loading, setLoading] = useState(false)
+  const [carregando, setCarregando] = useState(isEdit)
   const [erro, setErro] = useState('')
   const [tipoPessoa, setTipoPessoa] = useState<'PJ' | 'PF'>('PJ')
   const [form, setForm] = useState({
@@ -27,6 +30,34 @@ export default function NovoCliente() {
     { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'PE', cep: '', principal: true }
   ])
 
+  useEffect(() => {
+    if (!isEdit) return
+    api.get(`/clientes/${id}`)
+      .then((r) => {
+        const c = r.data
+        setForm({
+          razaoSocial: c.razaoSocial || '',
+          cnpj: c.cnpj || '',
+          inscricaoEstadual: c.inscricaoEstadual || '',
+          site: c.site || '',
+          segmento: c.segmento || 'CONSTRUTORA',
+          limiteCredito: c.limiteCredito != null ? String(c.limiteCredito) : '',
+          prazoPagemento: c.prazoPagemento != null ? String(c.prazoPagemento) : '30',
+          reajusteIndice: c.reajusteIndice || 'IPCA',
+          formaCobranca: c.formaCobranca || 'BOLETO',
+          observacoes: c.observacoes || '',
+        })
+        if (c.contatos?.length) setContatos(c.contatos.map((ct: any) => ({
+          nome: ct.nome || '', cargo: ct.cargo || '', telefone: ct.telefone || '', email: ct.email || '', principal: !!ct.principal,
+        })))
+        if (c.enderecos?.length) setEnderecos(c.enderecos.map((e: any) => ({
+          logradouro: e.logradouro || '', numero: e.numero || '', complemento: e.complemento || '',
+          bairro: e.bairro || '', cidade: e.cidade || '', estado: e.estado || 'PE', cep: e.cep || '', principal: !!e.principal,
+        })))
+      })
+      .finally(() => setCarregando(false))
+  }, [id, isEdit])
+
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
   const setContato = (i: number, k: string, v: string) => setContatos(cs => cs.map((c, idx) => idx === i ? { ...c, [k]: v } : c))
   const setEndereco = (i: number, k: string, v: string) => setEnderecos(es => es.map((e, idx) => idx === i ? { ...e, [k]: v } : e))
@@ -40,24 +71,33 @@ export default function NovoCliente() {
     setErro('')
     setLoading(true)
     try {
-      const cliente = await api.post('/clientes', {
+      const payload = {
         ...form,
         limiteCredito: form.limiteCredito ? Number(form.limiteCredito) : undefined,
         prazoPagemento: Number(form.prazoPagemento),
-      })
-      const id = cliente.data.id
-      for (const c of contatos.filter(c => c.nome)) {
-        await api.post(`/clientes/${id}/contatos`, c).catch(() => {})
       }
-      for (const e of enderecos.filter(e => e.logradouro)) {
-        await api.post(`/clientes/${id}/enderecos`, e).catch(() => {})
+      if (isEdit) {
+        await api.put(`/clientes/${id}`, payload)
+      } else {
+        const cliente = await api.post('/clientes', payload)
+        const newId = cliente.data.id
+        for (const c of contatos.filter(c => c.nome)) {
+          await api.post(`/clientes/${newId}/contatos`, c).catch(() => {})
+        }
+        for (const e of enderecos.filter(e => e.logradouro)) {
+          await api.post(`/clientes/${newId}/enderecos`, e).catch(() => {})
+        }
       }
       navigate('/clientes')
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cadastrar cliente.')
+      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} cliente.`)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (carregando) {
+    return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   }
 
   const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white"
@@ -71,8 +111,8 @@ export default function NovoCliente() {
         <ArrowLeft className="w-4 h-4" /> Voltar para clientes
       </button>
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-gray-900">Novo cliente</h1>
-        <p className="text-gray-500 text-sm mt-1">Preencha os dados do novo cliente</p>
+        <h1 className="font-display text-2xl font-bold text-gray-900">{isEdit ? 'Editar cliente' : 'Novo cliente'}</h1>
+        <p className="text-gray-500 text-sm mt-1">{isEdit ? 'Atualize os dados do cliente. Contatos e endereços não são editados aqui.' : 'Preencha os dados do novo cliente'}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -270,7 +310,7 @@ export default function NovoCliente() {
             Cancelar
           </button>
           <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl font-semibold text-gray-900 transition-all flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
-            {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Salvando...</> : 'Salvar cliente'}
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Salvando...</> : (isEdit ? 'Salvar alterações' : 'Salvar cliente')}
           </button>
         </div>
       </form>

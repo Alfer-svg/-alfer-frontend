@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { Search, Plus, Building2, Phone, Mail, ChevronRight } from 'lucide-react'
+import { Search, Plus, Building2, Phone, Mail, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
@@ -108,7 +108,13 @@ export default function Clientes() {
                     )}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                <button
+                  onClick={() => navigate(`/clientes/${c.id}/editar`)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
+                  style={{ border: '1px solid #E0DDD8' }}
+                >
+                  <Pencil className="w-3 h-3" /> Editar
+                </button>
               </div>
             )
           })}

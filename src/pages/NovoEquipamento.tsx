@@ -1,5 +1,5 @@
-import { FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { FormEvent, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
 
@@ -12,7 +12,10 @@ const tipos = [
 
 export default function NovoEquipamento() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEdit = !!id
   const [loading, setLoading] = useState(false)
+  const [carregando, setCarregando] = useState(isEdit)
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({
     codigo: '',
@@ -28,6 +31,28 @@ export default function NovoEquipamento() {
     observacoes: '',
   })
 
+  useEffect(() => {
+    if (!isEdit) return
+    api.get(`/equipamentos/${id}`)
+      .then((r) => {
+        const e = r.data
+        setForm({
+          codigo: e.codigo || '',
+          tipo: e.tipo || 'CONTAINER_SECO',
+          modelo: e.modelo || '',
+          capacidade: e.capacidade || '',
+          ano: String(e.ano || new Date().getFullYear()),
+          status: e.status || 'DISPONIVEL',
+          localizacao: e.localizacao || '',
+          horimetro: e.horimetro != null ? String(e.horimetro) : '',
+          proxManutHs: e.proxManutHs != null ? String(e.proxManutHs) : '',
+          ultimaManut: e.ultimaManut ? new Date(e.ultimaManut).toISOString().slice(0, 10) : '',
+          observacoes: e.observacoes || '',
+        })
+      })
+      .finally(() => setCarregando(false))
+  }, [id, isEdit])
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
   const handleSubmit = async (e: FormEvent) => {
@@ -36,7 +61,7 @@ export default function NovoEquipamento() {
     if (!form.codigo || !form.modelo || !form.capacidade) return setErro('Preencha código, modelo e capacidade.')
     setLoading(true)
     try {
-      await api.post('/equipamentos', {
+      const payload = {
         ...form,
         ano: Number(form.ano),
         horimetro: form.horimetro ? Number(form.horimetro) : null,
@@ -44,13 +69,23 @@ export default function NovoEquipamento() {
         ultimaManut: form.ultimaManut || null,
         localizacao: form.localizacao || null,
         observacoes: form.observacoes || null,
-      })
-      navigate('/equipamentos')
+      }
+      if (isEdit) {
+        await api.put(`/equipamentos/${id}`, payload)
+        navigate(`/equipamentos/${id}`)
+      } else {
+        await api.post('/equipamentos', payload)
+        navigate('/equipamentos')
+      }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Erro ao cadastrar equipamento.')
+      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} equipamento.`)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (carregando) {
+    return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   }
 
   const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
@@ -67,8 +102,8 @@ export default function NovoEquipamento() {
         <ArrowLeft className="w-4 h-4" /> Voltar para equipamentos
       </button>
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-gray-900">Novo equipamento</h1>
-        <p className="text-gray-500 text-sm mt-1">Cadastre um container, caçamba ou outro equipamento da frota</p>
+        <h1 className="font-display text-2xl font-bold text-gray-900">{isEdit ? 'Editar equipamento' : 'Novo equipamento'}</h1>
+        <p className="text-gray-500 text-sm mt-1">{isEdit ? 'Atualize os dados do equipamento' : 'Cadastre um container, caçamba ou outro equipamento da frota'}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -259,7 +294,7 @@ export default function NovoEquipamento() {
                 Salvando...
               </>
             ) : (
-              'Salvar equipamento'
+              isEdit ? 'Salvar alterações' : 'Salvar equipamento'
             )}
           </button>
         </div>

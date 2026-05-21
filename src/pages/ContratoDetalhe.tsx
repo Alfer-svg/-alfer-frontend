@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -55,9 +55,18 @@ export default function ContratoDetalhe() {
 
   return (
     <div className="p-8 max-w-4xl animate-fade-in">
-      <button onClick={() => navigate('/contratos')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 text-sm transition-all">
-        <ArrowLeft className="w-4 h-4" /> Voltar para contratos
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => navigate('/contratos')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm transition-all">
+          <ArrowLeft className="w-4 h-4" /> Voltar para contratos
+        </button>
+        <button
+          onClick={() => navigate(`/contratos/${id}/editar`)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+          style={{ border: '1px solid #E0DDD8' }}
+        >
+          <Pencil className="w-3 h-3" /> Editar
+        </button>
+      </div>
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-start gap-4 mb-4">
