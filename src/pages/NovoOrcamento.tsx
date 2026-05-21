@@ -19,6 +19,8 @@ export default function NovoOrcamento() {
     valor: '',
     desconto: '',
     periodicidade: 'Mensal',
+    condicaoPagamento: 'D_30',
+    formaPagamento: 'BOLETO',
     dtInicio: '',
     dtFim: '',
     validade: '7',
@@ -46,6 +48,8 @@ export default function NovoOrcamento() {
           valor: o.valor != null ? String(o.valor) : '',
           desconto: o.desconto != null ? String(o.desconto) : '',
           periodicidade: o.periodicidade || 'Mensal',
+          condicaoPagamento: o.condicaoPagamento || 'D_30',
+          formaPagamento: o.formaPagamento || 'BOLETO',
           dtInicio: o.dtInicio ? new Date(o.dtInicio).toISOString().slice(0, 10) : '',
           dtFim: o.dtFim ? new Date(o.dtFim).toISOString().slice(0, 10) : '',
           validade: String(o.validade ?? 7),
@@ -80,6 +84,8 @@ export default function NovoOrcamento() {
         valor,
         desconto: desconto || null,
         periodicidade: form.periodicidade,
+        condicaoPagamento: form.condicaoPagamento,
+        formaPagamento: form.formaPagamento,
         dtInicio: form.dtInicio || null,
         dtFim: form.dtFim || null,
         validade: Number(form.validade) || 7,
@@ -170,6 +176,34 @@ export default function NovoOrcamento() {
               {desconto > 0 && <span className="text-gray-600 ml-2">(R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - {desconto}%)</span>}
             </div>
           )}
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Pagamento</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Condição de pagamento</label>
+              <select value={form.condicaoPagamento} onChange={(e) => set('condicaoPagamento', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="A_VISTA">À vista</option>
+                <option value="D_15">15 dias</option>
+                <option value="D_30">30 dias</option>
+                <option value="D_45">45 dias</option>
+                <option value="D_60">60 dias</option>
+                <option value="PARCELADO_30_60">Parcelado 30/60</option>
+                <option value="PARCELADO_30_60_90">Parcelado 30/60/90</option>
+                <option value="PERSONALIZADO">Personalizado (detalhar em condições)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Forma de pagamento</label>
+              <select value={form.formaPagamento} onChange={(e) => set('formaPagamento', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="BOLETO">Boleto bancário</option>
+                <option value="PIX">PIX</option>
+                <option value="NF_TED">NF + TED</option>
+                <option value="TRANSFERENCIA">Transferência</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

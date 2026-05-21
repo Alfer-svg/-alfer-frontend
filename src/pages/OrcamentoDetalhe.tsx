@@ -14,6 +14,24 @@ const statusInfo: Record<string, { bg: string; text: string; label: string }> = 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
+const condicaoPagamentoLabel = (v?: string) => ({
+  A_VISTA: 'À vista',
+  D_15: '15 dias',
+  D_30: '30 dias',
+  D_45: '45 dias',
+  D_60: '60 dias',
+  PARCELADO_30_60: 'Parcelado 30/60 dias',
+  PARCELADO_30_60_90: 'Parcelado 30/60/90 dias',
+  PERSONALIZADO: 'Personalizado',
+}[v || ''] || v || '—')
+
+const formaPagamentoLabel = (v?: string) => ({
+  BOLETO: 'Boleto bancário',
+  PIX: 'PIX',
+  NF_TED: 'NF + TED',
+  TRANSFERENCIA: 'Transferência',
+}[v || ''] || v || '—')
+
 export default function OrcamentoDetalhe() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -182,6 +200,20 @@ export default function OrcamentoDetalhe() {
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{o.descricao}</p>
         </div>
       )}
+
+      <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <h2 className="font-semibold text-gray-900 mb-3">Condições e forma de pagamento</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Condição</div>
+            <div className="font-medium text-gray-700">{condicaoPagamentoLabel(o.condicaoPagamento)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Forma</div>
+            <div className="font-medium text-gray-700">{formaPagamentoLabel(o.formaPagamento)}</div>
+          </div>
+        </div>
+      </div>
 
       {o.condicoes?.length > 0 && (
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
