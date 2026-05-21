@@ -30,7 +30,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b" style={{ borderColor: '#2A2C2E' }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#E8640A' }}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#FFAF06' }}>
             <Wrench className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -54,7 +54,7 @@ export default function Sidebar() {
                     : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                 }`
               }
-              style={({ isActive }) => isActive ? { background: '#E8640A' } : {}}
+              style={({ isActive }) => isActive ? { background: '#FFAF06' } : {}}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               {label}
@@ -66,7 +66,7 @@ export default function Sidebar() {
       {/* User */}
       <div className="p-4 border-t" style={{ borderColor: '#2A2C2E' }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: '#E8640A' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: '#FFAF06' }}>
             {usuario?.nome?.charAt(0) || 'A'}
           </div>
           <div className="flex-1 min-w-0">

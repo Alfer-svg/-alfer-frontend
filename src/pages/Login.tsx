@@ -28,11 +28,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex" style={{ background: '#1A1C1E' }}>
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16" style={{ background: '#E8640A' }}>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16" style={{ background: '#FFAF06' }}>
         <div>
           <div className="flex items-center gap-3 mb-16">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#E8640A">
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="#FFAF06">
                 <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5L20 8.5v7l-8 4-8-4v-7L12 4.5z"/>
               </svg>
             </div>
@@ -63,7 +63,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#E8640A' }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#FFAF06' }}>
               <svg viewBox="0 0 24 24" className="w-6 h-6" fill="white">
                 <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.5L20 8.5v7l-8 4-8-4v-7L12 4.5z"/>
               </svg>
@@ -86,7 +86,7 @@ export default function Login() {
                 required
                 className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition-all"
                 style={{ background: '#2A2C2E', border: '1px solid #3A3C3E' }}
-                onFocus={(e) => e.target.style.borderColor = '#E8640A'}
+                onFocus={(e) => e.target.style.borderColor = '#FFAF06'}
                 onBlur={(e) => e.target.style.borderColor = '#3A3C3E'}
                 placeholder="seu@email.com.br"
               />
@@ -101,7 +101,7 @@ export default function Login() {
                 required
                 className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none transition-all"
                 style={{ background: '#2A2C2E', border: '1px solid #3A3C3E' }}
-                onFocus={(e) => e.target.style.borderColor = '#E8640A'}
+                onFocus={(e) => e.target.style.borderColor = '#FFAF06'}
                 onBlur={(e) => e.target.style.borderColor = '#3A3C3E'}
                 placeholder="••••••••"
               />
@@ -118,7 +118,7 @@ export default function Login() {
               type="submit"
               disabled={loading}
               className="w-full py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
-              style={{ background: loading ? '#B85008' : '#E8640A' }}
+              style={{ background: loading ? '#B85008' : '#FFAF06' }}
             >
               {loading ? (
                 <>

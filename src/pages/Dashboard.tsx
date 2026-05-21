@@ -70,7 +70,7 @@ export default function Dashboard() {
       label: 'Contratos ativos',
       value: data.contratos.ativos,
       icon: FileText,
-      color: '#E8640A',
+      color: '#FFAF06',
       bg: '#FEF3E2',
       sub: `${data.contratos.vencendoEm30} vencendo em 30 dias`,
     },
@@ -146,7 +146,7 @@ export default function Dashboard() {
               <p className="text-gray-400 text-xs">Receitas e despesas — 2026</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#E8640A' }} />Receita</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#FFAF06' }} />Receita</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-gray-200" />Despesas</span>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function Dashboard() {
                 formatter={(v: number) => fmt(v)}
                 contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 12 }}
               />
-              <Bar dataKey="receita" fill="#E8640A" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="receita" fill="#FFAF06" radius={[6, 6, 0, 0]} />
               <Bar dataKey="despesas" fill="#E0DDD8" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -170,7 +170,7 @@ export default function Dashboard() {
           {data && (
             <div className="space-y-4">
               {[
-                { label: 'Equipamentos locados', value: data.frota.locados, total: data.frota.total, color: '#E8640A' },
+                { label: 'Equipamentos locados', value: data.frota.locados, total: data.frota.total, color: '#FFAF06' },
                 { label: 'Caminhões em operação', value: data.caminhoes.emOperacao, total: data.caminhoes.total, color: '#2D80D1' },
                 { label: 'Caçambas locadas', value: data.cacambas.locadas, total: data.frota.total, color: '#9B59B6' },
               ].map((item) => (

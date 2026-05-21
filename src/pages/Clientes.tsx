@@ -40,7 +40,7 @@ export default function Clientes() {
         </div>
         <button
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90"
-          style={{ background: '#E8640A' }}
+          style={{ background: '#FFAF06' }}
         >
           <Plus className="w-4 h-4" />
           Novo cliente
@@ -80,7 +80,7 @@ export default function Clientes() {
                 className="bg-white rounded-2xl p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all animate-fade-in"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
               >
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-white text-lg" style={{ background: '#E8640A' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-white text-lg" style={{ background: '#FFAF06' }}>
                   {c.razaoSocial.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">

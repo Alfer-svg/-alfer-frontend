@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --orange: #E8640A;
+  --orange: #FFAF06;
   --dark: #1A1C1E;
   --gray: #555555;
 }
@@ -28,7 +28,7 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #F5F0EB; }
 ::-webkit-scrollbar-thumb { background: #D0CBC4; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #E8640A; }
+::-webkit-scrollbar-thumb:hover { background: #FFAF06; }
 
 /* Animations */
 @keyframes fadeIn {

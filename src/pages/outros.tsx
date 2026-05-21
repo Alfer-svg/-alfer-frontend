@@ -22,7 +22,7 @@ export function Financeiro() {
   }, [])
 
   const statusColor: Record<string, string> = {
-    PAGO: '#27AE60', PENDENTE: '#E8640A', FUTURO: '#2D80D1', VENCIDO: '#E74C3C', INADIMPLENTE: '#8B0000',
+    PAGO: '#27AE60', PENDENTE: '#FFAF06', FUTURO: '#2D80D1', VENCIDO: '#E74C3C', INADIMPLENTE: '#8B0000',
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -39,7 +39,7 @@ export function Financeiro() {
           {[
             { label: 'Receita do mês', value: fmt(dash.receita), icon: TrendingUp, color: '#27AE60', bg: '#EAF3DE' },
             { label: 'Despesas do mês', value: fmt(dash.despesas), icon: TrendingDown, color: '#E74C3C', bg: '#FDEEEE' },
-            { label: 'Saldo', value: fmt(dash.saldo), icon: DollarSign, color: '#E8640A', bg: '#FEF3E2' },
+            { label: 'Saldo', value: fmt(dash.saldo), icon: DollarSign, color: '#FFAF06', bg: '#FEF3E2' },
             { label: 'A receber', value: fmt(dash.aReceber?.valor || 0), icon: Clock, color: '#2D80D1', bg: '#E3EEFA' },
           ].map((k) => (
             <div key={k.label} className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -96,7 +96,7 @@ function Placeholder({ title, subtitle }: { title: string; subtitle: string }) {
       </div>
       <div className="bg-white rounded-2xl p-16 text-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: '#FEF3E2' }}>
-          <DollarSign className="w-8 h-8" style={{ color: '#E8640A' }} />
+          <DollarSign className="w-8 h-8" style={{ color: '#FFAF06' }} />
         </div>
         <h3 className="font-semibold text-gray-900 mb-2">Módulo em desenvolvimento</h3>
         <p className="text-gray-400 text-sm max-w-sm mx-auto">
