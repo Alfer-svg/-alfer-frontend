@@ -75,6 +75,18 @@ export default function ContratoDetalhe() {
     }
   }
 
+  const recalcularFaturas = async () => {
+    if (!id) return
+    if (!confirm('Recalcular as faturas deste contrato?\n\nAs faturas com status FUTURO ou PENDENTE (não pagas) serão APAGADAS e reggeradas com base na condição de pagamento atual.\n\nFaturas já PAGAS ou CANCELADAS não são afetadas.')) return
+    try {
+      const r = await api.post(`/contratos/${id}/recalcular-faturas`)
+      alert(`✓ ${r.data?.geradas || 0} fatura(s) gerada(s) com a regra atual.`)
+      load()
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro ao recalcular')
+    }
+  }
+
   const baixarPdf = async () => {
     if (!id) return
     setBaixandoPdf(true)
@@ -158,6 +170,14 @@ export default function ContratoDetalhe() {
               <ClipboardList className="w-3 h-3" /> Gerar OS Munck
             </button>
           )}
+          <button
+            onClick={recalcularFaturas}
+            title="Apaga as faturas não pagas e refaz com base na condição de pagamento atual"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <RotateCw className="w-3 h-3" /> Recalcular faturas
+          </button>
           <button
             onClick={() => navigate(`/contratos/${id}/editar`)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
