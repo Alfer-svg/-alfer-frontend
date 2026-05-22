@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown, Send, Mail, CheckCircle2, XCircle, RefreshCw, Plus, Copy, Clock } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -31,13 +31,49 @@ export default function ContratoDetalhe() {
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
   const [baixandoPdf, setBaixandoPdf] = useState(false)
+  const [signStatus, setSignStatus] = useState<any>(null)
+  const [showSignModal, setShowSignModal] = useState(false)
+  const [erroSign, setErroSign] = useState('')
 
   const load = () => {
     if (!id) return
     setLoading(true)
     api.get(`/contratos/${id}`).then((r) => setC(r.data)).finally(() => setLoading(false))
+    api.get(`/contratos/${id}/status-assinatura`).then((r) => setSignStatus(r.data)).catch(() => {})
   }
   useEffect(load, [id])
+
+  const sincronizar = async () => {
+    if (!id) return
+    try {
+      await api.post(`/contratos/${id}/sincronizar-assinatura`)
+      load()
+    } catch (e: any) {
+      setErroSign(e.response?.data?.message || 'Erro ao sincronizar')
+    }
+  }
+  const cancelarAssinatura = async () => {
+    if (!id) return
+    if (!confirm('Cancelar o envio pra assinatura? O cliente perderá o link. Você pode reenviar depois.')) return
+    try {
+      await api.post(`/contratos/${id}/cancelar-assinatura`)
+      load()
+    } catch (e: any) {
+      setErroSign(e.response?.data?.message || 'Erro ao cancelar')
+    }
+  }
+  const baixarAssinado = async () => {
+    if (!id) return
+    try {
+      const r = await api.get(`/contratos/${id}/pdf-assinado`, { responseType: 'blob' })
+      const blob = new Blob([r.data], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (e: any) {
+      setErroSign(e.response?.data?.message || 'PDF assinado ainda não disponível')
+    }
+  }
 
   const baixarPdf = async () => {
     if (!id) return
@@ -102,6 +138,16 @@ export default function ContratoDetalhe() {
             {baixandoPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
             Gerar PDF do contrato
           </button>
+          {(!signStatus?.signStatus || signStatus?.signStatus === 'RECUSADO' || signStatus?.signStatus === 'EXPIRADO') && (
+            <button
+              onClick={() => { setErroSign(''); setShowSignModal(true) }}
+              title="Envia o contrato pra assinatura eletrônica via ZapSign"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+              style={{ background: '#9333EA' }}
+            >
+              <Send className="w-3 h-3" /> Enviar pra assinatura
+            </button>
+          )}
           {c?.tipoModelo === 'CAMINHAO_MUNCK' && (
             <button
               onClick={() => navigate(`/ordens-servico/munck/nova?contratoId=${id}`)}
@@ -133,6 +179,27 @@ export default function ContratoDetalhe() {
         <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroExcluir}
         </div>
+      )}
+      {erroSign && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroSign}
+        </div>
+      )}
+      {signStatus?.signStatus && (
+        <SignStatusCard
+          status={signStatus}
+          onSincronizar={sincronizar}
+          onCancelar={cancelarAssinatura}
+          onBaixarAssinado={baixarAssinado}
+        />
+      )}
+      {showSignModal && c && (
+        <EnviarAssinaturaModal
+          contrato={c}
+          onClose={() => setShowSignModal(false)}
+          onSent={() => { setShowSignModal(false); load() }}
+          onError={(m) => setErroSign(m)}
+        />
       )}
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -372,6 +439,173 @@ function RenovarModal({ contrato, onClose, onSuccess }: { contrato: any; onClose
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// ────────── Sign Status Card ──────────
+function SignStatusCard({ status, onSincronizar, onCancelar, onBaixarAssinado }: any) {
+  const stMap: Record<string, { bg: string; text: string; label: string; icon: any }> = {
+    PENDENTE: { bg: '#FFF3D6', text: '#A77400', label: 'Aguardando assinatura', icon: Clock },
+    ASSINADO: { bg: '#EAF3DE', text: '#27500A', label: 'Contrato assinado', icon: CheckCircle2 },
+    RECUSADO: { bg: '#FDEEEE', text: '#8B0000', label: 'Assinatura recusada', icon: XCircle },
+    EXPIRADO: { bg: '#F1EFE8', text: '#666', label: 'Link expirado', icon: XCircle },
+  }
+  const st = stMap[status.signStatus] || stMap.PENDENTE
+  const Icon = st.icon
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: st.bg }}>
+          <Icon className="w-5 h-5" style={{ color: st.text }} />
+        </div>
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-gray-900">{st.label}</div>
+          <div className="text-xs text-gray-500">
+            via ZapSign
+            {status.signDtEnvio ? ` • Enviado em ${new Date(status.signDtEnvio).toLocaleString('pt-BR')}` : ''}
+            {status.signDtAssinatura ? ` • Concluído em ${new Date(status.signDtAssinatura).toLocaleString('pt-BR')}` : ''}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {status.signStatus === 'PENDENTE' && (
+            <>
+              <button onClick={onSincronizar} title="Re-sincronizar com ZapSign" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-gray-700 hover:bg-gray-50" style={{ border: '1px solid #E0DDD8' }}>
+                <RefreshCw className="w-3 h-3" /> Atualizar
+              </button>
+              <button onClick={onCancelar} title="Cancelar envio" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-red-600 hover:bg-red-50" style={{ border: '1px solid #FACACA' }}>
+                Cancelar
+              </button>
+            </>
+          )}
+          {status.signStatus === 'ASSINADO' && status.temPdfAssinado && (
+            <button onClick={onBaixarAssinado} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-white" style={{ background: '#27AE60' }}>
+              <FileDown className="w-3 h-3" /> Baixar PDF assinado
+            </button>
+          )}
+        </div>
+      </div>
+      {status.signatarios?.length > 0 && (
+        <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F1EFE8' }}>
+          <div className="text-xs font-medium text-gray-500 mb-2">Signatários</div>
+          <div className="space-y-2">
+            {status.signatarios.map((s: any) => (
+              <div key={s.id} className="flex items-center gap-3 text-xs">
+                <div className="flex-1">
+                  <div className="text-gray-900 font-medium">{s.nome} <span className="text-gray-400 font-normal">({s.tipo})</span></div>
+                  <div className="text-gray-500">{s.email}{s.telefone ? ` • ${s.telefone}` : ''}</div>
+                </div>
+                {s.status === 'ASSINADO' ? (
+                  <span className="flex items-center gap-1 text-green-700"><CheckCircle2 className="w-3 h-3" /> Assinou {s.signDtAssinatura ? new Date(s.signDtAssinatura).toLocaleDateString('pt-BR') : ''}</span>
+                ) : s.status === 'RECUSADO' ? (
+                  <span className="flex items-center gap-1 text-red-700"><XCircle className="w-3 h-3" /> Recusou</span>
+                ) : (
+                  <>
+                    <span className="text-gray-500">Aguardando</span>
+                    {s.signLinkAssinatura && (
+                      <button onClick={() => { navigator.clipboard.writeText(s.signLinkAssinatura); alert('Link copiado!') }} title="Copiar link de assinatura" className="text-gray-500 hover:text-gray-900">
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ────────── Enviar Assinatura Modal ──────────
+
+function EnviarAssinaturaModal({ contrato, onClose, onSent, onError }: any) {
+  // Pré-popula com contato principal do cliente + um campo Alfer
+  const [signers, setSigners] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const cliente = contrato.cliente
+    const contato = cliente?.contatos?.find((x: any) => x.principal) || cliente?.contatos?.[0]
+    const inicial = []
+    if (contato?.email) {
+      inicial.push({ nome: contato.nome || cliente.razaoSocial, email: contato.email, telefone: contato.telefone || '', tipo: 'LOCATARIO' })
+    } else if (cliente) {
+      inicial.push({ nome: cliente.razaoSocial, email: '', telefone: '', tipo: 'LOCATARIO' })
+    }
+    inicial.push({ nome: 'Alfer Equipamentos', email: 'contratos@alferequipamentos.com', telefone: '', tipo: 'LOCADOR' })
+    setSigners(inicial)
+  }, [contrato])
+
+  const add = () => setSigners([...signers, { nome: '', email: '', telefone: '', tipo: 'TESTEMUNHA' }])
+  const rem = (i: number) => setSigners(signers.filter((_, idx) => idx !== i))
+  const upd = (i: number, k: string, v: string) => {
+    const ns = [...signers]; ns[i] = { ...ns[i], [k]: v }; setSigners(ns)
+  }
+
+  const enviar = async () => {
+    if (signers.some((s) => !s.nome || !s.email)) {
+      onError('Todo signatário precisa de nome e email')
+      return
+    }
+    setLoading(true)
+    try {
+      await api.post(`/contratos/${contrato.id}/enviar-assinatura`, { signatarios: signers })
+      onSent()
+    } catch (e: any) {
+      onError(e.response?.data?.message || 'Erro ao enviar pra assinatura')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Send className="w-5 h-5" /> Enviar contrato pra assinatura
+          </h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          O ZapSign envia um email pra cada signatário com link individual de assinatura. Quando todos assinarem, o PDF assinado é arquivado aqui automaticamente.
+        </p>
+        <div className="space-y-3">
+          {signers.map((s, i) => (
+            <div key={i} className="p-3 rounded-xl" style={{ background: '#FAFAF8', border: '1px solid #F1EFE8' }}>
+              <div className="flex items-center justify-between mb-2">
+                <select value={s.tipo} onChange={(e) => upd(i, 'tipo', e.target.value)} className="text-xs px-2 py-1 rounded bg-white outline-none" style={{ border: '1px solid #E0DDD8' }}>
+                  <option value="LOCATARIO">Locatário (cliente)</option>
+                  <option value="LOCADOR">Locador (Alfer)</option>
+                  <option value="TESTEMUNHA">Testemunha</option>
+                </select>
+                {signers.length > 1 && (
+                  <button onClick={() => rem(i)} className="text-xs text-red-600">remover</button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input value={s.nome} onChange={(e) => upd(i, 'nome', e.target.value)} placeholder="Nome completo" className="px-3 py-2 bg-white rounded-lg text-sm outline-none" style={{ border: '1px solid #E0DDD8' }} />
+                <input value={s.email} onChange={(e) => upd(i, 'email', e.target.value)} placeholder="Email" type="email" className="px-3 py-2 bg-white rounded-lg text-sm outline-none" style={{ border: '1px solid #E0DDD8' }} />
+                <input value={s.telefone} onChange={(e) => upd(i, 'telefone', e.target.value)} placeholder="WhatsApp (opcional, ex: 81999998888)" className="px-3 py-2 bg-white rounded-lg text-sm outline-none md:col-span-2" style={{ border: '1px solid #E0DDD8' }} />
+              </div>
+            </div>
+          ))}
+          <button onClick={add} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900">
+            <Plus className="w-3 h-3" /> Adicionar signatário
+          </button>
+        </div>
+        <div className="flex gap-2 pt-4 mt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>
+            Cancelar
+          </button>
+          <button onClick={enviar} disabled={loading} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: loading ? '#7E2BC2' : '#9333EA' }}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+            Enviar pra assinatura
+          </button>
+        </div>
       </div>
     </div>
   )
