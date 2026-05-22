@@ -345,6 +345,13 @@ export default function OrcamentoDetalhe() {
         </div>
       )}
 
+      {o.localMobilizacao && (
+        <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-3">Local de mobilização</h2>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{o.localMobilizacao}</p>
+        </div>
+      )}
+
       {(o.dtInicio || o.dtFim) && (
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-3">Vigência proposta</h2>

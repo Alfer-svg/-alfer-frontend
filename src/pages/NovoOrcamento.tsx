@@ -22,6 +22,7 @@ export default function NovoOrcamento() {
     periodicidade: 'Mensal',
     condicaoPagamento: 'D_30',
     formaPagamento: 'BOLETO',
+    localMobilizacao: '',
     dtInicio: '',
     dtFim: '',
     validade: '7',
@@ -75,6 +76,7 @@ export default function NovoOrcamento() {
           periodicidade: o.periodicidade || 'Mensal',
           condicaoPagamento: o.condicaoPagamento || 'D_30',
           formaPagamento: o.formaPagamento || 'BOLETO',
+          localMobilizacao: o.localMobilizacao || '',
           dtInicio: o.dtInicio ? new Date(o.dtInicio).toISOString().slice(0, 10) : '',
           dtFim: o.dtFim ? new Date(o.dtFim).toISOString().slice(0, 10) : '',
           validade: String(o.validade ?? 7),
@@ -114,6 +116,7 @@ export default function NovoOrcamento() {
         periodicidade: form.periodicidade,
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
+        localMobilizacao: form.localMobilizacao || null,
         dtInicio: form.dtInicio || null,
         dtFim: form.dtFim || null,
         validade: Number(form.validade) || 7,
@@ -242,6 +245,18 @@ export default function NovoOrcamento() {
               </select>
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-4">Local de mobilização</h2>
+          <textarea
+            value={form.localMobilizacao}
+            onChange={(e) => set('localMobilizacao', e.target.value)}
+            rows={2}
+            placeholder="Onde os equipamentos serão entregues (pode ser diferente do endereço do CNPJ). Ex: Obra Hotel X - Av. Conde da Boa Vista 1500, Recife-PE"
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+            style={inputStyle}
+          />
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
