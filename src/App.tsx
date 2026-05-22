@@ -30,6 +30,7 @@ import Mapa from './pages/Mapa'
 import NovoEquipamento from './pages/NovoEquipamento'
 import NovoCaminhao from './pages/NovoCaminhao'
 import NovaLocacaoCacamba from './pages/NovaLocacaoCacamba'
+import Locacoes from './pages/Locacoes'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="caminhoes/:id" element={<CaminhaoDetalhe />} />
         <Route path="cacambas" element={<Cacambas />} />
         <Route path="cacambas/nova" element={<NovaLocacaoCacamba />} />
+        <Route path="locacoes" element={<Locacoes />} />
         <Route path="motoristas" element={<Motoristas />} />
         <Route path="modelos" element={<Modelos />} />
         <Route path="modelos/novo" element={<NovoModelo />} />
