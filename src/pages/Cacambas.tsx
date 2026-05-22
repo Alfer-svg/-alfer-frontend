@@ -36,13 +36,27 @@ export default function Cacambas() {
 
   const excluir = async (l: any) => {
     if (!confirm(`Excluir esta locação de ${l.cliente?.razaoSocial}? Esta ação não pode ser desfeita.`)) return
-    if (!confirm('Confirma de novo? Se já houver trocas registradas, a exclusão será bloqueada.')) return
     setErroAcao('')
     try {
       await api.delete(`/cacambas/locacoes/${l.id}`)
       load()
     } catch (err: any) {
-      setErroAcao(err.response?.data?.message || 'Erro ao excluir locação.')
+      const msg = err.response?.data?.message || ''
+      // se foi bloqueado por trocas, oferece exclusão forçada (cascade)
+      if (/troca/i.test(msg)) {
+        if (!confirm(`${msg}\n\nDeseja FORÇAR a exclusão? Vai apagar a locação, todas as trocas e as destinações de resíduos. Histórico será perdido.`)) {
+          setErroAcao('Exclusão cancelada.')
+          return
+        }
+        try {
+          await api.delete(`/cacambas/locacoes/${l.id}?force=true`)
+          load()
+        } catch (err2: any) {
+          setErroAcao(err2.response?.data?.message || 'Erro ao forçar exclusão.')
+        }
+      } else {
+        setErroAcao(msg || 'Erro ao excluir locação.')
+      }
     }
   }
 
