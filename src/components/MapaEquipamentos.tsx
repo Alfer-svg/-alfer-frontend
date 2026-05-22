@@ -3,20 +3,48 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useNavigate } from 'react-router-dom'
 
-const makeImgIcon = (file: string, size = 40) =>
-  L.divIcon({
+const makeImgIcon = (file: string, size = 40) => {
+  const imgSize = Math.round(size * 0.78)
+  const totalH = size + Math.round(size * 0.3)
+  const arrowSize = Math.round(size * 0.18)
+  return L.divIcon({
     className: 'custom-marker',
     html: `
-      <img
-        src="/icones/${file}"
-        alt=""
-        style="width: ${size}px; height: ${size}px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"
-      />
+      <div style="position: relative; width: ${size}px; height: ${totalH}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <div style="
+          width: ${size}px; height: ${size}px;
+          background: white;
+          border-radius: 50%;
+          border: 2px solid #FFAF06;
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden;
+          box-sizing: border-box;
+        ">
+          <img src="/icones/${file}" alt="" style="width: ${imgSize}px; height: ${imgSize}px; object-fit: contain;" />
+        </div>
+        <div style="
+          position: absolute; bottom: 0; left: 50%;
+          transform: translateX(-50%);
+          width: 0; height: 0;
+          border-left: ${arrowSize}px solid transparent;
+          border-right: ${arrowSize}px solid transparent;
+          border-top: ${Math.round(arrowSize * 1.7)}px solid #FFAF06;
+        "></div>
+        <div style="
+          position: absolute; bottom: 2px; left: 50%;
+          transform: translateX(-50%);
+          width: 0; height: 0;
+          border-left: ${arrowSize - 2}px solid transparent;
+          border-right: ${arrowSize - 2}px solid transparent;
+          border-top: ${Math.round(arrowSize * 1.5)}px solid white;
+        "></div>
+      </div>
     `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size - 4],
-    popupAnchor: [0, -(size - 4)],
+    iconSize: [size, totalH],
+    iconAnchor: [size / 2, totalH],
+    popupAnchor: [0, -totalH],
   })
+}
 
 const iconePorTipoEquip = (tipo: string, size = 40) => {
   const map: Record<string, string> = {

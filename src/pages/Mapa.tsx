@@ -6,20 +6,44 @@ import 'leaflet/dist/leaflet.css'
 import api from '../services/api'
 import { Map as MapIcon, AlertCircle } from 'lucide-react'
 
-// Ícone com fundo transparente (PNGs já vêm sem fundo); sombra direto na imagem
+// Ícone dentro de balão branco com ponteiro (estilo pin de mapa)
 const makeImgIcon = (file: string) =>
   L.divIcon({
     className: 'custom-marker',
     html: `
-      <img
-        src="/icones/${file}"
-        alt=""
-        style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));"
-      />
+      <div style="position: relative; width: 56px; height: 68px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+        <div style="
+          width: 56px; height: 56px;
+          background: white;
+          border-radius: 50%;
+          border: 2px solid #FFAF06;
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden;
+          box-sizing: border-box;
+        ">
+          <img src="/icones/${file}" alt="" style="width: 44px; height: 44px; object-fit: contain;" />
+        </div>
+        <div style="
+          position: absolute; bottom: 0; left: 50%;
+          transform: translateX(-50%);
+          width: 0; height: 0;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          border-top: 14px solid #FFAF06;
+        "></div>
+        <div style="
+          position: absolute; bottom: 2px; left: 50%;
+          transform: translateX(-50%);
+          width: 0; height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 11px solid white;
+        "></div>
+      </div>
     `,
-    iconSize: [52, 52],
-    iconAnchor: [26, 48],
-    popupAnchor: [0, -48],
+    iconSize: [56, 68],
+    iconAnchor: [28, 68],
+    popupAnchor: [0, -68],
   })
 
 const iconePorTipoEquip: Record<string, L.DivIcon> = {
