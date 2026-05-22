@@ -31,6 +31,8 @@ import NovoEquipamento from './pages/NovoEquipamento'
 import NovoCaminhao from './pages/NovoCaminhao'
 import NovaLocacaoCacamba from './pages/NovaLocacaoCacamba'
 import Locacoes from './pages/Locacoes'
+import OrdensServicoMunck from './pages/OrdensServicoMunck'
+import OrdemServicoMunckDetalhe from './pages/OrdemServicoMunckDetalhe'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -78,6 +80,9 @@ function AppRoutes() {
         <Route path="cacambas" element={<Cacambas />} />
         <Route path="cacambas/nova" element={<NovaLocacaoCacamba />} />
         <Route path="locacoes" element={<Locacoes />} />
+        <Route path="ordens-servico/munck" element={<OrdensServicoMunck />} />
+        <Route path="ordens-servico/munck/nova" element={<OrdemServicoMunckDetalhe />} />
+        <Route path="ordens-servico/munck/:id" element={<OrdemServicoMunckDetalhe />} />
         <Route path="motoristas" element={<Motoristas />} />
         <Route path="modelos" element={<Modelos />} />
         <Route path="modelos/novo" element={<NovoModelo />} />

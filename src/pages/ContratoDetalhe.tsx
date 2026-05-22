@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -72,7 +72,17 @@ export default function ContratoDetalhe() {
         <button onClick={() => navigate('/contratos')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm transition-all">
           <ArrowLeft className="w-4 h-4" /> Voltar para contratos
         </button>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {c?.tipoModelo === 'CAMINHAO_MUNCK' && (
+            <button
+              onClick={() => navigate(`/ordens-servico/munck/nova?contratoId=${id}`)}
+              title="Gera uma OS Munck pré-preenchida com os dados deste contrato"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+              style={{ background: '#27AE60' }}
+            >
+              <ClipboardList className="w-3 h-3" /> Gerar OS Munck
+            </button>
+          )}
           <button
             onClick={() => navigate(`/contratos/${id}/editar`)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"

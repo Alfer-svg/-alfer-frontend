@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -41,6 +41,7 @@ const nav: NavItem[] = [
   { to: '/caminhoes', icon: Truck, label: 'Caminhões' },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
   { to: '/logistica', icon: Forklift, label: 'Logística' },
+  { to: '/ordens-servico/munck', icon: ClipboardList, label: 'OS Munck' },
   { to: '/motoristas', icon: User, label: 'Motoristas' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/mapa', icon: Map, label: 'Mapa' },
