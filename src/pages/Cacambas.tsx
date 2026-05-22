@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X } from 'lucide-react'
+import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2 } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVA: { bg: '#EAF3DE', text: '#27500A', label: 'Ativa' },
@@ -26,10 +26,24 @@ export default function Cacambas() {
   }
   useEffect(load, [filtroStatus])
 
+  const [erroAcao, setErroAcao] = useState('')
+
   const encerrar = async (id: string) => {
     if (!confirm('Encerrar esta locação? A caçamba ficará disponível novamente.')) return
     await api.put(`/cacambas/locacoes/${id}/encerrar`)
     load()
+  }
+
+  const excluir = async (l: any) => {
+    if (!confirm(`Excluir esta locação de ${l.cliente?.razaoSocial}? Esta ação não pode ser desfeita.`)) return
+    if (!confirm('Confirma de novo? Se já houver trocas registradas, a exclusão será bloqueada.')) return
+    setErroAcao('')
+    try {
+      await api.delete(`/cacambas/locacoes/${l.id}`)
+      load()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao excluir locação.')
+    }
   }
 
   return (
@@ -62,6 +76,12 @@ export default function Cacambas() {
           <option value="ENCERRADA">Encerradas</option>
         </select>
       </div>
+
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -106,24 +126,34 @@ export default function Cacambas() {
                     </div>
                   </div>
                 </div>
-                {l.status !== 'ENCERRADA' && (
-                  <div className="flex gap-2 mt-4 pt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
-                    <button
-                      onClick={() => setTrocaModal(l)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                      style={{ background: '#FFF8E6', color: '#FFAF06' }}
-                    >
-                      Registrar troca
-                    </button>
-                    <button
-                      onClick={() => encerrar(l.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
-                      style={{ border: '1px solid #E0DDD8' }}
-                    >
-                      Encerrar locação
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap" style={{ borderColor: '#F1EFE8' }}>
+                  {l.status !== 'ENCERRADA' && (
+                    <>
+                      <button
+                        onClick={() => setTrocaModal(l)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ background: '#FFF8E6', color: '#FFAF06' }}
+                      >
+                        Registrar troca
+                      </button>
+                      <button
+                        onClick={() => encerrar(l.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        style={{ border: '1px solid #E0DDD8' }}
+                      >
+                        Encerrar locação
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => excluir(l)}
+                    title="Excluir locação (bloqueado se houver trocas)"
+                    className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50"
+                    style={{ border: '1px solid #FACACA' }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )
           })}
