@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown, Archive, ArchiveRestore } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
@@ -164,11 +164,24 @@ export default function OrcamentoDetalhe() {
 
   const excluir = async () => {
     if (!confirm('Excluir este orçamento? Esta ação não pode ser desfeita.')) return
+    if (!confirm('Tem certeza? Considere arquivar em vez de excluir, se quiser preservar histórico.')) return
     try {
       await api.delete(`/orcamentos/${id}`)
       navigate('/orcamentos')
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao excluir.')
+    }
+  }
+
+  const arquivar = async () => {
+    const novoEstado = !o.arquivado
+    if (novoEstado && !confirm('Arquivar este orçamento? Ele some da lista padrão (acessível via filtro "arquivados").')) return
+    setErro('')
+    try {
+      await api.post(`/orcamentos/${id}/arquivar`, { arquivar: novoEstado })
+      load()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao arquivar.')
     }
   }
 
@@ -185,15 +198,28 @@ export default function OrcamentoDetalhe() {
           <ArrowLeft className="w-4 h-4" /> Voltar para orçamentos
         </button>
         <div className="flex gap-2">
-          {o.status === 'RASCUNHO' && (
-            <>
-              <button onClick={() => navigate(`/orcamentos/${id}/editar`)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50" style={{ border: '1px solid #E0DDD8' }}>
-                <Pencil className="w-3 h-3" /> Editar
-              </button>
-              <button onClick={excluir} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50" style={{ border: '1px solid #FACACA' }}>
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </>
+          {(o.status === 'RASCUNHO' || o.status === 'ENVIADO') && (
+            <button onClick={() => navigate(`/orcamentos/${id}/editar`)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50" style={{ border: '1px solid #E0DDD8' }}>
+              <Pencil className="w-3 h-3" /> Editar
+            </button>
+          )}
+          <button
+            onClick={arquivar}
+            title={o.arquivado ? 'Desarquivar' : 'Arquivar'}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            {o.arquivado ? <><ArchiveRestore className="w-3 h-3" /> Desarquivar</> : <><Archive className="w-3 h-3" /> Arquivar</>}
+          </button>
+          {!o.pedido && (
+            <button
+              onClick={excluir}
+              title="Excluir orçamento permanentemente"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50"
+              style={{ border: '1px solid #FACACA' }}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
           )}
         </div>
       </div>
@@ -209,6 +235,11 @@ export default function OrcamentoDetalhe() {
               <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: st.bg, color: st.text }}>
                 {st.label}
               </span>
+              {o.arquivado && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>
+                  <Archive className="w-3 h-3" /> Arquivado
+                </span>
+              )}
             </div>
             <p className="text-gray-700 mt-1">{o.cliente?.razaoSocial}</p>
             <div className="flex items-center gap-4 text-xs text-gray-400 mt-2 flex-wrap">

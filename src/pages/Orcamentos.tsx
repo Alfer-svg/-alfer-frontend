@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock } from 'lucide-react'
+import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho', icon: FileText },
@@ -19,16 +19,17 @@ export default function Orcamentos() {
   const [orcamentos, setOrcamentos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [filtroArquivado, setFiltroArquivado] = useState('false')
 
   const load = () => {
     setLoading(true)
-    const params: any = {}
+    const params: any = { arquivado: filtroArquivado }
     if (filtroStatus) params.status = filtroStatus
     api.get('/orcamentos', { params })
       .then((r) => setOrcamentos(r.data))
       .finally(() => setLoading(false))
   }
-  useEffect(load, [filtroStatus])
+  useEffect(load, [filtroStatus, filtroArquivado])
 
   return (
     <div className="p-8 animate-fade-in">
@@ -60,6 +61,16 @@ export default function Orcamentos() {
           <option value="APROVADO">Aprovados</option>
           <option value="RECUSADO">Recusados</option>
           <option value="EXPIRADO">Expirados</option>
+        </select>
+        <select
+          value={filtroArquivado}
+          onChange={(e) => setFiltroArquivado(e.target.value)}
+          className="px-4 py-3 bg-white rounded-xl text-sm outline-none"
+          style={{ border: '1px solid #E0DDD8' }}
+        >
+          <option value="false">Ativos (não arquivados)</option>
+          <option value="true">Apenas arquivados</option>
+          <option value="all">Todos (com arquivados)</option>
         </select>
       </div>
 
@@ -96,6 +107,11 @@ export default function Orcamentos() {
                     {o.pedido && (
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#EAF3DE', color: '#27500A' }}>
                         → {o.pedido.numero}
+                      </span>
+                    )}
+                    {o.arquivado && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>
+                        <Archive className="w-3 h-3" /> Arquivado
                       </span>
                     )}
                   </div>
