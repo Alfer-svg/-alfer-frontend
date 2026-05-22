@@ -67,9 +67,9 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 flex flex-col z-40" style={{ background: '#1A1C1E', borderRight: '1px solid #2A2C2E' }}>
-      <div className="p-5 border-b" style={{ borderColor: '#2A2C2E' }}>
-        <AlferLogo size={56} />
+    <aside className="fixed left-0 top-0 h-full w-60 flex flex-col z-40" style={{ background: '#FFFFFF', borderRight: '1px solid #E0DDD8' }}>
+      <div className="p-5 border-b flex items-center justify-center" style={{ borderColor: '#F1EFE8' }}>
+        <AlferLogo size={96} />
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
         <div className="px-3 space-y-0.5">
@@ -83,7 +83,7 @@ export default function Sidebar() {
                   <button
                     onClick={() => setOpen((o) => ({ ...o, [item.label]: !o[item.label] }))}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      childActive ? 'text-white bg-white/5' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                      childActive ? 'text-gray-900 bg-gray-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -91,7 +91,7 @@ export default function Sidebar() {
                     {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                   </button>
                   {isOpen && (
-                    <div className="mt-0.5 ml-2 pl-3 space-y-0.5" style={{ borderLeft: '1px solid #2A2C2E' }}>
+                    <div className="mt-0.5 ml-2 pl-3 space-y-0.5" style={{ borderLeft: '1px solid #E0DDD8' }}>
                       {item.children.map((c) => (
                         <NavLink
                           key={c.to}
@@ -99,7 +99,7 @@ export default function Sidebar() {
                           end
                           className={({ isActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                              isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                              isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                             }`
                           }
                           style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
@@ -119,7 +119,7 @@ export default function Sidebar() {
                 to={to}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    isActive ? 'text-gray-900' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`
                 }
                 style={({ isActive }) => isActive ? { background: '#FFAF06' } : {}}
@@ -131,19 +131,19 @@ export default function Sidebar() {
           })}
         </div>
       </nav>
-      <div className="p-4 border-t" style={{ borderColor: '#2A2C2E' }}>
+      <div className="p-4 border-t" style={{ borderColor: '#F1EFE8' }}>
         <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-gray-900 text-xs font-bold" style={{ background: '#FFAF06' }}>
             {usuario?.nome?.charAt(0) || 'A'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white text-sm font-medium truncate">{usuario?.nome}</div>
+            <div className="text-gray-900 text-sm font-medium truncate">{usuario?.nome}</div>
             <div className="text-gray-500 text-xs">{usuario?.perfil}</div>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 text-sm transition-all"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 text-sm transition-all"
         >
           <LogOut className="w-4 h-4" />
           Sair
