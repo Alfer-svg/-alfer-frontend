@@ -15,7 +15,7 @@ const makeImgIcon = (file: string, size = 40) => {
           width: ${size}px; height: ${size}px;
           background: white;
           border-radius: 50%;
-          border: 2px solid #FFAF06;
+          border: 1px solid #C7C2BB;
           display: flex; align-items: center; justify-content: center;
           overflow: hidden;
           box-sizing: border-box;
@@ -28,7 +28,7 @@ const makeImgIcon = (file: string, size = 40) => {
           width: 0; height: 0;
           border-left: ${arrowSize}px solid transparent;
           border-right: ${arrowSize}px solid transparent;
-          border-top: ${Math.round(arrowSize * 1.7)}px solid #FFAF06;
+          border-top: ${Math.round(arrowSize * 1.7)}px solid #C7C2BB;
         "></div>
         <div style="
           position: absolute; bottom: 2px; left: 50%;
