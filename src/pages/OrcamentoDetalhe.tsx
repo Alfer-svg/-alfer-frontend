@@ -54,7 +54,13 @@ export default function OrcamentoDetalhe() {
     finally { setAcao('') }
   }
 
-  const gerarMensagem = () => {
+  const gerarLinkPdf = async (): Promise<string> => {
+    const r = await api.post(`/orcamentos/${id}/public-token`)
+    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
+    return `${baseUrl}/public/orcamentos/${id}/pdf?token=${r.data.token}`
+  }
+
+  const gerarMensagem = (linkPdf?: string) => {
     if (!o) return ''
     const nomeContato = o.cliente?.contatos?.[0]?.nome
     const linhas = [
@@ -70,9 +76,9 @@ export default function OrcamentoDetalhe() {
       o.dtInicio && o.dtFim && `📅 Vigência: ${fmtDate(o.dtInicio)} a ${fmtDate(o.dtFim)}`,
       `⏰ Validade da proposta: ${o.validade} dias`,
       '',
-      o.condicoes?.length > 0 && 'Condições:',
-      ...(o.condicoes || []).map((c: string) => `• ${c}`),
-      '',
+      linkPdf && '📄 Veja o orçamento completo em PDF:',
+      linkPdf,
+      linkPdf && '',
       'Qualquer dúvida, estamos à disposição!',
       '',
       'Alfer Equipamentos',
@@ -94,7 +100,9 @@ export default function OrcamentoDetalhe() {
       setErro('Cliente sem telefone cadastrado.')
       return
     }
-    const msg = encodeURIComponent(gerarMensagem())
+    let linkPdf = ''
+    try { linkPdf = await gerarLinkPdf() } catch { /* segue sem link */ }
+    const msg = encodeURIComponent(gerarMensagem(linkPdf))
     window.open(`https://wa.me/${tel}?text=${msg}`, '_blank')
     if (o.status === 'RASCUNHO') {
       try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
@@ -124,8 +132,10 @@ export default function OrcamentoDetalhe() {
       setErro('Cliente sem email cadastrado.')
       return
     }
+    let linkPdf = ''
+    try { linkPdf = await gerarLinkPdf() } catch { /* segue sem link */ }
     const subject = encodeURIComponent(`Orçamento ${o.numero} — Alfer Equipamentos`)
-    const body = encodeURIComponent(gerarMensagem())
+    const body = encodeURIComponent(gerarMensagem(linkPdf))
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`
     if (o.status === 'RASCUNHO') {
       try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
