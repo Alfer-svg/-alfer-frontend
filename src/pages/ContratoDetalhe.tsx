@@ -130,6 +130,23 @@ export default function ContratoDetalhe() {
         <div className="flex gap-2 flex-wrap pt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
           {c.status !== 'ATIVO' && (<button onClick={() => mudarStatus('ATIVO')} disabled={updatingStatus} className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50" style={{ background: '#EAF3DE', color: '#27500A' }}>Ativar</button>)}
           {c.status === 'ATIVO' && (<button onClick={() => setShowRenovar(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900" style={{ background: '#FFAF06' }}><RotateCw className="w-3 h-3" /> Renovar</button>)}
+          {c.lancamentos?.length === 0 && (
+            <button
+              onClick={async () => {
+                try {
+                  const r = await api.post(`/contratos/${id}/gerar-faturas`)
+                  alert(r.data?.mensagem || `✓ ${r.data?.geradas || 0} fatura(s) gerada(s)`)
+                  load()
+                } catch (err: any) {
+                  alert(err.response?.data?.message || 'Erro ao gerar faturas.')
+                }
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900"
+              style={{ background: '#FFF8E6', color: '#FFAF06' }}
+            >
+              <DollarSign className="w-3 h-3" /> Gerar faturas
+            </button>
+          )}
           {c.status !== 'ENCERRADO' && c.status !== 'RESCINDIDO' && (
             <>
               <button onClick={() => mudarStatus('ENCERRADO')} disabled={updatingStatus} className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700" style={{ background: '#F1EFE8' }}>Encerrar</button>
