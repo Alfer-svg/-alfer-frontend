@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X } from 'lucide-react'
 
 export default function NovoOrcamento() {
   const navigate = useNavigate()
@@ -28,6 +28,23 @@ export default function NovoOrcamento() {
     observacoes: '',
   })
   const [condicoes, setCondicoes] = useState<string[]>([''])
+  const [showPickerCond, setShowPickerCond] = useState(false)
+  const [condicoesPadrao, setCondicoesPadrao] = useState<any[]>([])
+
+  useEffect(() => {
+    api.get('/condicoes-orcamento', { params: { ativo: 'true' } })
+      .then((r) => setCondicoesPadrao(r.data))
+      .catch(() => setCondicoesPadrao([]))
+  }, [])
+
+  const aplicarCondicoes = (selecionadas: string[]) => {
+    setCondicoes((cs) => {
+      const semVazias = cs.filter((c) => c.trim())
+      const novas = [...semVazias, ...selecionadas.filter((s) => !semVazias.includes(s))]
+      return novas.length > 0 ? novas : ['']
+    })
+    setShowPickerCond(false)
+  }
 
   useEffect(() => {
     Promise.all([api.get('/clientes'), api.get('/equipamentos')])
@@ -242,9 +259,30 @@ export default function NovoOrcamento() {
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Condições</h2>
-            <button type="button" onClick={addCondicao} className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg" style={{ color: '#FFAF06', background: '#FFF8E6' }}>
-              <Plus className="w-3.5 h-3.5" /> Adicionar
-            </button>
+            <div className="flex gap-2">
+              {condicoesPadrao.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPickerCond(true)}
+                  className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg"
+                  style={{ color: '#1A5276', background: '#E3EEFA' }}
+                  title="Selecionar das condições padrão cadastradas"
+                >
+                  <FileCheck className="w-3.5 h-3.5" /> Das padrão
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/condicoes-orcamento')}
+                className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-50"
+                title="Gerenciar condições padrão"
+              >
+                Gerenciar →
+              </button>
+              <button type="button" onClick={addCondicao} className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg" style={{ color: '#FFAF06', background: '#FFF8E6' }}>
+                <Plus className="w-3.5 h-3.5" /> Adicionar
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             {condicoes.map((c, i) => (
@@ -274,6 +312,85 @@ export default function NovoOrcamento() {
           </button>
         </div>
       </form>
+
+      {showPickerCond && (
+        <PickerCondicoes
+          condicoes={condicoesPadrao}
+          jaSelecionadas={condicoes.filter((c) => c.trim())}
+          onClose={() => setShowPickerCond(false)}
+          onConfirm={aplicarCondicoes}
+        />
+      )}
+    </div>
+  )
+}
+
+function PickerCondicoes({ condicoes, jaSelecionadas, onClose, onConfirm }: {
+  condicoes: any[]
+  jaSelecionadas: string[]
+  onClose: () => void
+  onConfirm: (selecionadas: string[]) => void
+}) {
+  const [sel, setSel] = useState<Set<string>>(new Set(jaSelecionadas))
+
+  const toggle = (texto: string) => {
+    setSel((s) => {
+      const n = new Set(s)
+      if (n.has(texto)) n.delete(texto)
+      else n.add(texto)
+      return n
+    })
+  }
+
+  // Agrupa por categoria
+  const grupos = condicoes.reduce((acc: Record<string, any[]>, c: any) => {
+    const cat = c.categoria || 'Geral'
+    acc[cat] = acc[cat] || []
+    acc[cat].push(c)
+    return acc
+  }, {})
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-gray-900">Selecionar condições padrão</h2>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">{sel.size} selecionada(s). Marque as que quiser incluir no orçamento.</p>
+
+        <div className="flex-1 overflow-y-auto space-y-4 -mx-2 px-2">
+          {Object.entries(grupos).map(([cat, items]) => (
+            <div key={cat}>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{cat}</div>
+              <div className="space-y-2">
+                {(items as any[]).map((c: any) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggle(c.texto)}
+                    className="w-full text-left p-3 rounded-xl flex items-start gap-3 transition-all"
+                    style={{
+                      background: sel.has(c.texto) ? '#FFF8E6' : '#F9F7F4',
+                      border: sel.has(c.texto) ? '2px solid #FFAF06' : '2px solid transparent',
+                    }}
+                  >
+                    <input type="checkbox" checked={sel.has(c.texto)} readOnly className="mt-0.5 w-4 h-4" style={{ accentColor: '#FFAF06' }} />
+                    <span className="text-sm text-gray-700 flex-1">{c.texto}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 pt-4 mt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button type="button" onClick={() => onConfirm(Array.from(sel))} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900" style={{ background: '#FFAF06' }}>
+            Aplicar ({sel.size})
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
