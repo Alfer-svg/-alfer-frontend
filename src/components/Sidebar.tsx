@@ -22,6 +22,7 @@ const nav: NavItem[] = [
     basePath: '/contratos',
     children: [
       { to: '/orcamentos', label: 'Orçamentos' },
+      { to: '/condicoes-orcamento', label: 'Condições padrão' },
       { to: '/pedidos', label: 'Pedidos' },
       { to: '/contratos', label: 'Contratos' },
     ],
