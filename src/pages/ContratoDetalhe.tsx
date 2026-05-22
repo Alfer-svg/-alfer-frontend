@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -30,12 +30,31 @@ export default function ContratoDetalhe() {
   const [showRenovar, setShowRenovar] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
+  const [baixandoPdf, setBaixandoPdf] = useState(false)
+
   const load = () => {
     if (!id) return
     setLoading(true)
     api.get(`/contratos/${id}`).then((r) => setC(r.data)).finally(() => setLoading(false))
   }
   useEffect(load, [id])
+
+  const baixarPdf = async () => {
+    if (!id) return
+    setBaixandoPdf(true)
+    try {
+      const r = await api.get(`/contratos/${id}/pdf`, { responseType: 'blob' })
+      const blob = new Blob([r.data], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      // libera memória depois (URL tá aberto na aba)
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao gerar PDF')
+    } finally {
+      setBaixandoPdf(false)
+    }
+  }
 
   const mudarStatus = async (status: string) => {
     setUpdatingStatus(true)
@@ -73,6 +92,16 @@ export default function ContratoDetalhe() {
           <ArrowLeft className="w-4 h-4" /> Voltar para contratos
         </button>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={baixarPdf}
+            disabled={baixandoPdf}
+            title="Gera o PDF do contrato adaptado ao tipo de equipamento"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+            style={{ background: '#2D80D1' }}
+          >
+            {baixandoPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+            Gerar PDF do contrato
+          </button>
           {c?.tipoModelo === 'CAMINHAO_MUNCK' && (
             <button
               onClick={() => navigate(`/ordens-servico/munck/nova?contratoId=${id}`)}
