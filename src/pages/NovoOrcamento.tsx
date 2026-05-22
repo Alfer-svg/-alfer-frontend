@@ -18,6 +18,7 @@ export default function NovoOrcamento() {
     descricao: '',
     valor: '',
     desconto: '',
+    frete: '',
     periodicidade: 'Mensal',
     condicaoPagamento: 'D_30',
     formaPagamento: 'BOLETO',
@@ -47,6 +48,7 @@ export default function NovoOrcamento() {
           descricao: o.descricao || '',
           valor: o.valor != null ? String(o.valor) : '',
           desconto: o.desconto != null ? String(o.desconto) : '',
+          frete: o.frete != null ? String(o.frete) : '',
           periodicidade: o.periodicidade || 'Mensal',
           condicaoPagamento: o.condicaoPagamento || 'D_30',
           formaPagamento: o.formaPagamento || 'BOLETO',
@@ -64,7 +66,9 @@ export default function NovoOrcamento() {
 
   const valor = Number(form.valor || 0)
   const desconto = Number(form.desconto || 0)
-  const valorFinal = Math.max(0, valor - (valor * desconto) / 100)
+  const frete = Number(form.frete || 0)
+  const comDesconto = Math.max(0, valor - (valor * desconto) / 100)
+  const valorFinal = comDesconto + frete
 
   const setCondicao = (i: number, v: string) => setCondicoes((cs) => cs.map((c, idx) => (idx === i ? v : c)))
   const addCondicao = () => setCondicoes((cs) => [...cs, ''])
@@ -83,6 +87,7 @@ export default function NovoOrcamento() {
         descricao: form.descricao || null,
         valor,
         desconto: desconto || null,
+        frete: frete || null,
         periodicidade: form.periodicidade,
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
@@ -150,7 +155,7 @@ export default function NovoOrcamento() {
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-4">Valor</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$) *</label>
               <input value={form.valor} onChange={(e) => set('valor', e.target.value)} type="number" step="0.01" min="0" required placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -158,6 +163,10 @@ export default function NovoOrcamento() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
               <input value={form.desconto} onChange={(e) => set('desconto', e.target.value)} type="number" step="0.01" min="0" max="100" placeholder="0" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Frete (R$)</label>
+              <input value={form.frete} onChange={(e) => set('frete', e.target.value)} type="number" step="0.01" min="0" placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Periodicidade</label>
@@ -172,8 +181,14 @@ export default function NovoOrcamento() {
           </div>
           {valor > 0 && (
             <div className="mt-4 p-3 rounded-xl text-sm" style={{ background: '#FFF8E6', border: '1px solid #FFD577' }}>
-              Valor final: <strong>R$ {valorFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-              {desconto > 0 && <span className="text-gray-600 ml-2">(R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - {desconto}%)</span>}
+              <div>Valor final: <strong>R$ {valorFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              {(desconto > 0 || frete > 0) && (
+                <div className="text-xs text-gray-600 mt-1">
+                  Locação: R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {desconto > 0 && ` − ${desconto}% desconto = R$ ${comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  {frete > 0 && ` + R$ ${frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} frete`}
+                </div>
+              )}
             </div>
           )}
         </div>

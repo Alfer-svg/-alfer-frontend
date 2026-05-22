@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
@@ -98,6 +98,23 @@ export default function OrcamentoDetalhe() {
     window.open(`https://wa.me/${tel}?text=${msg}`, '_blank')
     if (o.status === 'RASCUNHO') {
       try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
+    }
+  }
+
+  const abrirPdf = async () => {
+    try {
+      const token = localStorage.getItem('alfer_token')
+      const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
+      const r = await fetch(`${baseUrl}/orcamentos/${id}/pdf?modelo=container`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok) throw new Error('Erro ao gerar PDF')
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 30000)
+    } catch (err: any) {
+      setErro(err.message || 'Erro ao baixar PDF.')
     }
   }
 
@@ -206,6 +223,13 @@ export default function OrcamentoDetalhe() {
         {erro && (<div className="mt-3 p-3 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}><AlertCircle className="w-4 h-4" /> {erro}</div>)}
 
         <div className="flex gap-2 flex-wrap pt-4 border-t" style={{ borderColor: '#F1EFE8' }}>
+          <button
+            onClick={abrirPdf}
+            className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-gray-900 hover:opacity-90"
+            style={{ background: '#F5F0EB', border: '1px solid #E0DDD8' }}
+          >
+            <FileDown className="w-4 h-4" /> Gerar PDF
+          </button>
           {/* Botões de envio direto pro cliente */}
           {(o.status === 'RASCUNHO' || o.status === 'ENVIADO') && (
             <>
