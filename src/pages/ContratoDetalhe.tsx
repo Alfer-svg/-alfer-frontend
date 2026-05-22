@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown, Send, Mail, CheckCircle2, XCircle, RefreshCw, Plus, Copy, Clock } from 'lucide-react'
+import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown, Send, Mail, CheckCircle2, XCircle, RefreshCw, Plus, Copy, Clock, MapPin } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -281,6 +281,15 @@ export default function ContratoDetalhe() {
           )}
         </div>
       </div>
+
+      {c.localMobilizacao && (
+        <div className="bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
+            <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> Local de mobilização
+          </h2>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.localMobilizacao}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

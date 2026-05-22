@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileSignature, Building2, FileText, Loader2, AlertCircle, ChevronRight } from 'lucide-react'
+import { ArrowLeft, FileSignature, Building2, FileText, Loader2, AlertCircle, ChevronRight, MapPin } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   PENDENTE: { bg: '#FEF3E2', text: '#633806', label: 'Pendente' },
@@ -114,6 +114,17 @@ export default function PedidoDetalhe() {
           </div>
         )}
       </div>
+
+      {(p.contrato?.localMobilizacao || p.orcamento?.localMobilizacao) && (
+        <div className="bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
+            <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> Local de mobilização
+          </h2>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            {p.contrato?.localMobilizacao || p.orcamento?.localMobilizacao}
+          </p>
+        </div>
+      )}
 
       {p.contrato && (
         <div
