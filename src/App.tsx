@@ -23,6 +23,7 @@ import Orcamentos from './pages/Orcamentos'
 import NovoOrcamento from './pages/NovoOrcamento'
 import OrcamentoDetalhe from './pages/OrcamentoDetalhe'
 import CondicoesOrcamento from './pages/CondicoesOrcamento'
+import Logistica from './pages/Logistica'
 import Pedidos from './pages/Pedidos'
 import PedidoDetalhe from './pages/PedidoDetalhe'
 import Mapa from './pages/Mapa'
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="orcamentos/:id/editar" element={<NovoOrcamento />} />
         <Route path="orcamentos/:id" element={<OrcamentoDetalhe />} />
         <Route path="condicoes-orcamento" element={<CondicoesOrcamento />} />
+        <Route path="logistica" element={<Logistica />} />
         <Route path="pedidos" element={<Pedidos />} />
         <Route path="pedidos/:id" element={<PedidoDetalhe />} />
         <Route path="financeiro" element={<Financeiro />} />
