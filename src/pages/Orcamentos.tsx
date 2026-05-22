@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive } from 'lucide-react'
+import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho', icon: FileText },
@@ -20,6 +20,27 @@ export default function Orcamentos() {
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroArquivado, setFiltroArquivado] = useState('false')
+  const [aprovando, setAprovando] = useState<string | null>(null)
+  const [erroAcao, setErroAcao] = useState('')
+
+  const aprovar = async (e: React.MouseEvent, o: any) => {
+    e.stopPropagation()
+    if (!confirm(`Aprovar o orçamento ${o.numero}? Vai gerar automaticamente um pedido + contrato (RASCUNHO) com base nele.`)) return
+    setAprovando(o.id); setErroAcao('')
+    try {
+      const r = await api.post(`/orcamentos/${o.id}/aprovar`)
+      load()
+      if (r.data?.contratoId) {
+        if (confirm(`Aprovado! Pedido ${r.data.pedido?.numero} criado. Abrir o contrato pra finalizar o cadastro?`)) {
+          navigate(`/contratos/${r.data.contratoId}`)
+        }
+      }
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao aprovar')
+    } finally {
+      setAprovando(null)
+    }
+  }
 
   const load = () => {
     setLoading(true)
@@ -74,6 +95,12 @@ export default function Orcamentos() {
         </select>
       </div>
 
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -126,6 +153,18 @@ export default function Orcamentos() {
                   <div className="font-semibold text-gray-900 text-sm">{fmt(Number(o.valorFinal))}</div>
                   {o.desconto && <div className="text-xs text-gray-400">-{Number(o.desconto)}%</div>}
                 </div>
+                {(o.status === 'RASCUNHO' || o.status === 'ENVIADO') && !o.pedido && (
+                  <button
+                    onClick={(e) => aprovar(e, o)}
+                    disabled={aprovando === o.id}
+                    title="Aprovar e gerar pedido + contrato"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50 flex-shrink-0"
+                    style={{ background: '#27AE60' }}
+                  >
+                    {aprovando === o.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    Aprovar
+                  </button>
+                )}
                 <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
               </div>
             )

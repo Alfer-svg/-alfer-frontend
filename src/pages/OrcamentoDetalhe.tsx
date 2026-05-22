@@ -298,16 +298,18 @@ export default function OrcamentoDetalhe() {
               Marcar como enviado
             </button>
           )}
-          {o.status === 'ENVIADO' && (
+          {(o.status === 'RASCUNHO' || o.status === 'ENVIADO') && (
             <>
               <button onClick={aprovar} disabled={!!acao} className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ background: '#27AE60' }}>
                 {acao === 'aprovar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 Aprovar (gera pedido + contrato)
               </button>
-              <button onClick={recusar} disabled={!!acao} className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-red-600 disabled:opacity-50" style={{ background: '#FDEEEE' }}>
-                {acao === 'recusar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                Recusar
-              </button>
+              {o.status === 'ENVIADO' && (
+                <button onClick={recusar} disabled={!!acao} className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-red-600 disabled:opacity-50" style={{ background: '#FDEEEE' }}>
+                  {acao === 'recusar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                  Recusar
+                </button>
+              )}
             </>
           )}
           {o.pedido && (
