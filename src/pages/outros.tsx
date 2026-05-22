@@ -1,7 +1,24 @@
 // Financeiro — outras páginas agora têm arquivos próprios
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown } from 'lucide-react'
+
+async function abrirFaturaPdf(id: string) {
+  try {
+    const token = localStorage.getItem('alfer_token')
+    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
+    const r = await fetch(`${baseUrl}/financeiro/lancamentos/${id}/fatura-pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) throw new Error('Erro ao gerar fatura')
+    const blob = await r.blob()
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 30000)
+  } catch (err: any) {
+    alert(err.message || 'Erro ao baixar fatura.')
+  }
+}
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
@@ -75,6 +92,16 @@ export function Financeiro() {
                   {l.status}
                 </div>
               </div>
+              {l.tipo === 'RECEITA' && (
+                <button
+                  onClick={() => abrirFaturaPdf(l.id)}
+                  title="Gerar fatura em PDF"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
+                  style={{ border: '1px solid #E0DDD8' }}
+                >
+                  <FileDown className="w-3 h-3" /> Fatura
+                </button>
+              )}
             </div>
           ))}
           {lancamentos.length === 0 && (
