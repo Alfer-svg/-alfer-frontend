@@ -32,10 +32,16 @@ export default function NovoOrcamento() {
   const [condicoesPadrao, setCondicoesPadrao] = useState<any[]>([])
 
   useEffect(() => {
-    api.get('/condicoes-orcamento', { params: { ativo: 'true' } })
+    const params: any = { ativo: 'true' }
+    // Se um equipamento foi selecionado, filtra condições aplicáveis ao tipo dele
+    if (form.equipamentoId) {
+      const equip = equipamentos.find((e) => e.id === form.equipamentoId)
+      if (equip?.tipo) params.tipo = equip.tipo
+    }
+    api.get('/condicoes-orcamento', { params })
       .then((r) => setCondicoesPadrao(r.data))
       .catch(() => setCondicoesPadrao([]))
-  }, [])
+  }, [form.equipamentoId, equipamentos])
 
   const aplicarCondicoes = (selecionadas: string[]) => {
     setCondicoes((cs) => {

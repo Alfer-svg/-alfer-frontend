@@ -100,6 +100,15 @@ export default function CondicoesOrcamento() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {c.categoria && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#FEF3E2', color: '#633806' }}>{c.categoria}</span>}
+                  {Array.isArray(c.tiposAplicaveis) && c.tiposAplicaveis.length > 0 ? (
+                    c.tiposAplicaveis.map((t: string) => (
+                      <span key={t} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#E3EEFA', color: '#1A5276' }}>
+                        {({ CONTAINER_SECO: 'Seco', CONTAINER_REEFER: 'Reefer', CACAMBA_ESTACIONARIA: 'Caçamba', CAMINHAO_MUNCK: 'Munck' } as Record<string, string>)[t] || t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#555' }}>Todos os tipos</span>
+                  )}
                   {!c.ativo && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>Inativa</span>}
                 </div>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.texto}</p>
@@ -130,11 +139,20 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
   const isEdit = !!cond
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const tiposEquipamento = [
+    { v: 'CONTAINER_SECO', l: 'Container Seco' },
+    { v: 'CONTAINER_REEFER', l: 'Container Reefer' },
+    { v: 'CACAMBA_ESTACIONARIA', l: 'Caçamba Estacionária' },
+    { v: 'CAMINHAO_MUNCK', l: 'Caminhão Munck' },
+  ]
   const [form, setForm] = useState({
     texto: cond?.texto || '',
     categoria: cond?.categoria || '',
     ordem: cond?.ordem != null ? String(cond.ordem) : '0',
   })
+  const [tipos, setTipos] = useState<string[]>(Array.isArray(cond?.tiposAplicaveis) ? cond.tiposAplicaveis : [])
+  const toggleTipo = (t: string) =>
+    setTipos((ts) => (ts.includes(t) ? ts.filter((x) => x !== t) : [...ts, t]))
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -142,7 +160,12 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
     if (!form.texto.trim()) return setErro('Texto é obrigatório.')
     setLoading(true)
     try {
-      const payload = { texto: form.texto.trim(), categoria: form.categoria || null, ordem: Number(form.ordem) || 0 }
+      const payload = {
+        texto: form.texto.trim(),
+        categoria: form.categoria || null,
+        tiposAplicaveis: tipos,
+        ordem: Number(form.ordem) || 0,
+      }
       if (isEdit) await api.put(`/condicoes-orcamento/${cond.id}`, payload)
       else await api.post('/condicoes-orcamento', payload)
       onSuccess()
@@ -169,6 +192,33 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
           <div>
             <label className="block text-xs text-gray-500 mb-1">Texto da condição *</label>
             <textarea value={form.texto} onChange={(e) => setForm({ ...form, texto: e.target.value })} required rows={4} placeholder="Ex: Pagamento em até 30 dias da emissão da nota fiscal." className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-2">Tipos de equipamento aplicáveis</label>
+            <div className="grid grid-cols-2 gap-2">
+              {tiposEquipamento.map((t) => {
+                const sel = tipos.includes(t.v)
+                return (
+                  <button
+                    key={t.v}
+                    type="button"
+                    onClick={() => toggleTipo(t.v)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-all"
+                    style={{
+                      background: sel ? '#FFF8E6' : '#F9F7F4',
+                      color: sel ? '#1A1C1E' : '#888',
+                      border: sel ? '2px solid #FFAF06' : '2px solid transparent',
+                    }}
+                  >
+                    <input type="checkbox" checked={sel} readOnly className="w-3.5 h-3.5" style={{ accentColor: '#FFAF06' }} />
+                    {t.l}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              {tipos.length === 0 ? '⚠ Nenhum selecionado = aplica a TODOS os tipos' : `Aplica a ${tipos.length} tipo(s)`}
+            </p>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Ordem de exibição</label>
