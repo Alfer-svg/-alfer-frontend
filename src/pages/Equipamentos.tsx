@@ -12,6 +12,16 @@ const tipoLabel: Record<string, string> = {
   CAMINHAO_CAVALO_MECANICO: 'Caminhão Cavalo Mecânico',
 }
 
+const iconePorTipo: Record<string, string> = {
+  CONTAINER_SECO: 'container.png',
+  CONTAINER_REEFER: 'container_reefer.png',
+  CACAMBA: 'cacamba.png',
+  CACAMBA_ESTACIONARIA: 'cacamba.png',
+  CAMINHAO_MUNCK: 'munck.png',
+  CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
+  CAMINHAO_CAVALO_MECANICO: 'cavalo_mecanico.png',
+}
+
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   DISPONIVEL: { bg: '#EAF3DE', text: '#27500A', label: 'Disponível' },
   LOCADO: { bg: '#E3EEFA', text: '#1A5276', label: 'Locado' },
@@ -145,6 +155,17 @@ export default function Equipamentos() {
                     className="w-11 h-11 rounded-xl object-cover flex-shrink-0"
                     style={{ background: '#FEF3E2' }}
                   />
+                ) : iconePorTipo[e.tipo] ? (
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                    style={{ background: '#FEF3E2' }}
+                  >
+                    <img
+                      src={`/icones/${iconePorTipo[e.tipo]}`}
+                      alt={e.tipo}
+                      className="w-9 h-9 object-contain"
+                    />
+                  </div>
                 ) : (
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
