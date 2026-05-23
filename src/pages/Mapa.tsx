@@ -82,15 +82,24 @@ export default function Mapa() {
     if (!confirm('Recalcular coordenadas de TODOS os equipamentos mobilizados sem lat/lng?\n\nIsso consulta o serviço de geocoding (Nominatim) — 1 endereço por segundo. Pode demorar.')) return
     setRegeocodificando(true)
     try {
-      const r = await fetch((api.defaults.baseURL || '').replace(/\/$/, '') + '/logistica/regeocodificar', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('alfer_token')}` },
-      })
-      const data = await r.json()
-      alert(`✓ Concluído: ${data.sucesso || 0} com sucesso, ${data.falhou || 0} falharam (de ${data.total || 0} pendentes).`)
-      window.location.reload()
+      const r = await api.post('/logistica/regeocodificar')
+      const data = r.data || {}
+      const msg =
+        `Resultado:\n` +
+        `• Pendentes (mobilizados sem lat/lng): ${data.total ?? '?'}\n` +
+        `• Geocodificados com sucesso: ${data.sucesso ?? '?'}\n` +
+        `• Falharam (endereço não encontrado): ${data.falhou ?? '?'}\n\n` +
+        (data.total === 0
+          ? '⚠ Nenhum item pendente. Pode ser que:\n— os equipamentos mobilizados já tinham coordenadas\n— ou não há LogisticaItem MOBILIZADO no banco\n— ou os items mobilizados não têm endereço de entrega salvo'
+          : data.sucesso === 0
+            ? '⚠ Nenhum endereço foi reconhecido pelo Nominatim. Verifique se os endereços estão completos (rua, número, cidade, UF).'
+            : '✓ Recarregando o mapa...')
+      alert(msg)
+      if (data.sucesso > 0) window.location.reload()
     } catch (e: any) {
-      alert('Erro: ' + (e?.message || 'desconhecido'))
+      alert('Erro: ' + (e.response?.data?.message || e?.message || 'desconhecido') +
+        '\n\nStatus HTTP: ' + (e.response?.status || 'sem resposta') +
+        '\n\nIsso normalmente significa que o backend ainda não foi atualizado (Railway demora ~2min) OU o endpoint /logistica/regeocodificar não existe ainda.')
     } finally {
       setRegeocodificando(false)
     }
