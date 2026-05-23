@@ -128,59 +128,65 @@ export function Financeiro() {
         </div>
         <div className="divide-y divide-gray-50">
           {lancamentos.map((l) => (
-            <div key={l.id} className="flex items-center gap-4 px-5 py-4">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ background: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">{l.descricao}</div>
-                <div className="text-xs text-gray-400">{l.cliente?.razaoSocial || l.fornecedor || '—'}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold" style={{ color: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }}>
-                  {l.tipo === 'RECEITA' ? '+' : '-'}{fmt(l.valor)}
+            <div key={l.id} className="px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2`} style={{ background: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{l.descricao}</div>
+                  <div className="text-xs text-gray-400 truncate">{l.cliente?.razaoSocial || l.fornecedor || '—'}</div>
                 </div>
-                <div className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: '#F1EFE8', color: statusColor[l.status] || '#888' }}>
-                  {l.status}
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm font-semibold" style={{ color: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }}>
+                    {l.tipo === 'RECEITA' ? '+' : '-'}{fmt(l.valor)}
+                  </div>
+                  <div className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: '#F1EFE8', color: statusColor[l.status] || '#888' }}>
+                    {l.status}
+                  </div>
                 </div>
               </div>
-              {l.tipo === 'RECEITA' && (
-                <button
-                  onClick={() => abrirFaturaPdf(l.id)}
-                  title="Gerar fatura em PDF"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
-                  style={{ border: '1px solid #E0DDD8' }}
-                >
-                  <FileDown className="w-3 h-3" /> Fatura
-                </button>
-              )}
-              {l.status !== 'PAGO' && l.status !== 'CANCELADO' && l.tipo === 'RECEITA' && (
-                <button
-                  onClick={() => marcarPago(l)}
-                  title="Marcar fatura como paga"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white hover:opacity-90 flex-shrink-0"
-                  style={{ background: '#27AE60' }}
-                >
-                  <CheckCircle2 className="w-3 h-3" /> Marcar como pago
-                </button>
-              )}
-              {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
-                <button
-                  onClick={() => cancelar(l)}
-                  title="Cancelar (mantém no histórico)"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
-                  style={{ border: '1px solid #E0DDD8' }}
-                >
-                  <XCircle className="w-3 h-3" /> Cancelar
-                </button>
-              )}
-              {l.status !== 'PAGO' && (
-                <button
-                  onClick={() => excluir(l)}
-                  title="Excluir permanentemente"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 flex-shrink-0"
-                  style={{ border: '1px solid #FACACA' }}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+              {(l.tipo === 'RECEITA' || l.status !== 'PAGO') && (
+                <div className="flex gap-2 flex-wrap mt-3 ml-5">
+                  {l.tipo === 'RECEITA' && (
+                    <button
+                      onClick={() => abrirFaturaPdf(l.id)}
+                      title="Gerar fatura em PDF"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                      style={{ border: '1px solid #E0DDD8' }}
+                    >
+                      <FileDown className="w-3 h-3" /> PDF
+                    </button>
+                  )}
+                  {l.status !== 'PAGO' && l.status !== 'CANCELADO' && l.tipo === 'RECEITA' && (
+                    <button
+                      onClick={() => marcarPago(l)}
+                      title="Marcar fatura como paga"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-white hover:opacity-90"
+                      style={{ background: '#27AE60' }}
+                    >
+                      <CheckCircle2 className="w-3 h-3" /> Pagar
+                    </button>
+                  )}
+                  {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
+                    <button
+                      onClick={() => cancelar(l)}
+                      title="Cancelar (mantém no histórico)"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-gray-600 hover:bg-gray-50"
+                      style={{ border: '1px solid #E0DDD8' }}
+                    >
+                      <XCircle className="w-3 h-3" /> Cancelar
+                    </button>
+                  )}
+                  {l.status !== 'PAGO' && (
+                    <button
+                      onClick={() => excluir(l)}
+                      title="Excluir permanentemente"
+                      className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-red-600 hover:bg-red-50"
+                      style={{ border: '1px solid #FACACA' }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ))}
