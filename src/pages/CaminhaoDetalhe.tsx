@@ -2,6 +2,8 @@ import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Truck, Gauge, Wrench, User, AlertCircle, Loader2, Pencil } from 'lucide-react'
+import FrotaDocumentos from '../components/FrotaDocumentos'
+import FrotaManutencoesProg from '../components/FrotaManutencoesProg'
 
 const tipoLabel: Record<string, string> = {
   MUNCK: 'Munck',
@@ -129,9 +131,12 @@ export default function CaminhaoDetalhe() {
         </div>
       </div>
 
+      <FrotaManutencoesProg caminhaoId={c.id} kmAtual={c.kmAtual || 0} />
+      <FrotaDocumentos caminhaoId={c.id} />
+
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Wrench className="w-4 h-4" /> Manutenções</h2>
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Wrench className="w-4 h-4" /> Manutenções (histórico)</h2>
           <button onClick={() => setShowManut(!showManut)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: '#FFF8E6', color: '#FFAF06' }}>
             {showManut ? 'Cancelar' : '+ Registrar manutenção'}
           </button>

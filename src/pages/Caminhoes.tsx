@@ -30,6 +30,11 @@ export default function Caminhoes() {
   const [filtroStatus, setFiltroStatus] = useState('')
   const [erroAcao, setErroAcao] = useState('')
   const [sincronizando, setSincronizando] = useState(false)
+  const [alertas, setAlertas] = useState<Record<string, { vencidos: number; alertas: number }>>({})
+
+  useEffect(() => {
+    api.get('/frota/resumo-alertas').then((r) => setAlertas(r.data || {})).catch(() => {})
+  }, [])
 
   const sincronizarMunck = async () => {
     if (!confirm('Vai criar caminhões pra todos os equipamentos tipo CAMINHÃO MUNCK que ainda não têm registro aqui. Equipamentos com caminhão já existente são ignorados. Continuar?')) return
@@ -198,6 +203,16 @@ export default function Caminhoes() {
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: status.bg, color: status.text }}>
                       {status.label}
                     </span>
+                    {alertas[c.id]?.vencidos > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#FDEEEE', color: '#8B0000' }} title="Documentos ou manutenções vencidas">
+                        ⚠ {alertas[c.id].vencidos} vencido(s)
+                      </span>
+                    )}
+                    {alertas[c.id]?.alertas > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#FEF3E2', color: '#633806' }} title="Documentos ou manutenções vencendo em breve">
+                        ⏳ {alertas[c.id].alertas} próximo(s)
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                     <span>{tipoLabel[c.tipo] || c.tipo}</span>
