@@ -2,7 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2 } from 'lucide-react'
+import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2, DollarSign, FileText } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
@@ -51,6 +51,7 @@ export default function Cacambas() {
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
   const [trocaModal, setTrocaModal] = useState<any>(null)
+  const [showFechamento, setShowFechamento] = useState(false)
   const [contagens, setContagens] = useState<Record<string, number>>({})
 
   const load = () => {
@@ -131,14 +132,25 @@ export default function Cacambas() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Caçambas</h1>
           <p className="text-gray-500 text-sm mt-1">Locações, trocas e rastreabilidade de resíduos</p>
         </div>
-        <button
-          onClick={() => navigate('/cacambas/nova')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
-          style={{ background: '#FFAF06' }}
-        >
-          <Plus className="w-4 h-4" />
-          Nova locação
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFechamento(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-all"
+            style={{ background: '#27AE60' }}
+            title="Gerar 1 fatura única com todas as trocas de um cliente num período"
+          >
+            <DollarSign className="w-4 h-4" />
+            Fechar conta
+          </button>
+          <button
+            onClick={() => navigate('/cacambas/nova')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
+            style={{ background: '#FFAF06' }}
+          >
+            <Plus className="w-4 h-4" />
+            Nova locação
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -293,6 +305,13 @@ export default function Cacambas() {
       {trocaModal && (
         <TrocaModal locacao={trocaModal} onClose={() => setTrocaModal(null)} onSuccess={() => { setTrocaModal(null); load() }} />
       )}
+
+      {showFechamento && (
+        <FechamentoModal
+          onClose={() => setShowFechamento(false)}
+          onSuccess={() => { setShowFechamento(false); load() }}
+        />
+      )}
     </div>
   )
 }
@@ -411,6 +430,175 @@ function TrocaModal({ locacao, onClose, onSuccess }: { locacao: any; onClose: ()
             </button>
           </div>
         </form>
+    </Modal>
+  )
+}
+
+// ────────── Fechamento Modal ──────────
+function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [clientes, setClientes] = useState<any[]>([])
+  const [clienteId, setClienteId] = useState('')
+  const hoje = new Date()
+  const seteDiasAtras = new Date(hoje); seteDiasAtras.setDate(seteDiasAtras.getDate() - 7)
+  const [dtInicio, setDtInicio] = useState(seteDiasAtras.toISOString().slice(0, 10))
+  const [dtFim, setDtFim] = useState(hoje.toISOString().slice(0, 10))
+  const [dtVencimento, setDtVencimento] = useState(() => {
+    const v = new Date(); v.setDate(v.getDate() + 7); return v.toISOString().slice(0, 10)
+  })
+  const [descricao, setDescricao] = useState('')
+  const [preview, setPreview] = useState<any>(null)
+  const [carregandoPreview, setCarregandoPreview] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    api.get('/clientes').then((r) => setClientes(r.data || []))
+  }, [])
+
+  // Recarrega preview quando muda filtros
+  useEffect(() => {
+    if (!clienteId || !dtInicio || !dtFim) {
+      setPreview(null)
+      return
+    }
+    setCarregandoPreview(true); setErro('')
+    api.get('/cacambas/fechamento/preview', { params: { clienteId, dtInicio, dtFim } })
+      .then((r) => setPreview(r.data))
+      .catch((e) => setErro(e.response?.data?.message || 'Erro ao carregar preview'))
+      .finally(() => setCarregandoPreview(false))
+  }, [clienteId, dtInicio, dtFim])
+
+  const fmtMoeda = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 }).format(v)
+
+  const fechar = async () => {
+    if (!preview || preview.trocas.length === 0) return
+    if (preview.totalSemValor > 0) {
+      setErro(`${preview.totalSemValor} troca(s) sem valor cobrado. Edite o valorTroca na locação e tente de novo.`)
+      return
+    }
+    if (!confirm(`Gerar 1 fatura única de ${fmtMoeda(preview.total)} (${preview.trocas.length} trocas) pra ${preview.cliente}?`)) return
+    setSalvando(true); setErro('')
+    try {
+      const r = await api.post('/cacambas/fechamento', { clienteId, dtInicio, dtFim, descricao: descricao || undefined, dtVencimento })
+      alert(`✓ Fatura criada: ${fmtMoeda(r.data.total)} pendente.`)
+      onSuccess()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao gerar fatura')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <DollarSign className="w-5 h-5" style={{ color: '#27AE60' }} /> Fechar conta de caçambas
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">Soma todas as trocas não-faturadas do cliente no período num único lançamento.</p>
+
+      <div className="space-y-3 mb-4">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Cliente *</label>
+          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white" style={{ border: '1px solid #E0DDD8' }}>
+            <option value="">Selecione um cliente</option>
+            {clientes.map((c) => <option key={c.id} value={c.id}>{c.razaoSocial}</option>)}
+          </select>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Período: início</label>
+            <input type="date" value={dtInicio} onChange={(e) => setDtInicio(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white" style={{ border: '1px solid #E0DDD8' }} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Período: fim</label>
+            <input type="date" value={dtFim} onChange={(e) => setDtFim(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white" style={{ border: '1px solid #E0DDD8' }} />
+          </div>
+        </div>
+      </div>
+
+      {erro && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erro}
+        </div>
+      )}
+
+      {carregandoPreview ? (
+        <div className="text-center py-8 text-gray-400 text-sm">
+          <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Carregando preview...
+        </div>
+      ) : preview && (
+        <div className="bg-gray-50 rounded-xl p-4 mb-4" style={{ border: '1px solid #E0DDD8' }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-900">
+              {preview.trocas.length} troca(s) no período
+            </span>
+            <span className="text-lg font-bold text-green-700">{fmtMoeda(preview.total)}</span>
+          </div>
+          {preview.trocas.length === 0 ? (
+            <p className="text-sm text-gray-500">Nenhuma troca não-faturada encontrada nesse período pra esse cliente.</p>
+          ) : (
+            <>
+              {preview.totalSemValor > 0 && (
+                <p className="text-xs text-red-600 mb-2 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {preview.totalSemValor} troca(s) sem valor cobrado — defina valorTroca na locação correspondente.
+                </p>
+              )}
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {preview.trocas.map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-white">
+                    <span className="text-gray-700">
+                      #{t.numerTroca} • {t.cacambaCodigo}
+                      {t.cacambaEntCodigo && t.cacambaEntCodigo !== t.cacambaCodigo && ` → ${t.cacambaEntCodigo}`}
+                      <span className="text-gray-400 ml-2">{new Date(t.dtTroca).toLocaleDateString('pt-BR')}</span>
+                    </span>
+                    <span className={t.valorCobrado != null ? 'font-medium text-gray-900' : 'text-red-600'}>
+                      {t.valorCobrado != null ? fmtMoeda(t.valorCobrado) : 'sem valor'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {preview && preview.trocas.length > 0 && (
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Descrição da fatura (opcional)</label>
+            <input
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder={`Fechamento ${preview.trocas.length} troca(s) caçamba (${new Date(preview.dtInicio).toLocaleDateString('pt-BR')} a ${new Date(preview.dtFim).toLocaleDateString('pt-BR')})`}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white"
+              style={{ border: '1px solid #E0DDD8' }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Data de vencimento da fatura</label>
+            <input type="date" value={dtVencimento} onChange={(e) => setDtVencimento(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white" style={{ border: '1px solid #E0DDD8' }} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>
+          Cancelar
+        </button>
+        <button
+          onClick={fechar}
+          disabled={salvando || !preview || preview.trocas.length === 0 || preview.totalSemValor > 0}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
+          style={{ background: salvando ? '#1E7B40' : '#27AE60' }}
+        >
+          {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+          Gerar fatura {preview && preview.total > 0 ? `(${fmtMoeda(preview.total)})` : ''}
+        </button>
+      </div>
     </Modal>
   )
 }
