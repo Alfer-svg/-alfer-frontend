@@ -152,8 +152,21 @@ export function Financeiro() {
               <div className="flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2`} style={{ background: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">{l.descricao}</div>
-                  <div className="text-xs text-gray-400 truncate">{l.cliente?.razaoSocial || l.fornecedor || '—'}</div>
+                  <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
+                    {l.tipo === 'RECEITA' && l.numeroFatura && (
+                      <span className="font-display font-bold text-gray-900 text-base">NF {l.numeroFatura}</span>
+                    )}
+                    {l.tipo === 'DESPESA' && (
+                      <span className="font-display font-bold text-gray-900 text-base">Despesa</span>
+                    )}
+                    {l.tipo === 'RECEITA' && !l.numeroFatura && (
+                      <span className="font-display font-bold text-gray-900 text-base">Fatura</span>
+                    )}
+                    <span className="text-sm font-medium text-gray-700 truncate">
+                      {l.cliente?.razaoSocial || l.fornecedor || '—'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">{l.descricao}</div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-sm font-semibold" style={{ color: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }}>
