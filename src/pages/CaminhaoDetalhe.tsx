@@ -5,6 +5,8 @@ import { ArrowLeft, Truck, Gauge, Wrench, User, AlertCircle, Loader2, Pencil } f
 import FrotaDocumentos from '../components/FrotaDocumentos'
 import FrotaManutencoesProg from '../components/FrotaManutencoesProg'
 import FrotaAbastecimentos from '../components/FrotaAbastecimentos'
+import FrotaMotoristas from '../components/FrotaMotoristas'
+import FrotaMultas from '../components/FrotaMultas'
 
 const tipoLabel: Record<string, string> = {
   MUNCK: 'Munck',
@@ -132,8 +134,10 @@ export default function CaminhaoDetalhe() {
         </div>
       </div>
 
+      <FrotaMotoristas caminhaoId={c.id} />
       <FrotaManutencoesProg caminhaoId={c.id} kmAtual={c.kmAtual || 0} />
       <FrotaAbastecimentos caminhaoId={c.id} kmAtual={c.kmAtual || 0} />
+      <FrotaMultas caminhaoId={c.id} />
       <FrotaDocumentos caminhaoId={c.id} />
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
