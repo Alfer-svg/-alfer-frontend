@@ -49,11 +49,11 @@ const makeImgIcon = (file: string, size = 40) => {
 const iconePorTipoEquip = (tipo: string, size = 40) => {
   const map: Record<string, string> = {
     CONTAINER_SECO: 'container.png',
-    CONTAINER_REEFER: 'container.png',
+    CONTAINER_REEFER: 'container_reefer.png',
     CACAMBA_ESTACIONARIA: 'cacamba.png',
     CAMINHAO_MUNCK: 'munck.png',
     CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
-    CAMINHAO_CAVALO_MECANICO: 'caminhao.png',
+    CAMINHAO_CAVALO_MECANICO: 'cavalo_mecanico.png',
   }
   return makeImgIcon(map[tipo] || 'container.png', size)
 }
