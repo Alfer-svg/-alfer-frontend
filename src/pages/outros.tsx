@@ -3,6 +3,19 @@ import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
+/** Extrai filename do header Content-Disposition (suporta filename e filename*). */
+function extrairFilename(headerValue: string | null, fallback: string): string {
+  if (!headerValue) return fallback
+  // RFC 5987: filename*=UTF-8''...
+  const utf8 = headerValue.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8) {
+    try { return decodeURIComponent(utf8[1]) } catch { /* segue */ }
+  }
+  const plain = headerValue.match(/filename="?([^";]+)"?/i)
+  if (plain) return plain[1]
+  return fallback
+}
+
 async function abrirFaturaPdf(id: string) {
   try {
     const token = localStorage.getItem('alfer_token')
@@ -11,10 +24,17 @@ async function abrirFaturaPdf(id: string) {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!r.ok) throw new Error('Erro ao gerar fatura')
+    const filename = extrairFilename(r.headers.get('content-disposition'), `fatura-${id}.pdf`)
     const blob = await r.blob()
     const url = URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    setTimeout(() => URL.revokeObjectURL(url), 30000)
+    // Força download com nome correto via <a download>
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
   } catch (err: any) {
     alert(err.message || 'Erro ao baixar fatura.')
   }
