@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Package, Wrench, MapPin, Calendar, FileText, AlertCircle, Loader2, Pencil } from 'lucide-react'
+import { ArrowLeft, Package, Wrench, MapPin, Calendar, FileText, AlertCircle, Loader2, Pencil, Truck, ChevronRight } from 'lucide-react'
 
 const tipoLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -24,6 +24,7 @@ export default function EquipamentoDetalhe() {
   const { id } = useParams<{ id: string }>()
   const [equip, setEquip] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [caminhaoLink, setCaminhaoLink] = useState<any>(null)
   const [savingStatus, setSavingStatus] = useState(false)
   const [showManut, setShowManut] = useState(false)
   const [erroManut, setErroManut] = useState('')
@@ -37,7 +38,20 @@ export default function EquipamentoDetalhe() {
   const load = () => {
     if (!id) return
     setLoading(true)
-    api.get(`/equipamentos/${id}`).then((r) => setEquip(r.data)).finally(() => setLoading(false))
+    api.get(`/equipamentos/${id}`)
+      .then((r) => {
+        setEquip(r.data)
+        // Se é Munck, procura o caminhão com mesmo código
+        if (r.data?.tipo === 'CAMINHAO_MUNCK' && r.data?.codigo) {
+          api.get('/caminhoes')
+            .then((cr) => {
+              const match = (cr.data || []).find((c: any) => c.codigo === r.data.codigo)
+              setCaminhaoLink(match || null)
+            })
+            .catch(() => setCaminhaoLink(null))
+        }
+      })
+      .finally(() => setLoading(false))
   }
   useEffect(load, [id])
 
@@ -102,6 +116,30 @@ export default function EquipamentoDetalhe() {
           <Pencil className="w-3 h-3" /> Editar
         </button>
       </div>
+
+      {equip?.tipo === 'CAMINHAO_MUNCK' && caminhaoLink && (
+        <div
+          onClick={() => navigate(`/caminhoes/${caminhaoLink.id}`)}
+          className="flex items-center gap-3 p-4 mb-4 rounded-2xl cursor-pointer hover:opacity-90 transition-all"
+          style={{ background: '#E3EEFA', border: '1px solid #B5D4ED' }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'white' }}>
+            <Truck className="w-5 h-5" style={{ color: '#1A5276' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold" style={{ color: '#1A5276' }}>
+              Vinculado ao caminhão {caminhaoLink.codigo}
+              {caminhaoLink.placa ? ` (${caminhaoLink.placa})` : ''}
+            </div>
+            <div className="text-xs" style={{ color: '#2D80D1' }}>
+              {caminhaoLink.placa
+                ? `KM atual: ${caminhaoLink.kmAtual || 0} • Status: ${caminhaoLink.status}`
+                : '⚠ Placa ainda não cadastrada — clique pra completar dados operacionais'}
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#1A5276' }} />
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         {equip.fotoUrl && (
