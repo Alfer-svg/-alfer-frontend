@@ -28,19 +28,21 @@ const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '
 
 /** Cor de urgência baseada em dias até retirada */
 function corContagem(dias: number): { bg: string; text: string; label: string; icon: string } {
+  const palavra = (n: number) => (n === 1 ? 'dia' : 'dias')
   if (dias < 0) {
-    return { bg: '#FDEEEE', text: '#8B0000', label: `Vencida há ${Math.abs(dias)}d`, icon: '⚠' }
+    const d = Math.abs(dias)
+    return { bg: '#FDEEEE', text: '#8B0000', label: `Vencida há ${d} ${palavra(d)}`, icon: '⚠' }
   }
   if (dias === 0) {
     return { bg: '#FDEEEE', text: '#8B0000', label: 'Vence hoje', icon: '⏰' }
   }
   if (dias <= 3) {
-    return { bg: '#FEF3E2', text: '#633806', label: `${dias}d pra retirada`, icon: '⏳' }
+    return { bg: '#FEF3E2', text: '#633806', label: `${dias} ${palavra(dias)} pra retirada`, icon: '⏳' }
   }
   if (dias <= 7) {
-    return { bg: '#FFF8E6', text: '#A77400', label: `${dias}d pra retirada`, icon: '⏳' }
+    return { bg: '#FFF8E6', text: '#A77400', label: `${dias} ${palavra(dias)} pra retirada`, icon: '⏳' }
   }
-  return { bg: '#EAF3DE', text: '#27500A', label: `${dias}d pra retirada`, icon: '⏳' }
+  return { bg: '#EAF3DE', text: '#27500A', label: `${dias} ${palavra(dias)} pra retirada`, icon: '⏳' }
 }
 
 export default function Cacambas() {
