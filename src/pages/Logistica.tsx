@@ -284,8 +284,9 @@ function MobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; onClo
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="min-h-full flex items-start justify-center p-4 py-10">
+        <div className="bg-white rounded-2xl p-6 max-w-lg w-full my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg font-bold text-gray-900">Mobilizar — {item.equipamento?.codigo}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
@@ -317,6 +318,7 @@ function MobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; onClo
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )
@@ -355,8 +357,9 @@ function DesmobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; on
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="min-h-full flex items-start justify-center p-4 py-10">
+        <div className="bg-white rounded-2xl p-6 max-w-lg w-full my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg font-bold text-gray-900">Desmobilizar — {item.equipamento?.codigo}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
@@ -407,6 +410,7 @@ function DesmobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; on
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   )
