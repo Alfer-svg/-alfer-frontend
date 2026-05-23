@@ -165,7 +165,9 @@ export default function Logistica() {
                   </span>
                 )}
                 {it.avariasIdentificadas && (
-                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" title={`Avarias: ${it.avariasIdentificadas}`} />
+                  <span title={`Avarias: ${it.avariasIdentificadas}`} className="flex-shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                  </span>
                 )}
                 {it.status === 'PARA_MOBILIZAR' && (
                   <button
