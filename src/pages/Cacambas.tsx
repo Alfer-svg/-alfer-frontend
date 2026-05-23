@@ -5,10 +5,24 @@ import { Modal } from '../components/Modal'
 import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2 } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
-  ATIVA: { bg: '#EAF3DE', text: '#27500A', label: 'Ativa' },
-  CHEIA: { bg: '#FEF3E2', text: '#633806', label: 'Cheia' },
-  ENCERRADA: { bg: '#F1EFE8', text: '#888', label: 'Encerrada' },
+  PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
+  EM_ROTA_MOBILIZACAO:    { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (mobilização)' },
+  ATIVA:                  { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizada' },
+  CHEIA:                  { bg: '#FEF3E2', text: '#633806', label: 'Cheia' },
+  PARA_DESMOBILIZAR:      { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
+  EM_ROTA_DESMOBILIZACAO: { bg: '#F4E3FA', text: '#5B1A76', label: 'Em rota (desmob/troca)' },
+  ENCERRADA:              { bg: '#F1EFE8', text: '#888',    label: 'Encerrada' },
 }
+
+const STATUS_ORDEM = [
+  'PARA_MOBILIZAR',
+  'EM_ROTA_MOBILIZACAO',
+  'ATIVA',
+  'CHEIA',
+  'PARA_DESMOBILIZAR',
+  'EM_ROTA_DESMOBILIZACAO',
+  'ENCERRADA',
+]
 
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
@@ -46,6 +60,16 @@ export default function Cacambas() {
     if (!confirm('Encerrar esta locação? A caçamba ficará disponível novamente.')) return
     await api.put(`/cacambas/locacoes/${id}/encerrar`)
     load()
+  }
+
+  const mudarStatus = async (id: string, novoStatus: string) => {
+    setErroAcao('')
+    try {
+      await api.put(`/cacambas/locacoes/${id}/status`, { status: novoStatus })
+      load()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao mudar status.')
+    }
   }
 
   const excluir = async (l: any) => {
@@ -92,12 +116,11 @@ export default function Cacambas() {
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { key: '', label: 'Todas', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
-          { key: 'ATIVA', label: 'Ativas', count: contagens.ATIVA || 0, bg: '#EAF3DE', text: '#27500A', activeBg: '#27500A' },
-          { key: 'CHEIA', label: 'Cheias', count: contagens.CHEIA || 0, bg: '#FEF3E2', text: '#633806', activeBg: '#633806' },
-          { key: 'ENCERRADA', label: 'Encerradas', count: contagens.ENCERRADA || 0, bg: '#F1EFE8', text: '#888', activeBg: '#888' },
-        ].map((t) => {
+        {[{ key: '', label: 'Todas', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
+          ...STATUS_ORDEM.map((s) => {
+            const info = statusColor[s]
+            return { key: s, label: info.label, count: contagens[s] || 0, bg: info.bg, text: info.text, activeBg: info.text }
+          })].map((t) => {
           const ativo = filtroStatus === t.key
           return (
             <button
@@ -153,9 +176,17 @@ export default function Cacambas() {
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                       <span className="font-semibold text-gray-900 text-sm">{l.cacamba?.codigo}</span>
                       <span className="text-sm text-gray-700">{l.cliente?.razaoSocial}</span>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: status.bg, color: status.text }}>
-                        {status.label}
-                      </span>
+                      <select
+                        value={l.status}
+                        onChange={(e) => mudarStatus(l.id, e.target.value)}
+                        title="Mudar status manualmente"
+                        className="px-2 py-0.5 rounded-full text-xs font-medium outline-none cursor-pointer"
+                        style={{ background: status.bg, color: status.text, border: 'none' }}
+                      >
+                        {STATUS_ORDEM.map((s) => (
+                          <option key={s} value={s}>{statusColor[s].label}</option>
+                        ))}
+                      </select>
                       {l.status !== 'ENCERRADA' && vencida && (
                         <span className="flex items-center gap-1 text-xs text-red-600">
                           <AlertTriangle className="w-3 h-3" /> Vencida há {Math.abs(diasVenc)}d
