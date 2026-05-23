@@ -1,7 +1,7 @@
 // Financeiro — outras páginas agora têm arquivos próprios
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle } from 'lucide-react'
 
 async function abrirFaturaPdf(id: string) {
   try {
@@ -27,19 +27,47 @@ export function Financeiro() {
   const [dash, setDash] = useState<any>(null)
   const [lancamentos, setLancamentos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [erroAcao, setErroAcao] = useState('')
 
-  useEffect(() => {
-    Promise.all([
+  const carregar = () => {
+    return Promise.all([
       api.get('/financeiro/dashboard'),
       api.get('/financeiro/lancamentos'),
     ]).then(([d, l]) => {
       setDash(d.data)
       setLancamentos(l.data.slice(0, 15))
-    }).finally(() => setLoading(false))
+    })
+  }
+
+  useEffect(() => {
+    carregar().finally(() => setLoading(false))
   }, [])
 
+  const cancelar = async (l: any) => {
+    if (!confirm(`Cancelar a fatura de ${l.cliente?.razaoSocial || l.fornecedor || 'sem cliente'} no valor de R$ ${l.valor}?\n\nO histórico fica preservado, só muda o status pra CANCELADO.`)) return
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${l.id}/cancelar`)
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao cancelar')
+    }
+  }
+
+  const excluir = async (l: any) => {
+    if (!confirm(`EXCLUIR PERMANENTEMENTE essa fatura?\n\nIsso apaga o lançamento do banco — não dá pra desfazer. Se quiser preservar o histórico, use Cancelar.`)) return
+    if (!confirm('Tem certeza? Confirma a exclusão.')) return
+    setErroAcao('')
+    try {
+      await api.delete(`/financeiro/lancamentos/${l.id}`)
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao excluir')
+    }
+  }
+
   const statusColor: Record<string, string> = {
-    PAGO: '#27AE60', PENDENTE: '#FFAF06', FUTURO: '#2D80D1', VENCIDO: '#E74C3C', INADIMPLENTE: '#8B0000',
+    PAGO: '#27AE60', PENDENTE: '#FFAF06', FUTURO: '#2D80D1', VENCIDO: '#E74C3C', INADIMPLENTE: '#8B0000', CANCELADO: '#888',
   }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -72,6 +100,12 @@ export function Financeiro() {
         </div>
       )}
 
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="p-5 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Lançamentos recentes</h2>
@@ -100,6 +134,26 @@ export function Financeiro() {
                   style={{ border: '1px solid #E0DDD8' }}
                 >
                   <FileDown className="w-3 h-3" /> Fatura
+                </button>
+              )}
+              {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
+                <button
+                  onClick={() => cancelar(l)}
+                  title="Cancelar (mantém no histórico)"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
+                  style={{ border: '1px solid #E0DDD8' }}
+                >
+                  <XCircle className="w-3 h-3" /> Cancelar
+                </button>
+              )}
+              {l.status !== 'PAGO' && (
+                <button
+                  onClick={() => excluir(l)}
+                  title="Excluir permanentemente"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 flex-shrink-0"
+                  style={{ border: '1px solid #FACACA' }}
+                >
+                  <Trash2 className="w-3 h-3" />
                 </button>
               )}
             </div>
