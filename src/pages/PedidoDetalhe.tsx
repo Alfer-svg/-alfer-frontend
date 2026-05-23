@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileSignature, Building2, FileText, Loader2, AlertCircle, ChevronRight, MapPin } from 'lucide-react'
+import { ArrowLeft, FileSignature, Building2, FileText, Loader2, AlertCircle, ChevronRight, MapPin, Trash2 } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   PENDENTE: { bg: '#FEF3E2', text: '#633806', label: 'Pendente' },
@@ -33,6 +33,35 @@ export default function PedidoDetalhe() {
     try { await api.put(`/pedidos/${id}/status`, { status }); load() }
     catch (err: any) { setErro(err.response?.data?.message || 'Erro ao alterar status.') }
     finally { setSalvando(false) }
+  }
+
+  const excluir = async () => {
+    if (!confirm(`Excluir o pedido ${p?.numero}?\n\nIsso vai apagar o pedido + contrato vinculado + faturas não pagas + logística + OS Munck.\n\nFaturas já PAGAS serão preservadas (desvinculadas).\nO orçamento de origem volta pra status ENVIADO.`)) return
+    setErro(''); setSalvando(true)
+    try {
+      await api.delete(`/pedidos/${id}`)
+      navigate('/pedidos')
+    } catch (err: any) {
+      const msg = err.response?.data?.message || ''
+      if (/forçar|force|Forçar/i.test(msg)) {
+        if (!confirm(`${msg}\n\nFORÇAR a exclusão? Isso vai apagar tudo (incluindo contrato ATIVO se houver). Histórico de faturas PAGAS será preservado.`)) {
+          setErro('Exclusão cancelada.')
+          setSalvando(false)
+          return
+        }
+        try {
+          await api.delete(`/pedidos/${id}?force=true`)
+          navigate('/pedidos')
+          return
+        } catch (e2: any) {
+          setErro(e2.response?.data?.message || 'Erro ao forçar exclusão.')
+        }
+      } else {
+        setErro(msg || 'Erro ao excluir pedido.')
+      }
+    } finally {
+      setSalvando(false)
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -82,6 +111,15 @@ export default function PedidoDetalhe() {
               </button>
             </>
           )}
+          <button
+            onClick={excluir}
+            disabled={salvando}
+            title="Excluir pedido + contrato + faturas não pagas (faturas pagas preservadas)"
+            className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            style={{ border: '1px solid #FACACA' }}
+          >
+            <Trash2 className="w-3 h-3" /> Excluir pedido
+          </button>
         </div>
       </div>
 
