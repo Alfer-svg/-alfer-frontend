@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Truck, Search, Plus, ChevronRight, Gauge, User, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { Truck, Search, Plus, ChevronRight, Gauge, User, Pencil, Trash2, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 
 const tipoLabel: Record<string, string> = {
   MUNCK: 'Munck',
@@ -23,6 +23,21 @@ export default function Caminhoes() {
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [erroAcao, setErroAcao] = useState('')
+  const [sincronizando, setSincronizando] = useState(false)
+
+  const sincronizarMunck = async () => {
+    if (!confirm('Vai criar caminhões pra todos os equipamentos tipo CAMINHÃO MUNCK que ainda não têm registro aqui. Equipamentos com caminhão já existente são ignorados. Continuar?')) return
+    setSincronizando(true); setErroAcao('')
+    try {
+      const r = await api.post('/caminhoes/sincronizar-munck')
+      alert(`✓ Resultado:\n• Total de Munck no Equipamentos: ${r.data.total}\n• Caminhões criados agora: ${r.data.criados}\n• Já existiam: ${r.data.jaExistiam}`)
+      load()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao sincronizar')
+    } finally {
+      setSincronizando(false)
+    }
+  }
 
   const load = () => {
     setLoading(true)
@@ -75,14 +90,26 @@ export default function Caminhoes() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Caminhões</h1>
           <p className="text-gray-500 text-sm mt-1">{caminhoes.length} caminhões na frota</p>
         </div>
-        <button
-          onClick={() => navigate('/caminhoes/novo')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
-          style={{ background: '#FFAF06' }}
-        >
-          <Plus className="w-4 h-4" />
-          Novo caminhão
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={sincronizarMunck}
+            disabled={sincronizando}
+            title="Cria caminhão pra cada Equipamento tipo MUNCK que ainda não tem um (útil pra cadastros antigos)"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            {sincronizando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Sincronizar Munck
+          </button>
+          <button
+            onClick={() => navigate('/caminhoes/novo')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
+            style={{ background: '#FFAF06' }}
+          >
+            <Plus className="w-4 h-4" />
+            Novo caminhão
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap">
