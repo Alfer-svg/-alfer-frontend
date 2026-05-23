@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Truck, Search, Plus, ChevronRight, Gauge, User } from 'lucide-react'
+import { Truck, Search, Plus, ChevronRight, Gauge, User, Pencil, Trash2, AlertCircle } from 'lucide-react'
 
 const tipoLabel: Record<string, string> = {
   MUNCK: 'Munck',
@@ -22,15 +22,44 @@ export default function Caminhoes() {
   const [busca, setBusca] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [erroAcao, setErroAcao] = useState('')
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
     const params: any = {}
     if (filtroTipo) params.tipo = filtroTipo
     if (filtroStatus) params.status = filtroStatus
     api.get('/caminhoes', { params })
       .then((r) => setCaminhoes(r.data))
       .finally(() => setLoading(false))
-  }, [filtroTipo, filtroStatus])
+  }
+  useEffect(load, [filtroTipo, filtroStatus])
+
+  const excluir = async (e: React.MouseEvent, c: any) => {
+    e.stopPropagation()
+    if (!confirm(`Excluir o caminhão ${c.codigo}${c.placa ? ' (' + c.placa + ')' : ''}? Esta ação não pode ser desfeita.`)) return
+    setErroAcao('')
+    try {
+      await api.delete(`/caminhoes/${c.id}`)
+      load()
+    } catch (err: any) {
+      const msg = err.response?.data?.message || ''
+      if (/histórico|histórico|force/i.test(msg)) {
+        if (!confirm(`${msg}\n\nDeseja FORÇAR a exclusão? Vai apagar alocações de motorista, manutenções, documentos e operações vinculadas. OS Munck serão preservadas (só desvinculadas).`)) {
+          setErroAcao('Exclusão cancelada.')
+          return
+        }
+        try {
+          await api.delete(`/caminhoes/${c.id}?force=true`)
+          load()
+        } catch (err2: any) {
+          setErroAcao(err2.response?.data?.message || 'Erro ao forçar exclusão.')
+        }
+      } else {
+        setErroAcao(msg || 'Erro ao excluir caminhão.')
+      }
+    }
+  }
 
   const filtered = caminhoes.filter((c) =>
     !busca ||
@@ -92,6 +121,12 @@ export default function Caminhoes() {
         </select>
       </div>
 
+      {erroAcao && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
@@ -133,6 +168,22 @@ export default function Caminhoes() {
                     )}
                   </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/caminhoes/${c.id}/editar`) }}
+                  title="Editar caminhão"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex-shrink-0"
+                  style={{ border: '1px solid #E0DDD8' }}
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => excluir(e, c)}
+                  title="Excluir caminhão"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 flex-shrink-0"
+                  style={{ border: '1px solid #FACACA' }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
                 <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
               </div>
             )
