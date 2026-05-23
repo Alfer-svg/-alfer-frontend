@@ -23,16 +23,30 @@ export default function Logistica() {
   const [mobModal, setMobModal] = useState<any>(null)
   const [desmobModal, setDesmobModal] = useState<any>(null)
   const [erroAcao, setErroAcao] = useState('')
+  const [contagens, setContagens] = useState<Record<string, number>>({})
 
   const load = () => {
     setLoading(true)
     const params: any = {}
     if (filtroStatus) params.status = filtroStatus
-    api.get('/logistica', { params })
-      .then((r) => setItens(r.data))
+    Promise.all([
+      api.get('/logistica', { params }),
+      api.get('/logistica/resumo'),
+    ])
+      .then(([list, res]) => {
+        setItens(list.data)
+        // resumo vem como [{status, _count: {_all: N}}, ...] → vira { STATUS: N }
+        const map: Record<string, number> = {}
+        for (const r of res.data || []) {
+          map[r.status] = r._count?._all ?? 0
+        }
+        setContagens(map)
+      })
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus])
+
+  const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 
   return (
     <div className="p-8 animate-fade-in">
@@ -45,25 +59,50 @@ export default function Logistica() {
 
       {/* Tabs por status */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {Object.entries(statusInfo).map(([key, info]) => (
-          <button
-            key={key}
-            onClick={() => setFiltroStatus(key)}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
-            style={{
-              background: filtroStatus === key ? info.text : info.bg,
-              color: filtroStatus === key ? 'white' : info.text,
-            }}
-          >
-            {info.label}
-          </button>
-        ))}
+        {Object.entries(statusInfo).map(([key, info]) => {
+          const n = contagens[key] || 0
+          const ativo = filtroStatus === key
+          return (
+            <button
+              key={key}
+              onClick={() => setFiltroStatus(key)}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+              style={{
+                background: ativo ? info.text : info.bg,
+                color: ativo ? 'white' : info.text,
+              }}
+            >
+              {info.label}
+              <span
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+                style={{
+                  background: ativo ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+                  color: ativo ? 'white' : info.text,
+                  minWidth: 22,
+                  textAlign: 'center',
+                }}
+              >
+                {n}
+              </span>
+            </button>
+          )
+        })}
         <button
           onClick={() => setFiltroStatus('')}
-          className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
           style={{ background: filtroStatus === '' ? '#1A1C1E' : '#F1EFE8', color: filtroStatus === '' ? 'white' : '#888' }}
         >
           Todos
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+            style={{
+              background: filtroStatus === '' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+              minWidth: 22,
+              textAlign: 'center',
+            }}
+          >
+            {totalGeral}
+          </span>
         </button>
       </div>
 
