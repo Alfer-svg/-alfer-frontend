@@ -185,6 +185,27 @@ export default function OrcamentoDetalhe() {
     }
   }
 
+  const mudarStatus = async (novoStatus: string) => {
+    if (novoStatus === o.status) return
+    const labels: Record<string, string> = {
+      RASCUNHO: 'Rascunho', ENVIADO: 'Enviado', APROVADO: 'Aprovado', RECUSADO: 'Recusado', EXPIRADO: 'Expirado',
+    }
+    let confirmMsg = `Mudar status de "${labels[o.status]}" para "${labels[novoStatus]}"?`
+    if (novoStatus === 'APROVADO' && !o.pedido) {
+      confirmMsg += '\n\n⚠ Como ainda não existe pedido pra este orçamento, isso vai GERAR automaticamente o pedido e o contrato (em rascunho).'
+    }
+    if (!confirm(confirmMsg)) return
+    setErro(''); setAcao('status')
+    try {
+      await api.put(`/orcamentos/${id}/status`, { status: novoStatus })
+      load()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao mudar status.')
+    } finally {
+      setAcao('')
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!o) return <div className="p-8 text-gray-400">Orçamento não encontrado.</div>
 
@@ -232,9 +253,20 @@ export default function OrcamentoDetalhe() {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-display text-2xl font-bold text-gray-900">{o.numero}</h1>
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: st.bg, color: st.text }}>
-                {st.label}
-              </span>
+              <select
+                value={o.status}
+                onChange={(e) => mudarStatus(e.target.value)}
+                disabled={!!acao}
+                title="Mudar status manualmente"
+                className="px-2 py-0.5 rounded-full text-xs font-medium outline-none cursor-pointer"
+                style={{ background: st.bg, color: st.text, border: 'none' }}
+              >
+                <option value="RASCUNHO">Rascunho</option>
+                <option value="ENVIADO">Enviado</option>
+                <option value="APROVADO">Aprovado</option>
+                <option value="RECUSADO">Recusado</option>
+                <option value="EXPIRADO">Expirado</option>
+              </select>
               {o.arquivado && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>
                   <Archive className="w-3 h-3" /> Arquivado
