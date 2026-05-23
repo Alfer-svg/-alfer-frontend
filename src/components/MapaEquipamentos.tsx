@@ -52,7 +52,7 @@ const iconePorTipoEquip = (tipo: string, size = 40) => {
     CONTAINER_REEFER: 'container.png',
     CACAMBA_ESTACIONARIA: 'cacamba.png',
     CAMINHAO_MUNCK: 'munck.png',
-    CAMINHAO_POLIGUINDASTE: 'caminhao.png',
+    CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
     CAMINHAO_CAVALO_MECANICO: 'caminhao.png',
   }
   return makeImgIcon(map[tipo] || 'container.png', size)

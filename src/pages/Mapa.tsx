@@ -51,7 +51,7 @@ const iconePorTipoEquip: Record<string, L.DivIcon> = {
   CONTAINER_REEFER: makeImgIcon('container.png'),
   CACAMBA_ESTACIONARIA: makeImgIcon('cacamba.png'),
   CAMINHAO_MUNCK: makeImgIcon('munck.png'),
-  CAMINHAO_POLIGUINDASTE: makeImgIcon('caminhao.png'),
+  CAMINHAO_POLIGUINDASTE: makeImgIcon('poliguindaste.png'),
   CAMINHAO_CAVALO_MECANICO: makeImgIcon('caminhao.png'),
 }
 const iconCaminhao = makeImgIcon('caminhao.png')
