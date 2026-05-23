@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Truck, Package, Loader2, AlertCircle, X, MapPin, Calendar, User, ImagePlus, Camera, AlertTriangle, CheckCircle2, ArrowRight, FileText } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
+import { Modal } from '../components/Modal'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:     { bg: '#FEF3E2', text: '#633806', label: 'Para mobilizar' },
@@ -284,43 +285,39 @@ function MobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; onClo
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Mobilizar — {item.equipamento?.codigo}</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
-        </div>
-        <p className="text-xs text-gray-500 mb-4">Contrato {item.contrato?.numero} • {item.contrato?.cliente?.razaoSocial}</p>
-
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Endereço de entrega</label>
-            <input value={form.enderecoEntrega} onChange={(e) => setForm({ ...form, enderecoEntrega: e.target.value })} placeholder="Rua, número, bairro, cidade" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Responsável (motorista/equipe)</label>
-            <input value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} placeholder="Nome do responsável pela entrega" className={inputCls} style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Observações do checklist *</label>
-            <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} rows={3} placeholder="Ex: Container em perfeito estado. Lacre 12345. Cliente recebeu chave..." className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none" style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-2">Fotos do equipamento na entrega *</label>
-            <FotosUpload fotos={fotos} onChange={setFotos} />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
-            <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              Confirmar mobilização
-            </button>
-          </div>
-        </form>
-        </div>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Mobilizar — {item.equipamento?.codigo}</h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
       </div>
-    </div>
+      <p className="text-xs text-gray-500 mb-4">Contrato {item.contrato?.numero} • {item.contrato?.cliente?.razaoSocial}</p>
+
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Endereço de entrega</label>
+          <input value={form.enderecoEntrega} onChange={(e) => setForm({ ...form, enderecoEntrega: e.target.value })} placeholder="Rua, número, bairro, cidade" className={inputCls} style={inputStyle} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Responsável (motorista/equipe)</label>
+          <input value={form.responsavel} onChange={(e) => setForm({ ...form, responsavel: e.target.value })} placeholder="Nome do responsável pela entrega" className={inputCls} style={inputStyle} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Observações do checklist *</label>
+          <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} rows={3} placeholder="Ex: Container em perfeito estado. Lacre 12345. Cliente recebeu chave..." className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none" style={inputStyle} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-2">Fotos do equipamento na entrega *</label>
+          <FotosUpload fotos={fotos} onChange={setFotos} />
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Confirmar mobilização
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -357,11 +354,9 @@ function DesmobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; on
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Desmobilizar — {item.equipamento?.codigo}</h2>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Desmobilizar — {item.equipamento?.codigo}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <p className="text-xs text-gray-500 mb-4">Contrato {item.contrato?.numero}. Compare com as fotos da mobilização pra identificar avarias.</p>
@@ -410,8 +405,6 @@ function DesmobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; on
             </button>
           </div>
         </form>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
