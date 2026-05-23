@@ -356,12 +356,32 @@ export default function OrcamentoDetalhe() {
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Building2 className="w-4 h-4" /> Cliente</h2>
           <p className="text-sm font-medium text-gray-700">{o.cliente?.razaoSocial}</p>
-          <p className="text-xs text-gray-400">{o.cliente?.cnpj}</p>
-          {contato && (
-            <div className="mt-3 text-xs text-gray-500">
-              <div className="font-medium">{contato.nome}</div>
-              {contato.telefone && <div>{contato.telefone}</div>}
-              {contato.email && <div>{contato.email}</div>}
+          <p className="text-xs text-gray-400">
+            CNPJ {o.cliente?.cnpj}
+            {o.cliente?.inscricaoEstadual ? ` • I.E. ${o.cliente.inscricaoEstadual}` : ' • I.E. Isenta'}
+          </p>
+          {o.cliente?.enderecos?.[0] && (() => {
+            const e = o.cliente.enderecos[0]
+            return (
+              <p className="text-xs text-gray-500 mt-2">
+                {e.logradouro}, {e.numero}{e.complemento ? ` - ${e.complemento}` : ''}<br />
+                {e.bairro} — {e.cidade}/{e.estado}{e.cep ? ` • CEP ${e.cep}` : ''}
+              </p>
+            )
+          })()}
+          {o.cliente?.contatos?.length > 0 && (
+            <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: '#F1EFE8' }}>
+              {o.cliente.contatos.map((ct: any) => (
+                <div key={ct.id} className="text-xs text-gray-500">
+                  <div className="font-medium text-gray-700">
+                    {ct.nome}
+                    {ct.cargo && <span className="font-normal text-gray-400"> — {ct.cargo}</span>}
+                    {ct.principal && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#FFF8E6', color: '#FFAF06' }}>principal</span>}
+                  </div>
+                  {ct.telefone && <div>{ct.telefone}</div>}
+                  {ct.email && <div>{ct.email}</div>}
+                </div>
+              ))}
             </div>
           )}
         </div>
