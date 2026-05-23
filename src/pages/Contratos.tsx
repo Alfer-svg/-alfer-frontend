@@ -17,6 +17,7 @@ const tipoLabel: Record<string, string> = {
   CONTAINER_REEFER: 'Container Reefer',
   CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
   CAMINHAO_MUNCK: 'Caminhão Munck',
+  CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
 }
 
 const fmt = (v: number) =>

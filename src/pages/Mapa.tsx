@@ -51,6 +51,7 @@ const iconePorTipoEquip: Record<string, L.DivIcon> = {
   CONTAINER_REEFER: makeImgIcon('container.png'),
   CACAMBA_ESTACIONARIA: makeImgIcon('cacamba.png'),
   CAMINHAO_MUNCK: makeImgIcon('munck.png'),
+  CAMINHAO_POLIGUINDASTE: makeImgIcon('caminhao.png'),
 }
 const iconCaminhao = makeImgIcon('caminhao.png')
 const iconEquipDefault = makeImgIcon('container.png')
@@ -60,6 +61,7 @@ const tipoEquipLabel: Record<string, string> = {
   CONTAINER_REEFER: 'Container Reefer',
   CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
   CAMINHAO_MUNCK: 'Caminhão Munck',
+  CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
 }
 
 const tipoCamLabel: Record<string, string> = {

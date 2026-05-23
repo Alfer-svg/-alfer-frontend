@@ -35,6 +35,7 @@ const subtipoLabel: Record<string, string> = {
   CONTAINER_REEFER: 'Container Reefer',
   CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
   CAMINHAO_MUNCK: 'Caminhão Munck',
+  CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
   CACAMBA: 'Caçamba Removível',
 }
 
@@ -43,6 +44,7 @@ const subtipoIcon: Record<string, any> = {
   CONTAINER_REEFER: Container,
   CACAMBA_ESTACIONARIA: Package,
   CAMINHAO_MUNCK: Truck,
+  CAMINHAO_POLIGUINDASTE: Truck,
   CACAMBA: Layers,
 }
 

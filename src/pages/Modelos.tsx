@@ -8,6 +8,7 @@ const tipos = [
   { v: 'CONTAINER_REEFER', l: 'Container Reefer' },
   { v: 'CACAMBA_ESTACIONARIA', l: 'Caçamba Estacionária' },
   { v: 'CAMINHAO_MUNCK', l: 'Caminhão Munck' },
+  { v: 'CAMINHAO_POLIGUINDASTE', l: 'Caminhão Poliguindaste' },
 ]
 
 const tipoLabel = (v: string) => tipos.find((t) => t.v === v)?.l || v

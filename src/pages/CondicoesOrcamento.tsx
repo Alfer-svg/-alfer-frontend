@@ -104,7 +104,7 @@ export default function CondicoesOrcamento() {
                   {Array.isArray(c.tiposAplicaveis) && c.tiposAplicaveis.length > 0 ? (
                     c.tiposAplicaveis.map((t: string) => (
                       <span key={t} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#E3EEFA', color: '#1A5276' }}>
-                        {({ CONTAINER_SECO: 'Seco', CONTAINER_REEFER: 'Reefer', CACAMBA_ESTACIONARIA: 'Caçamba', CAMINHAO_MUNCK: 'Munck' } as Record<string, string>)[t] || t}
+                        {({ CONTAINER_SECO: 'Seco', CONTAINER_REEFER: 'Reefer', CACAMBA_ESTACIONARIA: 'Caçamba', CAMINHAO_MUNCK: 'Munck', CAMINHAO_POLIGUINDASTE: 'Poliguindaste' } as Record<string, string>)[t] || t}
                       </span>
                     ))
                   ) : (
@@ -145,6 +145,7 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
     { v: 'CONTAINER_REEFER', l: 'Container Reefer' },
     { v: 'CACAMBA_ESTACIONARIA', l: 'Caçamba Estacionária' },
     { v: 'CAMINHAO_MUNCK', l: 'Caminhão Munck' },
+    { v: 'CAMINHAO_POLIGUINDASTE', l: 'Caminhão Poliguindaste' },
   ]
   const [form, setForm] = useState({
     texto: cond?.texto || '',
