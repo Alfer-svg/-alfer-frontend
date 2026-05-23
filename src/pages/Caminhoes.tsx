@@ -9,6 +9,12 @@ const tipoLabel: Record<string, string> = {
   CAVALO_MECANICO: 'Cavalo Mecânico',
 }
 
+const iconePorTipo: Record<string, string> = {
+  MUNCK: 'munck.png',
+  POLIGUINDASTE: 'poliguindaste.png',
+  CAVALO_MECANICO: 'cavalo_mecanico.png',
+}
+
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   DISPONIVEL: { bg: '#EAF3DE', text: '#27500A', label: 'Disponível' },
   EM_OPERACAO: { bg: '#E3EEFA', text: '#1A5276', label: 'Em operação' },
@@ -175,8 +181,15 @@ export default function Caminhoes() {
                 className="bg-white rounded-2xl p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all animate-fade-in"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
               >
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#FEF3E2' }}>
-                  <Truck className="w-5 h-5" style={{ color: '#FFAF06' }} />
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                  style={{ background: '#FFFFFF', border: '1px solid #E0DDD8' }}
+                >
+                  {iconePorTipo[c.tipo] ? (
+                    <img src={`/icones/${iconePorTipo[c.tipo]}`} alt={c.tipo} className="w-9 h-9 object-contain" />
+                  ) : (
+                    <Truck className="w-5 h-5" style={{ color: '#FFAF06' }} />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1 flex-wrap">
