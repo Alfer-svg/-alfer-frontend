@@ -1,7 +1,7 @@
 // Financeiro — outras páginas agora têm arquivos próprios
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 async function abrirFaturaPdf(id: string) {
   try {
@@ -42,6 +42,22 @@ export function Financeiro() {
   useEffect(() => {
     carregar().finally(() => setLoading(false))
   }, [])
+
+  const marcarPago = async (l: any) => {
+    const hoje = new Date().toISOString().slice(0, 10)
+    const dt = prompt(
+      `Marcar fatura de ${l.cliente?.razaoSocial || l.fornecedor || 'sem cliente'} (R$ ${l.valor}) como PAGA.\n\nData do pagamento (AAAA-MM-DD):`,
+      hoje
+    )
+    if (!dt) return
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${l.id}/pagar`, { dtPagamento: dt })
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao marcar como pago')
+    }
+  }
 
   const cancelar = async (l: any) => {
     if (!confirm(`Cancelar a fatura de ${l.cliente?.razaoSocial || l.fornecedor || 'sem cliente'} no valor de R$ ${l.valor}?\n\nO histórico fica preservado, só muda o status pra CANCELADO.`)) return
@@ -134,6 +150,16 @@ export function Financeiro() {
                   style={{ border: '1px solid #E0DDD8' }}
                 >
                   <FileDown className="w-3 h-3" /> Fatura
+                </button>
+              )}
+              {l.status !== 'PAGO' && l.status !== 'CANCELADO' && l.tipo === 'RECEITA' && (
+                <button
+                  onClick={() => marcarPago(l)}
+                  title="Marcar fatura como paga"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white hover:opacity-90 flex-shrink-0"
+                  style={{ background: '#27AE60' }}
+                >
+                  <CheckCircle2 className="w-3 h-3" /> Marcar como pago
                 </button>
               )}
               {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
