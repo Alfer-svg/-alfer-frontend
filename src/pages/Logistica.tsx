@@ -130,6 +130,65 @@ export default function Logistica() {
           <p>Nenhum item nessa categoria</p>
           <p className="text-xs mt-1">Itens de logística são criados automaticamente quando você ativa um contrato com equipamentos vinculados.</p>
         </div>
+      ) : filtroStatus === '' ? (
+        // ─── VIEW DE LISTA COMPACTA (filtro "Todos") ───
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          {itens.map((it, idx) => {
+            const s = statusInfo[it.status] || statusInfo.PARA_MOBILIZAR
+            const dt = it.status === 'PARA_MOBILIZAR' ? it.dtPrevistaMobilizacao
+                     : it.status === 'PARA_DESMOBILIZAR' ? it.dtPrevistaDesmobilizacao
+                     : it.dtMobilizacao || it.dtDesmobilizacao
+            const stData = it.status === 'PARA_MOBILIZAR' || it.status === 'PARA_DESMOBILIZAR' ? statusData(dt) : null
+            return (
+              <div
+                key={it.id}
+                onClick={() => navigate(`/contratos/${it.contrato?.id}`)}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all"
+                style={{ borderTop: idx > 0 ? '1px solid #F1EFE8' : 'none' }}
+              >
+                <span
+                  className="px-2 py-0.5 rounded-full text-[11px] font-medium flex-shrink-0"
+                  style={{ background: s.bg, color: s.text, minWidth: 110, textAlign: 'center' }}
+                >
+                  {s.label}
+                </span>
+                <span className="font-semibold text-gray-900 text-sm w-20 flex-shrink-0">{it.equipamento?.codigo}</span>
+                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">
+                  {it.contrato?.numero} — {it.contrato?.cliente?.razaoSocial}
+                </span>
+                {dt && (
+                  <span
+                    className="text-xs flex-shrink-0"
+                    style={{ color: stData?.text || '#888' }}
+                  >
+                    📅 {fmtDate(dt)}
+                  </span>
+                )}
+                {it.avariasIdentificadas && (
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" title={`Avarias: ${it.avariasIdentificadas}`} />
+                )}
+                {it.status === 'PARA_MOBILIZAR' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMobModal(it) }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"
+                    style={{ background: '#FFAF06' }}
+                  >
+                    Mobilizar
+                  </button>
+                )}
+                {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDesmobModal(it) }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
+                    style={{ background: '#8B0000' }}
+                  >
+                    Desmobilizar
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
           {itens.map((it) => {
