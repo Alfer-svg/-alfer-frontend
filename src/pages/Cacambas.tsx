@@ -62,8 +62,15 @@ export default function Cacambas() {
     load()
   }
 
-  const mudarStatus = async (id: string, novoStatus: string) => {
+  const mudarStatus = async (id: string, novoStatus: string, origem?: string) => {
     setErroAcao('')
+    if (origem === 'LOGISTICA') {
+      setErroAcao(
+        'Esta caçamba veio de um contrato (módulo Logística). Mude o status lá: ' +
+        'mobilize/desmobilize pelas abas correspondentes.'
+      )
+      return
+    }
     try {
       await api.put(`/cacambas/locacoes/${id}/status`, { status: novoStatus })
       load()
@@ -178,7 +185,7 @@ export default function Cacambas() {
                       <span className="text-sm text-gray-700">{l.cliente?.razaoSocial}</span>
                       <select
                         value={l.status}
-                        onChange={(e) => mudarStatus(l.id, e.target.value)}
+                        onChange={(e) => mudarStatus(l.id, e.target.value, l._origem)}
                         title="Mudar status manualmente"
                         className="px-2 py-0.5 rounded-full text-xs font-medium outline-none cursor-pointer"
                         style={{ background: status.bg, color: status.text, border: 'none' }}
@@ -187,7 +194,16 @@ export default function Cacambas() {
                           <option key={s} value={s}>{statusColor[s].label}</option>
                         ))}
                       </select>
-                      {l.status !== 'ENCERRADA' && vencida && (
+                      {l._origem === 'LOGISTICA' && (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{ background: '#E3EEFA', color: '#1A5276' }}
+                          title={`Vem do contrato ${l.contrato?.numero} via módulo Logística`}
+                        >
+                          Contrato {l.contrato?.numero}
+                        </span>
+                      )}
+                      {l.status !== 'ENCERRADA' && l._origem !== 'LOGISTICA' && vencida && (
                         <span className="flex items-center gap-1 text-xs text-red-600">
                           <AlertTriangle className="w-3 h-3" /> Vencida há {Math.abs(diasVenc)}d
                         </span>
@@ -196,31 +212,42 @@ export default function Cacambas() {
                     <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {l.endEntrega}</span>
                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Entrega: {fmtDate(l.dtEntrega)}</span>
-                      <span>Venc: {fmtDate(l.dtVencimento)}</span>
-                      <span>Resíduo: {l.residuoAutorizado}</span>
+                      {l._origem !== 'LOGISTICA' && <span>Venc: {fmtDate(l.dtVencimento)}</span>}
+                      {l._origem !== 'LOGISTICA' && <span>Resíduo: {l.residuoAutorizado}</span>}
                       {l.volumePctAtual > 0 && <span>{l.volumePctAtual}% cheia</span>}
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap" style={{ borderColor: '#F1EFE8' }}>
-                  {l.status !== 'ENCERRADA' && (
-                    <>
-                      <button
-                        onClick={() => setTrocaModal(l)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                        style={{ background: '#FFF8E6', color: '#FFAF06' }}
-                      >
-                        Registrar troca
-                      </button>
-                      <button
-                        onClick={() => encerrar(l.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        style={{ border: '1px solid #E0DDD8' }}
-                      >
-                        Encerrar locação
-                      </button>
-                    </>
+                  {l._origem === 'LOGISTICA' ? (
+                    <button
+                      onClick={() => navigate('/logistica')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      style={{ border: '1px solid #E0DDD8' }}
+                    >
+                      Gerenciar no módulo Logística →
+                    </button>
+                  ) : (
+                    l.status !== 'ENCERRADA' && (
+                      <>
+                        <button
+                          onClick={() => setTrocaModal(l)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                          style={{ background: '#FFF8E6', color: '#FFAF06' }}
+                        >
+                          Registrar troca
+                        </button>
+                        <button
+                          onClick={() => encerrar(l.id)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          style={{ border: '1px solid #E0DDD8' }}
+                        >
+                          Encerrar locação
+                        </button>
+                      </>
+                    )
                   )}
+                  {l._origem !== 'LOGISTICA' && (
                   <button
                     onClick={() => excluir(l)}
                     title="Excluir locação (bloqueado se houver trocas)"
@@ -229,6 +256,7 @@ export default function Cacambas() {
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
+                  )}
                 </div>
               </div>
             )
