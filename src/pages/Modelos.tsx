@@ -9,6 +9,7 @@ const tipos = [
   { v: 'CACAMBA_ESTACIONARIA', l: 'Caçamba Estacionária' },
   { v: 'CAMINHAO_MUNCK', l: 'Caminhão Munck' },
   { v: 'CAMINHAO_POLIGUINDASTE', l: 'Caminhão Poliguindaste' },
+  { v: 'CAMINHAO_CAVALO_MECANICO', l: 'Caminhão Cavalo Mecânico' },
 ]
 
 const tipoLabel = (v: string) => tipos.find((t) => t.v === v)?.l || v

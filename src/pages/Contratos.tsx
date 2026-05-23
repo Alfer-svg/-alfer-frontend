@@ -18,6 +18,7 @@ const tipoLabel: Record<string, string> = {
   CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
   CAMINHAO_MUNCK: 'Caminhão Munck',
   CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
+  CAMINHAO_CAVALO_MECANICO: 'Caminhão Cavalo Mecânico',
 }
 
 const fmt = (v: number) =>

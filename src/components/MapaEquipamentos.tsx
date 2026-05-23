@@ -53,6 +53,7 @@ const iconePorTipoEquip = (tipo: string, size = 40) => {
     CACAMBA_ESTACIONARIA: 'cacamba.png',
     CAMINHAO_MUNCK: 'munck.png',
     CAMINHAO_POLIGUINDASTE: 'caminhao.png',
+    CAMINHAO_CAVALO_MECANICO: 'caminhao.png',
   }
   return makeImgIcon(map[tipo] || 'container.png', size)
 }
@@ -65,6 +66,7 @@ const tipoLabel = (v: string) =>
     CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
     CAMINHAO_MUNCK: 'Caminhão Munck',
     CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
+    CAMINHAO_CAVALO_MECANICO: 'Caminhão Cavalo Mecânico',
     MUNCK: 'Munck',
     POLIGUINDASTE: 'Poliguindaste',
     CAVALO_MECANICO: 'Cavalo Mecânico',

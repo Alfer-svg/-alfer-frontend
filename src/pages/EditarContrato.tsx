@@ -10,6 +10,7 @@ const tiposEquipamento = [
   { v: 'CACAMBA_ESTACIONARIA', l: 'Caçamba Estacionária' },
   { v: 'CAMINHAO_MUNCK', l: 'Caminhão Munck' },
   { v: 'CAMINHAO_POLIGUINDASTE', l: 'Caminhão Poliguindaste' },
+  { v: 'CAMINHAO_CAVALO_MECANICO', l: 'Caminhão Cavalo Mecânico' },
 ]
 
 export default function EditarContrato() {

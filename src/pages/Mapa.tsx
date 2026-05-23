@@ -52,6 +52,7 @@ const iconePorTipoEquip: Record<string, L.DivIcon> = {
   CACAMBA_ESTACIONARIA: makeImgIcon('cacamba.png'),
   CAMINHAO_MUNCK: makeImgIcon('munck.png'),
   CAMINHAO_POLIGUINDASTE: makeImgIcon('caminhao.png'),
+  CAMINHAO_CAVALO_MECANICO: makeImgIcon('caminhao.png'),
 }
 const iconCaminhao = makeImgIcon('caminhao.png')
 const iconEquipDefault = makeImgIcon('container.png')
@@ -62,6 +63,7 @@ const tipoEquipLabel: Record<string, string> = {
   CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
   CAMINHAO_MUNCK: 'Caminhão Munck',
   CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
+  CAMINHAO_CAVALO_MECANICO: 'Caminhão Cavalo Mecânico',
 }
 
 const tipoCamLabel: Record<string, string> = {
