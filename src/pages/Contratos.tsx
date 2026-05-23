@@ -20,7 +20,7 @@ const tipoLabel: Record<string, string> = {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('pt-BR')

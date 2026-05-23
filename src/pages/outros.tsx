@@ -21,7 +21,7 @@ async function abrirFaturaPdf(id: string) {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
 export function Financeiro() {
   const [dash, setDash] = useState<any>(null)
