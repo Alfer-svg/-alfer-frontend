@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown, Send, Mail, CheckCircle2, XCircle, RefreshCw, Plus, Copy, Clock, MapPin } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
@@ -438,10 +439,9 @@ function RenovarModal({ contrato, onClose, onSuccess }: { contrato: any; onClose
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Renovar contrato</h2>
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Renovar contrato</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <p className="text-xs text-gray-500 mb-4">Contrato atual: {contrato.numero} • Fim: {new Date(contrato.dtFim).toLocaleDateString('pt-BR')}</p>
@@ -468,8 +468,7 @@ function RenovarModal({ contrato, onClose, onSuccess }: { contrato: any; onClose
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -591,12 +590,11 @@ function EnviarAssinaturaModal({ contrato, onClose, onSent, onError }: any) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Send className="w-5 h-5" /> Enviar contrato pra assinatura
-          </h2>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <Send className="w-5 h-5" /> Enviar contrato pra assinatura
+        </h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <p className="text-xs text-gray-500 mb-4">
@@ -635,7 +633,6 @@ function EnviarAssinaturaModal({ contrato, onClose, onSent, onError }: any) {
             Enviar pra assinatura
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

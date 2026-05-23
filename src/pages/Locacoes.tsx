@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import {
   Layers, Package, Truck, Container, FileSignature, MapPin, Calendar,
   RotateCcw, XCircle, ChevronRight, AlertCircle, Loader2, X,
@@ -328,11 +329,10 @@ function RenovarModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-display text-lg font-bold text-gray-900">Renovar {locacao.numero}</h2>
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-display text-lg font-bold text-gray-900">Renovar {locacao.numero}</h2>
             <p className="text-xs text-gray-500 mt-0.5">{locacao.cliente?.razaoSocial}</p>
           </div>
           <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
@@ -404,7 +404,6 @@ function RenovarModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

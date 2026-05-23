@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import { ArrowLeft, Plus, Pencil, Trash2, X, Loader2, AlertCircle, PowerOff, Power, FileCheck } from 'lucide-react'
 
 export default function CondicoesOrcamento() {
@@ -178,10 +179,9 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar condição' : 'Nova condição'}</h2>
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar condição' : 'Nova condição'}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <form onSubmit={submit} className="space-y-3">
@@ -233,7 +233,6 @@ function CondicaoModal({ cond, onClose, onSuccess }: { cond?: any; onClose: () =
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

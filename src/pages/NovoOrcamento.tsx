@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X, MapPin, Search } from 'lucide-react'
 import { buscarCep, formatarCep, limparCep } from '../utils/cep'
 
@@ -477,10 +478,9 @@ function PickerCondicoes({ condicoes, jaSelecionadas, onClose, onConfirm }: {
   }, {})
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Selecionar condições padrão</h2>
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Selecionar condições padrão</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <p className="text-xs text-gray-500 mb-4">{sel.size} selecionada(s). Marque as que quiser incluir no orçamento.</p>
@@ -516,7 +516,6 @@ function PickerCondicoes({ condicoes, jaSelecionadas, onClose, onConfirm }: {
             Aplicar ({sel.size})
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

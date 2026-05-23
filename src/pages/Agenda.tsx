@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import { Calendar, Plus, ChevronLeft, ChevronRight, Truck, Package, User, MapPin, CheckCircle2, Clock, X, Loader2, AlertCircle } from 'lucide-react'
 
 const tipoLabel: Record<string, string> = {
@@ -184,10 +185,9 @@ function NovaOperacaoModal({ data, onClose, onSuccess }: { data: string; onClose
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Nova operação</h2>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Nova operação</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <form onSubmit={submit} className="space-y-3">
@@ -248,7 +248,6 @@ function NovaOperacaoModal({ data, onClose, onSuccess }: { data: string; onClose
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

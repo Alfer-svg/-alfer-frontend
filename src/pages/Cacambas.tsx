@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { Modal } from '../components/Modal'
 import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2 } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
@@ -232,10 +233,9 @@ function TrocaModal({ locacao, onClose, onSuccess }: { locacao: any; onClose: ()
   const inputStyle = { border: '1px solid #E0DDD8' }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold text-gray-900">Registrar troca</h2>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Registrar troca</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <p className="text-xs text-gray-500 mb-4">Cliente: {locacao.cliente?.razaoSocial} • Caçamba atual: {locacao.cacamba?.codigo}</p>
@@ -296,7 +296,6 @@ function TrocaModal({ locacao, onClose, onSuccess }: { locacao: any; onClose: ()
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
