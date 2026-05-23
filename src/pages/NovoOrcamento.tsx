@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X, MapPin, Search } from 'lucide-react'
+import { buscarCep, formatarCep, limparCep } from '../utils/cep'
 
 export default function NovoOrcamento() {
   const navigate = useNavigate()
@@ -31,6 +32,56 @@ export default function NovoOrcamento() {
   const [condicoes, setCondicoes] = useState<string[]>([''])
   const [showPickerCond, setShowPickerCond] = useState(false)
   const [condicoesPadrao, setCondicoesPadrao] = useState<any[]>([])
+  // Endereço estruturado pro local de mobilização — quando preenchido,
+  // monta a string e popula form.localMobilizacao
+  const [endMob, setEndMob] = useState({
+    cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
+  })
+  const [buscandoCep, setBuscandoCep] = useState(false)
+  const [erroCep, setErroCep] = useState('')
+
+  const setMob = (k: string, v: string) => setEndMob((s) => ({ ...s, [k]: v }))
+
+  // Monta a string sempre que algum campo estruturado mudar
+  useEffect(() => {
+    const partes: string[] = []
+    if (endMob.logradouro) {
+      let l = endMob.logradouro
+      if (endMob.numero) l += `, ${endMob.numero}`
+      if (endMob.complemento) l += ` - ${endMob.complemento}`
+      partes.push(l)
+    }
+    if (endMob.bairro) partes.push(endMob.bairro)
+    if (endMob.cidade) partes.push(endMob.cidade + (endMob.estado ? `/${endMob.estado}` : ''))
+    if (endMob.cep) partes.push(`CEP ${endMob.cep}`)
+    const str = partes.join(', ')
+    if (str) setForm((f) => ({ ...f, localMobilizacao: str }))
+  }, [endMob])
+
+  const buscarEnderecoPorCep = async (v: string) => {
+    setErroCep('')
+    const cepFmt = formatarCep(v)
+    setMob('cep', cepFmt)
+    if (limparCep(v).length === 8) {
+      setBuscandoCep(true)
+      try {
+        const d = await buscarCep(v)
+        setEndMob((s) => ({
+          ...s,
+          cep: d.cep,
+          logradouro: d.logradouro,
+          bairro: d.bairro,
+          cidade: d.cidade,
+          estado: d.estado,
+          // mantém número/complemento se já preenchidos
+        }))
+      } catch (e: any) {
+        setErroCep(e.message || 'CEP não encontrado')
+      } finally {
+        setBuscandoCep(false)
+      }
+    }
+  }
 
   useEffect(() => {
     const params: any = { ativo: 'true' }
@@ -248,15 +299,69 @@ export default function NovoOrcamento() {
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-4">Local de mobilização</h2>
-          <textarea
-            value={form.localMobilizacao}
-            onChange={(e) => set('localMobilizacao', e.target.value)}
-            rows={2}
-            placeholder="Onde os equipamentos serão entregues (pode ser diferente do endereço do CNPJ). Ex: Obra Hotel X - Av. Conde da Boa Vista 1500, Recife-PE"
-            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
-            style={inputStyle}
-          />
+          <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> Local de mobilização
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">Onde os equipamentos serão entregues. Digite o CEP que o resto preenche automaticamente.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+            <div className="md:col-span-1">
+              <label className="block text-xs text-gray-500 mb-1">CEP</label>
+              <div className="relative">
+                <input
+                  value={endMob.cep}
+                  onChange={(e) => buscarEnderecoPorCep(e.target.value)}
+                  placeholder="00000-000"
+                  maxLength={9}
+                  className={inputCls + ' pr-8'}
+                  style={inputStyle}
+                />
+                {buscandoCep ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
+                ) : (
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
+                )}
+              </div>
+              {erroCep && <div className="text-xs text-red-600 mt-1">{erroCep}</div>}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">Logradouro</label>
+              <input value={endMob.logradouro} onChange={(e) => setMob('logradouro', e.target.value)} placeholder="Rua / Av." className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Número</label>
+              <input value={endMob.numero} onChange={(e) => setMob('numero', e.target.value)} placeholder="123" className={inputCls} style={inputStyle} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Complemento</label>
+              <input value={endMob.complemento} onChange={(e) => setMob('complemento', e.target.value)} placeholder="Obra X / Bloco B" className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Bairro</label>
+              <input value={endMob.bairro} onChange={(e) => setMob('bairro', e.target.value)} className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Cidade</label>
+              <input value={endMob.cidade} onChange={(e) => setMob('cidade', e.target.value)} className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">UF</label>
+              <input value={endMob.estado} onChange={(e) => setMob('estado', e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className={inputCls} style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Endereço completo (preenchido automaticamente — pode ajustar à mão se precisar)</label>
+            <textarea
+              value={form.localMobilizacao}
+              onChange={(e) => set('localMobilizacao', e.target.value)}
+              rows={2}
+              placeholder="Ou cole o endereço completo aqui se preferir não usar os campos acima."
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+              style={inputStyle}
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
