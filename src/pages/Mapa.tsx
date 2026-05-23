@@ -175,50 +175,65 @@ export default function Mapa() {
 
   return (
     <div className="p-8 animate-fade-in h-screen flex flex-col">
-      <div className="flex items-center justify-between mb-6 flex-shrink-0">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Mapa</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {todos.length} de {equipamentos.length + caminhoes.length} item(s) visíveis no mapa
-          </p>
+      <div className="mb-6 flex-shrink-0">
+        {/* Linha 1: título à esquerda + chips de tipo à direita */}
+        <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-gray-900">Mapa</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {todos.length} de {equipamentos.length + caminhoes.length} item(s) visíveis no mapa
+            </p>
+          </div>
+          <div className="flex gap-2 items-center flex-wrap">
+            {CATEGORIAS.map((c) => {
+              const ativo = !!mostrar[c.key]
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setMostrar((m) => ({ ...m, [c.key]: !m[c.key] }))}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+                  style={{
+                    background: ativo ? '#FFF8E6' : '#fff',
+                    border: `1px solid ${ativo ? '#FFAF06' : '#E0DDD8'}`,
+                    color: ativo ? '#5C4500' : '#888',
+                    opacity: ativo ? 1 : 0.55,
+                  }}
+                >
+                  <img src={`/icones/${c.icone}`} alt="" className="w-6 h-6 object-contain" />
+                  <span>{c.label}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: ativo ? '#FFAF06' : '#F1EFE8', color: ativo ? '#111' : '#999' }}>
+                    {contagem[c.key]}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          <button
-            onClick={regeocodificar}
-            disabled={regeocodificando}
-            title="Recalcula coordenadas de equipamentos mobilizados sem lat/lng (consultando Nominatim)"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            style={{ border: '1px solid #E0DDD8' }}
-          >
-            {regeocodificando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-            Atualizar coordenadas
-          </button>
-          {CATEGORIAS.map((c) => (
-            <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!mostrar[c.key]}
-                onChange={(e) => setMostrar((m) => ({ ...m, [c.key]: e.target.checked }))}
-                className="w-4 h-4"
-                style={{ accentColor: '#FFAF06' }}
-              />
-              <span className="flex items-center gap-1">
-                <img src={`/icones/${c.icone}`} alt="" className="w-5 h-5 object-contain" />
-                {c.label} ({contagem[c.key]})
-              </span>
-            </label>
-          ))}
+
+        {/* Linha 2: controles (filtro de status + atualizar coordenadas) */}
+        <div className="flex gap-3 items-center justify-end flex-wrap">
           <select
             value={filtroStatusEquip}
             onChange={(e) => setFiltroStatusEquip(e.target.value)}
             className="px-3 py-2 bg-white rounded-xl text-sm outline-none"
             style={{ border: '1px solid #E0DDD8' }}
           >
-            <option value="">Todos os equipamentos</option>
+            <option value="">Todos os status</option>
             <option value="LOCADO">Só locados</option>
             <option value="DISPONIVEL">Só disponíveis</option>
             <option value="MANUTENCAO">Só em manutenção</option>
           </select>
+          <button
+            onClick={regeocodificar}
+            disabled={regeocodificando}
+            title="Recalcula coordenadas de equipamentos mobilizados sem lat/lng (consultando Nominatim)"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            {regeocodificando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Atualizar coordenadas
+          </button>
         </div>
       </div>
 
