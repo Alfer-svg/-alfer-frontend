@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import api from '../services/api'
-import { Map as MapIcon, AlertCircle } from 'lucide-react'
+import { Map as MapIcon, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 
 // Ícone dentro de balão branco com ponteiro (estilo pin de mapa)
 const makeImgIcon = (file: string) =>
@@ -76,6 +76,25 @@ export default function Mapa() {
   const [mostrarEquip, setMostrarEquip] = useState(true)
   const [mostrarCam, setMostrarCam] = useState(true)
   const [filtroStatusEquip, setFiltroStatusEquip] = useState('LOCADO')
+  const [regeocodificando, setRegeocodificando] = useState(false)
+
+  const regeocodificar = async () => {
+    if (!confirm('Recalcular coordenadas de TODOS os equipamentos mobilizados sem lat/lng?\n\nIsso consulta o serviço de geocoding (Nominatim) — 1 endereço por segundo. Pode demorar.')) return
+    setRegeocodificando(true)
+    try {
+      const r = await fetch((api.defaults.baseURL || '').replace(/\/$/, '') + '/logistica/regeocodificar', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('alfer_token')}` },
+      })
+      const data = await r.json()
+      alert(`✓ Concluído: ${data.sucesso || 0} com sucesso, ${data.falhou || 0} falharam (de ${data.total || 0} pendentes).`)
+      window.location.reload()
+    } catch (e: any) {
+      alert('Erro: ' + (e?.message || 'desconhecido'))
+    } finally {
+      setRegeocodificando(false)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -112,6 +131,16 @@ export default function Mapa() {
           </p>
         </div>
         <div className="flex gap-3 items-center flex-wrap">
+          <button
+            onClick={regeocodificar}
+            disabled={regeocodificando}
+            title="Recalcula coordenadas de equipamentos mobilizados sem lat/lng (consultando Nominatim)"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            {regeocodificando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Atualizar coordenadas
+          </button>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={mostrarEquip} onChange={(e) => setMostrarEquip(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
             <span className="flex items-center gap-1">
