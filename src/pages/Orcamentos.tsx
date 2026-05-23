@@ -42,15 +42,27 @@ export default function Orcamentos() {
     }
   }
 
+  const [contagens, setContagens] = useState<Record<string, number>>({})
+
   const load = () => {
     setLoading(true)
     const params: any = { arquivado: filtroArquivado }
     if (filtroStatus) params.status = filtroStatus
-    api.get('/orcamentos', { params })
-      .then((r) => setOrcamentos(r.data))
+    Promise.all([
+      api.get('/orcamentos', { params }),
+      api.get('/orcamentos/resumo'),
+    ])
+      .then(([list, res]) => {
+        setOrcamentos(list.data)
+        const map: Record<string, number> = {}
+        for (const r of res.data || []) map[r.status] = r._count?._all ?? 0
+        setContagens(map)
+      })
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus, filtroArquivado])
+
+  const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 
   return (
     <div className="p-8 animate-fade-in">
@@ -69,20 +81,39 @@ export default function Orcamentos() {
         </button>
       </div>
 
+      <div className="flex gap-2 mb-3 flex-wrap">
+        {[
+          { key: '', label: 'Todos', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
+          { key: 'RASCUNHO', label: 'Rascunhos', count: contagens.RASCUNHO || 0, bg: '#F1EFE8', text: '#888', activeBg: '#888' },
+          { key: 'ENVIADO', label: 'Enviados', count: contagens.ENVIADO || 0, bg: '#E3EEFA', text: '#1A5276', activeBg: '#1A5276' },
+          { key: 'APROVADO', label: 'Aprovados', count: contagens.APROVADO || 0, bg: '#EAF3DE', text: '#27500A', activeBg: '#27500A' },
+          { key: 'RECUSADO', label: 'Recusados', count: contagens.RECUSADO || 0, bg: '#FDEEEE', text: '#8B0000', activeBg: '#8B0000' },
+          { key: 'EXPIRADO', label: 'Expirados', count: contagens.EXPIRADO || 0, bg: '#F1EFE8', text: '#888', activeBg: '#888' },
+        ].map((t) => {
+          const ativo = filtroStatus === t.key
+          return (
+            <button
+              key={t.key || 'all'}
+              onClick={() => setFiltroStatus(t.key)}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+              style={{ background: ativo ? t.activeBg : t.bg, color: ativo ? 'white' : t.text }}
+            >
+              {t.label}
+              <span
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+                style={{
+                  background: ativo ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+                  color: ativo ? 'white' : t.text,
+                  minWidth: 22, textAlign: 'center',
+                }}
+              >
+                {t.count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
       <div className="flex gap-3 mb-6">
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-          className="px-4 py-3 bg-white rounded-xl text-sm outline-none"
-          style={{ border: '1px solid #E0DDD8' }}
-        >
-          <option value="">Todos os status</option>
-          <option value="RASCUNHO">Rascunhos</option>
-          <option value="ENVIADO">Enviados</option>
-          <option value="APROVADO">Aprovados</option>
-          <option value="RECUSADO">Recusados</option>
-          <option value="EXPIRADO">Expirados</option>
-        </select>
         <select
           value={filtroArquivado}
           onChange={(e) => setFiltroArquivado(e.target.value)}

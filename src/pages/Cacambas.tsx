@@ -18,14 +18,27 @@ export default function Cacambas() {
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
   const [trocaModal, setTrocaModal] = useState<any>(null)
+  const [contagens, setContagens] = useState<Record<string, number>>({})
 
   const load = () => {
     setLoading(true)
     const params: any = {}
     if (filtroStatus) params.status = filtroStatus
-    api.get('/cacambas/locacoes', { params }).then((r) => setLocacoes(r.data)).finally(() => setLoading(false))
+    Promise.all([
+      api.get('/cacambas/locacoes', { params }),
+      api.get('/cacambas/locacoes/resumo'),
+    ])
+      .then(([list, res]) => {
+        setLocacoes(list.data)
+        const map: Record<string, number> = {}
+        for (const r of res.data || []) map[r.status] = r._count?._all ?? 0
+        setContagens(map)
+      })
+      .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus])
+
+  const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 
   const [erroAcao, setErroAcao] = useState('')
 
@@ -78,18 +91,35 @@ export default function Cacambas() {
         </button>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-          className="px-4 py-3 bg-white rounded-xl text-sm outline-none"
-          style={{ border: '1px solid #E0DDD8' }}
-        >
-          <option value="">Todas as locações</option>
-          <option value="ATIVA">Ativas</option>
-          <option value="CHEIA">Cheias</option>
-          <option value="ENCERRADA">Encerradas</option>
-        </select>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { key: '', label: 'Todas', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
+          { key: 'ATIVA', label: 'Ativas', count: contagens.ATIVA || 0, bg: '#EAF3DE', text: '#27500A', activeBg: '#27500A' },
+          { key: 'CHEIA', label: 'Cheias', count: contagens.CHEIA || 0, bg: '#FEF3E2', text: '#633806', activeBg: '#633806' },
+          { key: 'ENCERRADA', label: 'Encerradas', count: contagens.ENCERRADA || 0, bg: '#F1EFE8', text: '#888', activeBg: '#888' },
+        ].map((t) => {
+          const ativo = filtroStatus === t.key
+          return (
+            <button
+              key={t.key || 'all'}
+              onClick={() => setFiltroStatus(t.key)}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+              style={{ background: ativo ? t.activeBg : t.bg, color: ativo ? 'white' : t.text }}
+            >
+              {t.label}
+              <span
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+                style={{
+                  background: ativo ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+                  color: ativo ? 'white' : t.text,
+                  minWidth: 22, textAlign: 'center',
+                }}
+              >
+                {t.count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {erroAcao && (
