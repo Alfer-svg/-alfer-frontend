@@ -21,6 +21,8 @@ export default function NovoOrcamento() {
     valor: '',
     desconto: '',
     frete: '',
+    valorMobilizacao: '',
+    valorDesmobilizacao: '',
     periodicidade: 'Mensal',
     condicaoPagamento: 'D_30',
     formaPagamento: 'BOLETO',
@@ -125,6 +127,8 @@ export default function NovoOrcamento() {
           valor: o.valor != null ? String(o.valor) : '',
           desconto: o.desconto != null ? String(o.desconto) : '',
           frete: o.frete != null ? String(o.frete) : '',
+          valorMobilizacao: o.valorMobilizacao != null ? String(o.valorMobilizacao) : '',
+          valorDesmobilizacao: o.valorDesmobilizacao != null ? String(o.valorDesmobilizacao) : '',
           periodicidade: o.periodicidade || 'Mensal',
           condicaoPagamento: o.condicaoPagamento || 'D_30',
           formaPagamento: o.formaPagamento || 'BOLETO',
@@ -144,8 +148,10 @@ export default function NovoOrcamento() {
   const valor = Number(form.valor || 0)
   const desconto = Number(form.desconto || 0)
   const frete = Number(form.frete || 0)
+  const valorMobilizacao = Number(form.valorMobilizacao || 0)
+  const valorDesmobilizacao = Number(form.valorDesmobilizacao || 0)
   const comDesconto = Math.max(0, valor - (valor * desconto) / 100)
-  const valorFinal = comDesconto + frete
+  const valorFinal = comDesconto + frete + valorMobilizacao + valorDesmobilizacao
 
   const setCondicao = (i: number, v: string) => setCondicoes((cs) => cs.map((c, idx) => (idx === i ? v : c)))
   const addCondicao = () => setCondicoes((cs) => [...cs, ''])
@@ -165,6 +171,8 @@ export default function NovoOrcamento() {
         valor,
         desconto: desconto || null,
         frete: frete || null,
+        valorMobilizacao: valorMobilizacao || null,
+        valorDesmobilizacao: valorDesmobilizacao || null,
         periodicidade: form.periodicidade,
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
@@ -247,6 +255,14 @@ export default function NovoOrcamento() {
               <input value={form.frete} onChange={(e) => set('frete', e.target.value)} type="number" step="0.01" min="0" placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" title="Taxa única — cobrar pra entregar/instalar o equipamento">Mobilização (R$)</label>
+              <input value={form.valorMobilizacao} onChange={(e) => set('valorMobilizacao', e.target.value)} type="number" step="0.01" min="0" placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" title="Taxa única — cobrar pra retirar o equipamento ao fim da locação">Desmobilização (R$)</label>
+              <input value={form.valorDesmobilizacao} onChange={(e) => set('valorDesmobilizacao', e.target.value)} type="number" step="0.01" min="0" placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Periodicidade</label>
               <select value={form.periodicidade} onChange={(e) => set('periodicidade', e.target.value)} className={inputCls} style={inputStyle}>
                 <option value="Único">Pagamento único</option>
@@ -260,11 +276,13 @@ export default function NovoOrcamento() {
           {valor > 0 && (
             <div className="mt-4 p-3 rounded-xl text-sm" style={{ background: '#FFF8E6', border: '1px solid #FFD577' }}>
               <div>Valor final: <strong>R$ {valorFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              {(desconto > 0 || frete > 0) && (
+              {(desconto > 0 || frete > 0 || valorMobilizacao > 0 || valorDesmobilizacao > 0) && (
                 <div className="text-xs text-gray-600 mt-1">
                   Locação: R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   {desconto > 0 && ` − ${desconto}% desconto = R$ ${comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   {frete > 0 && ` + R$ ${frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} frete`}
+                  {valorMobilizacao > 0 && ` + R$ ${valorMobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} mob.`}
+                  {valorDesmobilizacao > 0 && ` + R$ ${valorDesmobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} desmob.`}
                 </div>
               )}
             </div>
