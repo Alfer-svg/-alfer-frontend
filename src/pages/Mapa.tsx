@@ -87,11 +87,12 @@ type Categoria = {
 }
 
 const CATEGORIAS: Categoria[] = [
-  { key: 'munck',      label: 'Munck',         icone: 'munck.png',           equipTipos: ['CAMINHAO_MUNCK'],         camTipos: ['MUNCK'] },
-  { key: 'poli',       label: 'Poli',          icone: 'poliguindaste.png',   equipTipos: ['CAMINHAO_POLIGUINDASTE'], camTipos: ['POLIGUINDASTE'] },
-  { key: 'cacamba',    label: 'Caçamba',       icone: 'cacamba.png',         equipTipos: ['CACAMBA_ESTACIONARIA'],   camTipos: [] },
-  { key: 'contSeco',   label: 'Cont. seco',    icone: 'container.png',       equipTipos: ['CONTAINER_SECO'],         camTipos: [] },
-  { key: 'contReefer', label: 'Cont. reefer',  icone: 'container_reefer.png', equipTipos: ['CONTAINER_REEFER'],      camTipos: [] },
+  { key: 'munck',      label: 'Munck',          icone: 'munck.png',            equipTipos: ['CAMINHAO_MUNCK'],            camTipos: ['MUNCK'] },
+  { key: 'poli',       label: 'Poli',           icone: 'poliguindaste.png',    equipTipos: ['CAMINHAO_POLIGUINDASTE'],    camTipos: ['POLIGUINDASTE'] },
+  { key: 'cavalo',     label: 'Cavalo mec.',    icone: 'cavalo_mecanico.png',  equipTipos: ['CAMINHAO_CAVALO_MECANICO'],  camTipos: ['CAVALO_MECANICO'] },
+  { key: 'cacamba',    label: 'Caçamba',        icone: 'cacamba.png',          equipTipos: ['CACAMBA_ESTACIONARIA'],      camTipos: [] },
+  { key: 'contSeco',   label: 'Cont. seco',     icone: 'container.png',        equipTipos: ['CONTAINER_SECO'],            camTipos: [] },
+  { key: 'contReefer', label: 'Cont. reefer',   icone: 'container_reefer.png', equipTipos: ['CONTAINER_REEFER'],          camTipos: [] },
 ]
 
 export default function Mapa() {
