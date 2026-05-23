@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { Truck, Package, Loader2, AlertCircle, X, MapPin, Calendar, User, ImagePlus, Camera, AlertTriangle, CheckCircle2, ArrowRight, FileText } from 'lucide-react'
+import { Truck, Package, Loader2, AlertCircle, X, MapPin, Calendar, User, ImagePlus, Camera, AlertTriangle, CheckCircle2, ArrowRight, FileText, Pencil } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
 import { Modal } from '../components/Modal'
 
@@ -15,6 +15,15 @@ const statusInfo: Record<string, { bg: string; text: string; label: string }> = 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
+function statusData(dt?: string | null): { bg: string; text: string; label: string; days: number | null } {
+  if (!dt) return { bg: '#F1EFE8', text: '#888', label: 'Sem data programada', days: null }
+  const dias = Math.ceil((new Date(dt).getTime() - Date.now()) / 86400000)
+  if (dias < 0) return { bg: '#FDEEEE', text: '#8B0000', label: `Atrasado há ${Math.abs(dias)} dia(s)`, days: dias }
+  if (dias === 0) return { bg: '#FDEEEE', text: '#8B0000', label: 'Programado pra HOJE', days: 0 }
+  if (dias <= 3) return { bg: '#FEF3E2', text: '#633806', label: `Em ${dias} dia(s)`, days: dias }
+  return { bg: '#EAF3DE', text: '#27500A', label: `Em ${dias} dia(s)`, days: dias }
+}
+
 export default function Logistica() {
   const navigate = useNavigate()
   const [itens, setItens] = useState<any[]>([])
@@ -22,6 +31,7 @@ export default function Logistica() {
   const [filtroStatus, setFiltroStatus] = useState('PARA_MOBILIZAR')
   const [mobModal, setMobModal] = useState<any>(null)
   const [desmobModal, setDesmobModal] = useState<any>(null)
+  const [editarDataModal, setEditarDataModal] = useState<any>(null)
   const [erroAcao, setErroAcao] = useState('')
   const [contagens, setContagens] = useState<Record<string, number>>({})
 
@@ -147,6 +157,32 @@ export default function Logistica() {
                   </div>
                 </div>
 
+                {/* Badge de data prevista — só mostra em PARA_MOBILIZAR e PARA_DESMOBILIZAR */}
+                {(it.status === 'PARA_MOBILIZAR' || it.status === 'PARA_DESMOBILIZAR') && (() => {
+                  const dt = it.status === 'PARA_MOBILIZAR' ? it.dtPrevistaMobilizacao : it.dtPrevistaDesmobilizacao
+                  const st = statusData(dt)
+                  const acao = it.status === 'PARA_MOBILIZAR' ? 'Mobilizar' : 'Desmobilizar'
+                  return (
+                    <div className="mb-3 p-2.5 rounded-xl flex items-center justify-between gap-2" style={{ background: st.bg, border: `1px solid ${st.text}33` }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: st.text }} />
+                        <div className="text-xs min-w-0">
+                          <div className="font-semibold" style={{ color: st.text }}>{acao}: {st.label}</div>
+                          {dt && <div className="text-gray-600 truncate">📅 {fmtDate(dt)}</div>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setEditarDataModal(it)}
+                        title="Editar data programada"
+                        className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white"
+                        style={{ color: st.text }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )
+                })()}
+
                 <div className="space-y-1.5 text-xs text-gray-600 mb-3">
                   <div className="flex items-center gap-2">
                     <FileText className="w-3 h-3 text-gray-400" />
@@ -233,7 +269,63 @@ export default function Logistica() {
       {desmobModal && (
         <DesmobilizarModal item={desmobModal} onClose={() => setDesmobModal(null)} onSuccess={() => { setDesmobModal(null); load() }} onErro={setErroAcao} />
       )}
+      {editarDataModal && (
+        <EditarDataModal item={editarDataModal} onClose={() => setEditarDataModal(null)} onSuccess={() => { setEditarDataModal(null); load() }} onErro={setErroAcao} />
+      )}
     </div>
+  )
+}
+
+function EditarDataModal({ item, onClose, onSuccess, onErro }: { item: any; onClose: () => void; onSuccess: () => void; onErro: (m: string) => void }) {
+  const isMob = item.status === 'PARA_MOBILIZAR'
+  const campo = isMob ? 'dtPrevistaMobilizacao' : 'dtPrevistaDesmobilizacao'
+  const dataAtual = isMob ? item.dtPrevistaMobilizacao : item.dtPrevistaDesmobilizacao
+  const [data, setData] = useState(dataAtual ? new Date(dataAtual).toISOString().slice(0, 10) : '')
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await api.put(`/logistica/${item.id}`, { [campo]: data || null })
+      onSuccess()
+    } catch (err: any) {
+      onErro(err.response?.data?.message || 'Erro ao salvar data')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">
+          Programar {isMob ? 'mobilização' : 'desmobilização'}
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        {item.equipamento?.codigo} — Contrato {item.contrato?.numero}
+      </p>
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Data programada</label>
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+          <p className="text-xs text-gray-400 mt-1">Deixe em branco pra remover a programação.</p>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Salvar
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
