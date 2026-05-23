@@ -54,8 +54,13 @@ const iconePorTipoEquip: Record<string, L.DivIcon> = {
   CAMINHAO_POLIGUINDASTE: makeImgIcon('poliguindaste.png'),
   CAMINHAO_CAVALO_MECANICO: makeImgIcon('cavalo_mecanico.png'),
 }
-const iconCaminhao = makeImgIcon('caminhao.png')
+const iconPorTipoCam: Record<string, L.DivIcon> = {
+  MUNCK: makeImgIcon('munck.png'),
+  POLIGUINDASTE: makeImgIcon('poliguindaste.png'),
+  CAVALO_MECANICO: makeImgIcon('cavalo_mecanico.png'),
+}
 const iconEquipDefault = makeImgIcon('container.png')
+const iconCaminhaoDefault = makeImgIcon('caminhao.png')
 
 const tipoEquipLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -72,13 +77,31 @@ const tipoCamLabel: Record<string, string> = {
   CAVALO_MECANICO: 'Cavalo Mecânico',
 }
 
+// Categorias do filtro: cada uma agrupa tipos de Equipamento e Caminhão
+type Categoria = {
+  key: string
+  label: string
+  icone: string
+  equipTipos: string[]
+  camTipos: string[]
+}
+
+const CATEGORIAS: Categoria[] = [
+  { key: 'munck',      label: 'Munck',         icone: 'munck.png',           equipTipos: ['CAMINHAO_MUNCK'],         camTipos: ['MUNCK'] },
+  { key: 'poli',       label: 'Poli',          icone: 'poliguindaste.png',   equipTipos: ['CAMINHAO_POLIGUINDASTE'], camTipos: ['POLIGUINDASTE'] },
+  { key: 'cacamba',    label: 'Caçamba',       icone: 'cacamba.png',         equipTipos: ['CACAMBA_ESTACIONARIA'],   camTipos: [] },
+  { key: 'contSeco',   label: 'Cont. seco',    icone: 'container.png',       equipTipos: ['CONTAINER_SECO'],         camTipos: [] },
+  { key: 'contReefer', label: 'Cont. reefer',  icone: 'container_reefer.png', equipTipos: ['CONTAINER_REEFER'],      camTipos: [] },
+]
+
 export default function Mapa() {
   const navigate = useNavigate()
   const [equipamentos, setEquipamentos] = useState<any[]>([])
   const [caminhoes, setCaminhoes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [mostrarEquip, setMostrarEquip] = useState(true)
-  const [mostrarCam, setMostrarCam] = useState(true)
+  const [mostrar, setMostrar] = useState<Record<string, boolean>>(
+    CATEGORIAS.reduce((acc, c) => ({ ...acc, [c.key]: true }), {})
+  )
   const [filtroStatusEquip, setFiltroStatusEquip] = useState('LOCADO')
   const [regeocodificando, setRegeocodificando] = useState(false)
 
@@ -122,11 +145,26 @@ export default function Mapa() {
       .finally(() => setLoading(false))
   }, [filtroStatusEquip])
 
+  // Filtra equipamentos/caminhões pelas categorias ativas
+  const equipTiposAtivos = new Set(
+    CATEGORIAS.filter((c) => mostrar[c.key]).flatMap((c) => c.equipTipos)
+  )
+  const camTiposAtivos = new Set(
+    CATEGORIAS.filter((c) => mostrar[c.key]).flatMap((c) => c.camTipos)
+  )
+  const equipamentosVisiveis = equipamentos.filter((e) => equipTiposAtivos.has(e.tipo))
+  const caminhoesVisiveis = caminhoes.filter((c) => camTiposAtivos.has(c.tipo))
+
+  // Contagem por categoria
+  const contagem = CATEGORIAS.reduce((acc, c) => {
+    const n = equipamentos.filter((e) => c.equipTipos.includes(e.tipo)).length +
+              caminhoes.filter((k) => c.camTipos.includes(k.tipo)).length
+    acc[c.key] = n
+    return acc
+  }, {} as Record<string, number>)
+
   // Centro: média dos pontos, ou Recife como fallback
-  const todos = [
-    ...(mostrarEquip ? equipamentos : []),
-    ...(mostrarCam ? caminhoes : []),
-  ]
+  const todos = [...equipamentosVisiveis, ...caminhoesVisiveis]
   const centro: [number, number] = todos.length > 0
     ? [
         todos.reduce((s, p) => s + p.latitude, 0) / todos.length,
@@ -140,7 +178,7 @@ export default function Mapa() {
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Mapa</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {equipamentos.length + caminhoes.length} item(s) com localização cadastrada
+            {todos.length} de {equipamentos.length + caminhoes.length} item(s) visíveis no mapa
           </p>
         </div>
         <div className="flex gap-3 items-center flex-wrap">
@@ -154,20 +192,21 @@ export default function Mapa() {
             {regeocodificando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             Atualizar coordenadas
           </button>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={mostrarEquip} onChange={(e) => setMostrarEquip(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
-            <span className="flex items-center gap-1">
-              <img src="/icones/container.png" alt="" className="w-5 h-5 object-contain" />
-              Equipamentos ({equipamentos.length})
-            </span>
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={mostrarCam} onChange={(e) => setMostrarCam(e.target.checked)} className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
-            <span className="flex items-center gap-1">
-              <img src="/icones/caminhao.png" alt="" className="w-5 h-5 object-contain" />
-              Caminhões ({caminhoes.length})
-            </span>
-          </label>
+          {CATEGORIAS.map((c) => (
+            <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!mostrar[c.key]}
+                onChange={(e) => setMostrar((m) => ({ ...m, [c.key]: e.target.checked }))}
+                className="w-4 h-4"
+                style={{ accentColor: '#FFAF06' }}
+              />
+              <span className="flex items-center gap-1">
+                <img src={`/icones/${c.icone}`} alt="" className="w-5 h-5 object-contain" />
+                {c.label} ({contagem[c.key]})
+              </span>
+            </label>
+          ))}
           <select
             value={filtroStatusEquip}
             onChange={(e) => setFiltroStatusEquip(e.target.value)}
@@ -204,7 +243,7 @@ export default function Mapa() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {mostrarEquip && equipamentos.map((e) => (
+            {equipamentosVisiveis.map((e) => (
               <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip[e.tipo] || iconEquipDefault}>
                 <Popup>
                   <div className="text-sm">
@@ -225,8 +264,8 @@ export default function Mapa() {
                 </Popup>
               </Marker>
             ))}
-            {mostrarCam && caminhoes.map((c) => (
-              <Marker key={`c-${c.id}`} position={[c.latitude, c.longitude]} icon={iconCaminhao}>
+            {caminhoesVisiveis.map((c) => (
+              <Marker key={`c-${c.id}`} position={[c.latitude, c.longitude]} icon={iconPorTipoCam[c.tipo] || iconCaminhaoDefault}>
                 <Popup>
                   <div className="text-sm">
                     <div className="font-semibold">{c.codigo} — {c.placa}</div>
