@@ -19,15 +19,24 @@ const nav: NavItem[] = [
   {
     label: 'Comercial',
     icon: FileSignature,
-    basePath: '/contratos',
+    basePath: '/orcamentos',
     children: [
       { to: '/orcamentos', label: 'Orçamentos' },
       { to: '/condicoes-orcamento', label: 'Condições padrão' },
       { to: '/pedidos', label: 'Pedidos' },
-      { to: '/contratos', label: 'Contratos' },
     ],
   },
-  { to: '/locacoes', icon: KeyRound, label: 'Locações' },
+  {
+    label: 'Locações',
+    icon: KeyRound,
+    basePath: '/locacoes',
+    children: [
+      { to: '/locacoes', label: 'Visão geral' },
+      { to: '/contratos', label: 'Contratos' },
+      { to: '/cacambas', label: 'Caçambas' },
+      { to: '/logistica', label: 'Logística' },
+    ],
+  },
   {
     label: 'Financeiro',
     icon: DollarSign,
@@ -47,8 +56,6 @@ const nav: NavItem[] = [
       { to: '/caminhoes', label: 'Frota' },
     ],
   },
-  { to: '/cacambas', icon: Layers, label: 'Caçambas' },
-  { to: '/logistica', icon: Forklift, label: 'Logística' },
   {
     label: 'OSs',
     icon: ClipboardList,
@@ -71,7 +78,10 @@ export default function Sidebar() {
   const initialOpen: Record<string, boolean> = {}
   nav.forEach((i) => {
     if (isGroup(i)) {
-      const extras = i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] : []
+      const extras =
+        i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] :
+        i.label === 'Locações' ? ['/contratos', '/cacambas', '/logistica'] :
+        []
       initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
         || location.pathname.startsWith(i.basePath)
         || extras.some((e) => location.pathname.startsWith(e))
