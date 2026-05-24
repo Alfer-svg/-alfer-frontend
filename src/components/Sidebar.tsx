@@ -21,6 +21,7 @@ const nav: NavItem[] = [
     icon: FileSignature,
     basePath: '/orcamentos',
     children: [
+      { to: '/crm', label: 'CRM (Pipeline)' },
       { to: '/orcamentos', label: 'Orçamentos' },
       { to: '/condicoes-orcamento', label: 'Condições padrão' },
       { to: '/pedidos', label: 'Pedidos' },
@@ -81,6 +82,7 @@ export default function Sidebar() {
       const extras =
         i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] :
         i.label === 'Locações' ? ['/contratos', '/cacambas', '/logistica'] :
+        i.label === 'Comercial' ? ['/crm', '/condicoes-orcamento', '/pedidos'] :
         []
       initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
         || location.pathname.startsWith(i.basePath)

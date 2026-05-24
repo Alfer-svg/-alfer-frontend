@@ -8,6 +8,7 @@ import Contratos from './pages/Contratos'
 import ContratoDetalhe from './pages/ContratoDetalhe'
 import { Financeiro } from './pages/outros'
 import Fornecedores from './pages/Fornecedores'
+import CRM from './pages/CRM'
 import Equipamentos from './pages/Equipamentos'
 import EquipamentoDetalhe from './pages/EquipamentoDetalhe'
 import Caminhoes from './pages/Caminhoes'
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="pedidos/:id" element={<PedidoDetalhe />} />
         <Route path="financeiro" element={<Financeiro />} />
         <Route path="fornecedores" element={<Fornecedores />} />
+        <Route path="crm" element={<CRM />} />
         <Route path="equipamentos" element={<Equipamentos />} />
         <Route path="equipamentos/novo" element={<NovoEquipamento />} />
         <Route path="equipamentos/:id/editar" element={<NovoEquipamento />} />
