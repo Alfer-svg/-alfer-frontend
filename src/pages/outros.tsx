@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle } from 'lucide-react'
 
 const CATEGORIAS: { v: string; l: string }[] = [
   { v: 'MANUTENCAO',         l: 'Manutenção' },
@@ -109,6 +109,63 @@ async function abrirBoletoInter(lanc: any) {
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
+
+function limparTelefone(tel?: string): string {
+  if (!tel) return ''
+  const d = tel.replace(/\D/g, '')
+  // Adiciona 55 (BR) se não tiver código de país
+  return d.length === 10 || d.length === 11 ? `55${d}` : d
+}
+
+/** Pega o melhor telefone do cliente: o do contato principal, ou o primeiro contato com telefone. */
+function pegarTelefoneCliente(cliente: any): string {
+  if (!cliente) return ''
+  const contatos = cliente.contatos || []
+  const principal = contatos.find((c: any) => c.principal && c.telefone)
+  if (principal) return principal.telefone
+  const qq = contatos.find((c: any) => c.telefone)
+  if (qq) return qq.telefone
+  return cliente.telefone || ''
+}
+
+async function enviarWhatsAppLancamento(l: any) {
+  const telRaw = pegarTelefoneCliente(l.cliente)
+  const tel = limparTelefone(telRaw)
+  if (!tel) {
+    alert('Cliente sem telefone/WhatsApp cadastrado.\n\nCadastre um contato com telefone em Clientes.')
+    return
+  }
+
+  // Pega o mesmo texto que vai no e-mail (consistência)
+  let texto = ''
+  try {
+    const r = await api.post(`/email/lancamentos/${l.id}/preview`)
+    texto = r.data.texto || ''
+  } catch {
+    // Fallback simples caso o preview falhe
+    const venc = new Date(l.dtVencimento).toLocaleDateString('pt-BR')
+    const valor = fmt(Number(l.valor))
+    const numero = l.numeroFatura || ''
+    texto = `Olá! Segue a sua fatura ${numero} no valor de ${valor} com vencimento em ${venc}.\n\nAlfer Equipamentos\n📞 0800 620 0050 / (81) 9 7109-4000`
+  }
+
+  // Baixa fatura e (se tiver) boleto pra usuária anexar manualmente
+  const querBaixarAnexos = confirm(
+    'Vou abrir o WhatsApp com a mensagem pronta.\n\n' +
+    'Quer também baixar a fatura' + (l.interCodigoSolicitacao ? ' e o boleto' : '') + ' pra você anexar no WhatsApp Web?\n\n' +
+    'OK = baixa os PDFs\nCancelar = só abre o WhatsApp'
+  )
+
+  if (querBaixarAnexos) {
+    try { await abrirFaturaPdf(l.id) } catch {}
+    if (l.interCodigoSolicitacao) {
+      try { await abrirBoletoInter(l) } catch {}
+    }
+  }
+
+  const msg = encodeURIComponent(texto)
+  window.open(`https://wa.me/${tel}?text=${msg}`, '_blank')
+}
 
 export function Financeiro() {
   const [dash, setDash] = useState<any>(null)
@@ -435,6 +492,20 @@ export function Financeiro() {
                         }}
                       >
                         <Mail className="w-3 h-3" /> {l.emailEnviadoEm ? 'Reenviar e-mail' : 'Enviar por e-mail'}
+                      </button>
+                    )}
+                    {l.tipo === 'RECEITA' && (
+                      <button
+                        onClick={() => enviarWhatsAppLancamento(l)}
+                        title="Abrir WhatsApp Web com a mensagem pronta (anexos manuais)"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium"
+                        style={{
+                          background: '#EAF7E6',
+                          color: '#075E54',
+                          border: '1px solid #B7E0AE',
+                        }}
+                      >
+                        <MessageCircle className="w-3 h-3" /> WhatsApp
                       </button>
                     )}
                     {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
