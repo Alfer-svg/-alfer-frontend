@@ -44,9 +44,9 @@ const nav: NavItem[] = [
     children: [
       { to: '/equipamentos', label: 'Cadastrar equipamentos' },
       { to: '/modelos', label: 'Cadastrar modelos' },
+      { to: '/caminhoes', label: 'Caminhões' },
     ],
   },
-  { to: '/caminhoes', icon: Truck, label: 'Caminhões' },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
   { to: '/logistica', icon: Forklift, label: 'Logística' },
   {
@@ -71,7 +71,7 @@ export default function Sidebar() {
   const initialOpen: Record<string, boolean> = {}
   nav.forEach((i) => {
     if (isGroup(i)) {
-      const extras = i.label === 'Equipamentos' ? ['/modelos'] : []
+      const extras = i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] : []
       initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
         || location.pathname.startsWith(i.basePath)
         || extras.some((e) => location.pathname.startsWith(e))
