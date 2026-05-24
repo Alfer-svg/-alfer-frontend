@@ -2,6 +2,7 @@
 import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
+import { FornecedorModal } from './Fornecedores'
 import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
 
 const CATEGORIAS: { v: string; l: string }[] = [
@@ -334,13 +335,20 @@ function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     valor: '',
     dtVencimento: new Date().toISOString().slice(0, 10),
     categoria: 'OPERACIONAL',
-    fornecedor: '',
+    fornecedorId: '',
     status: 'PENDENTE',
     dtPagamento: '',
     observacoes: '',
   })
+  const [fornecedores, setFornecedores] = useState<any[]>([])
+  const [novoFornModal, setNovoFornModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+
+  const loadFornecedores = () =>
+    api.get('/fornecedores', { params: { ativo: 'true' } }).then((r) => setFornecedores(r.data))
+
+  useEffect(() => { loadFornecedores() }, [])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -354,7 +362,7 @@ function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
         valor: Number(form.valor),
         dtVencimento: form.dtVencimento,
         categoria: form.categoria,
-        fornecedor: form.fornecedor || undefined,
+        fornecedorId: form.fornecedorId || undefined,
         observacoes: form.observacoes || undefined,
       }
       // Se já vai criar como paga, manda o pagamento via /pagar depois
@@ -433,14 +441,37 @@ function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Fornecedor</label>
-            <input
-              value={form.fornecedor}
-              onChange={(e) => setForm({ ...form, fornecedor: e.target.value })}
-              placeholder="Ex: Celpe, Compesa, Posto Brasil..."
+            <label className="block text-xs text-gray-500 mb-1 flex items-center justify-between">
+              Fornecedor
+              <button
+                type="button"
+                onClick={() => setNovoFornModal(true)}
+                className="text-[10px] text-orange-600 hover:underline"
+              >
+                + novo
+              </button>
+            </label>
+            <select
+              value={form.fornecedorId}
+              onChange={(e) => {
+                const id = e.target.value
+                setForm({ ...form, fornecedorId: id })
+                // Auto-preenche categoria se fornecedor tem padrão e categoria ainda é a default
+                const f = fornecedores.find((x) => x.id === id)
+                if (f?.categoriaPadrao && form.categoria === 'OPERACIONAL') {
+                  setForm((cur) => ({ ...cur, fornecedorId: id, categoria: f.categoriaPadrao }))
+                }
+              }}
               className={inputCls}
               style={inputStyle}
-            />
+            >
+              <option value="">— sem fornecedor —</option>
+              {fornecedores.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}{f.nomeFantasia && f.nomeFantasia !== f.nome ? ` (${f.nomeFantasia})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -489,6 +520,18 @@ function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           </button>
         </div>
       </form>
+
+      {novoFornModal && (
+        <FornecedorModal
+          fornecedor={null}
+          onClose={() => setNovoFornModal(false)}
+          onSaved={async (novo) => {
+            setNovoFornModal(false)
+            await loadFornecedores()
+            if (novo?.id) setForm((f) => ({ ...f, fornecedorId: novo.id, categoria: novo.categoriaPadrao || f.categoria }))
+          }}
+        />
+      )}
     </Modal>
   )
 }
