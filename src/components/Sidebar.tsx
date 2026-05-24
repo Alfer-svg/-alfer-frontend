@@ -44,7 +44,7 @@ const nav: NavItem[] = [
     children: [
       { to: '/equipamentos', label: 'Cadastrar equipamentos' },
       { to: '/modelos', label: 'Cadastrar modelos' },
-      { to: '/caminhoes', label: 'Caminhões' },
+      { to: '/caminhoes', label: 'Frota' },
     ],
   },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
