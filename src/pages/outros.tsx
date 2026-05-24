@@ -74,11 +74,12 @@ async function abrirBoletoInter(id: string) {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!r.ok) throw new Error('Erro ao baixar boleto')
+    const filename = extrairFilename(r.headers.get('content-disposition'), `boleto-${id}.pdf`)
     const blob = await r.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `boleto-${id}.pdf`
+    a.download = filename
     document.body.appendChild(a)
     a.click()
     a.remove()
