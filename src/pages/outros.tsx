@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send } from 'lucide-react'
 
 const CATEGORIAS: { v: string; l: string }[] = [
   { v: 'MANUTENCAO',         l: 'Manutenção' },
@@ -101,6 +101,7 @@ export function Financeiro() {
   const [filtroTipo, setFiltroTipo] = useState<'' | 'RECEITA' | 'DESPESA'>('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [novaDespesaModal, setNovaDespesaModal] = useState(false)
+  const [enviarEmailModal, setEnviarEmailModal] = useState<any>(null)
 
   const carregar = () => {
     const params: any = {}
@@ -405,6 +406,20 @@ export function Financeiro() {
                         <Banknote className="w-3 h-3" /> Boleto Inter
                       </button>
                     )}
+                    {l.tipo === 'RECEITA' && (
+                      <button
+                        onClick={() => setEnviarEmailModal(l)}
+                        title={l.emailEnviadoEm ? `Já enviado em ${new Date(l.emailEnviadoEm).toLocaleString('pt-BR')}` : 'Enviar fatura + boleto por e-mail'}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium"
+                        style={{
+                          background: l.emailEnviadoEm ? '#EAF3DE' : '#E3EEFA',
+                          color: l.emailEnviadoEm ? '#27500A' : '#1A5276',
+                          border: `1px solid ${l.emailEnviadoEm ? '#C5DDA2' : '#B8D6EE'}`,
+                        }}
+                      >
+                        <Mail className="w-3 h-3" /> {l.emailEnviadoEm ? 'Reenviar e-mail' : 'Enviar por e-mail'}
+                      </button>
+                    )}
                     {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
                       <button
                         onClick={() => marcarPago(l)}
@@ -452,7 +467,186 @@ export function Financeiro() {
           onSaved={() => { setNovaDespesaModal(false); carregar() }}
         />
       )}
+      {enviarEmailModal && (
+        <EnviarEmailModal
+          lancamento={enviarEmailModal}
+          onClose={() => setEnviarEmailModal(null)}
+          onSent={() => { setEnviarEmailModal(null); carregar() }}
+        />
+      )}
     </div>
+  )
+}
+
+function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; onClose: () => void; onSent: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [preview, setPreview] = useState<any>(null)
+  const [form, setForm] = useState({
+    destinatario: '',
+    cc: '',
+    assunto: '',
+    corpo: '',
+    anexarFatura: true,
+    anexarBoleto: !!lancamento.interCodigoSolicitacao,
+  })
+
+  useEffect(() => {
+    setLoading(true)
+    api.post(`/email/lancamentos/${lancamento.id}/preview`)
+      .then((r) => {
+        setPreview(r.data)
+        setForm((f) => ({
+          ...f,
+          destinatario: r.data.destinatarioSugerido || '',
+          assunto: r.data.assunto || '',
+          corpo: r.data.texto || '',
+        }))
+      })
+      .catch((e) => setErro(e.response?.data?.message || 'Erro ao carregar preview'))
+      .finally(() => setLoading(false))
+  }, [lancamento.id])
+
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!form.destinatario || !/.+@.+/.test(form.destinatario)) return setErro('E-mail destinatário inválido')
+    setEnviando(true); setErro('')
+    try {
+      const r = await api.post(`/email/lancamentos/${lancamento.id}/enviar`, form)
+      alert(`✓ E-mail enviado pra ${form.destinatario}\n${r.data.anexos || 0} anexo(s)`)
+      onSent()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao enviar e-mail')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+  const inputStyle = { border: '1px solid #E0DDD8' }
+
+  if (loading) return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+      </div>
+    </Modal>
+  )
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <Mail className="w-5 h-5 text-blue-600" /> Enviar fatura por e-mail
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        {lancamento.numeroFatura ? `NF ${lancamento.numeroFatura}` : 'Fatura'} — {lancamento.cliente?.razaoSocial}
+        {lancamento.emailEnviadoEm && (
+          <span className="ml-2 text-orange-600">⚠ Já enviado em {new Date(lancamento.emailEnviadoEm).toLocaleString('pt-BR')}</span>
+        )}
+      </p>
+
+      <form onSubmit={enviar} className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Para *</label>
+          <input
+            type="email"
+            value={form.destinatario}
+            onChange={(e) => setForm({ ...form, destinatario: e.target.value })}
+            placeholder="cliente@empresa.com.br"
+            className={inputCls}
+            style={inputStyle}
+            required
+          />
+          {!preview?.destinatarioSugerido && (
+            <p className="text-xs text-orange-600 mt-1">⚠ Cliente sem e-mail cadastrado. Preencha o destinatário manualmente.</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Cópia (CC) — separar por vírgula</label>
+          <input
+            value={form.cc}
+            onChange={(e) => setForm({ ...form, cc: e.target.value })}
+            placeholder="financeiro@cliente.com, gerente@cliente.com"
+            className={inputCls}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Assunto</label>
+          <input
+            value={form.assunto}
+            onChange={(e) => setForm({ ...form, assunto: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Mensagem</label>
+          <textarea
+            value={form.corpo}
+            onChange={(e) => setForm({ ...form, corpo: e.target.value })}
+            rows={10}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none font-mono"
+            style={inputStyle}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Pode editar livre. Se tem boleto Inter, a linha digitável + Pix já estão incluídos.
+          </p>
+        </div>
+
+        <div className="p-3 rounded-xl space-y-2" style={{ background: '#F9F7F4', border: '1px solid #E0DDD8' }}>
+          <div className="text-xs font-medium text-gray-700">📎 Anexos</div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.anexarFatura}
+              onChange={(e) => setForm({ ...form, anexarFatura: e.target.checked })}
+              className="w-4 h-4"
+              style={{ accentColor: '#FFAF06' }}
+            />
+            <span>Fatura (PDF da NF)</span>
+          </label>
+          {preview?.temBoletoInter && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.anexarBoleto}
+                onChange={(e) => setForm({ ...form, anexarBoleto: e.target.checked })}
+                className="w-4 h-4"
+                style={{ accentColor: '#FFAF06' }}
+              />
+              <span>Boleto Inter (PDF)</span>
+            </label>
+          )}
+          {!preview?.temBoletoInter && (
+            <p className="text-xs text-gray-500">⚠ Sem boleto Inter emitido. Gere o boleto antes se quiser anexar.</p>
+          )}
+        </div>
+
+        {erro && <div className="text-xs text-red-700 flex items-center gap-2 p-2 rounded-lg bg-red-50"><AlertCircle className="w-3 h-3" /> {erro}</div>}
+
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button
+            type="submit"
+            disabled={enviando || !form.destinatario}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
+            style={{ background: enviando ? '#1A5276' : '#2D80D1' }}
+          >
+            {enviando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            {enviando ? 'Enviando...' : 'Enviar e-mail'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
