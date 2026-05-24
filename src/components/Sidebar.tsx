@@ -42,8 +42,15 @@ const nav: NavItem[] = [
   { to: '/caminhoes', icon: Truck, label: 'Caminhões' },
   { to: '/cacambas', icon: Layers, label: 'Caçambas' },
   { to: '/logistica', icon: Forklift, label: 'Logística' },
-  { to: '/ordens-servico/munck', icon: ClipboardList, label: 'OS Munck' },
-  { to: '/ordens-servico/poli', icon: ClipboardList, label: 'OS Poliguindaste' },
+  {
+    label: 'OSs',
+    icon: ClipboardList,
+    basePath: '/ordens-servico',
+    children: [
+      { to: '/ordens-servico/munck', label: 'OS Munck' },
+      { to: '/ordens-servico/poli', label: 'OS Poliguindaste' },
+    ],
+  },
   { to: '/motoristas', icon: User, label: 'Motoristas' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/mapa', icon: Map, label: 'Mapa' },
