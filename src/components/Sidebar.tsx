@@ -28,8 +28,15 @@ const nav: NavItem[] = [
     ],
   },
   { to: '/locacoes', icon: KeyRound, label: 'Locações' },
-  { to: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-  { to: '/fornecedores', icon: Building2, label: 'Fornecedores' },
+  {
+    label: 'Financeiro',
+    icon: DollarSign,
+    basePath: '/financeiro',
+    children: [
+      { to: '/financeiro', label: 'Lançamentos' },
+      { to: '/fornecedores', label: 'Fornecedores' },
+    ],
+  },
   {
     label: 'Equipamentos',
     icon: Package,
