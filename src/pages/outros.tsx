@@ -66,15 +66,32 @@ async function abrirFaturaPdf(id: string) {
   }
 }
 
-async function abrirBoletoInter(id: string) {
+function sanitizarFilename(s: string): string {
+  return s
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function montarNomeBoleto(lanc: any): string {
+  const numero = lanc.numeroFatura ? String(lanc.numeroFatura) : lanc.id.slice(-6).toUpperCase()
+  const cliente = sanitizarFilename(lanc.cliente?.razaoSocial || 'sem-cliente')
+  const venc = lanc.dtVencimento
+    ? new Date(lanc.dtVencimento).toLocaleDateString('pt-BR').replace(/\//g, '-')
+    : 'sem-data'
+  return `BOLETO ${numero} ${cliente} ${venc}.pdf`
+}
+
+async function abrirBoletoInter(lanc: any) {
   try {
     const token = localStorage.getItem('alfer_token')
     const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
-    const r = await fetch(`${baseUrl}/inter/lancamentos/${id}/pdf`, {
+    const r = await fetch(`${baseUrl}/inter/lancamentos/${lanc.id}/pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!r.ok) throw new Error('Erro ao baixar boleto')
-    const filename = extrairFilename(r.headers.get('content-disposition'), `boleto-${id}.pdf`)
+    const filename = montarNomeBoleto(lanc)
     const blob = await r.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -360,7 +377,7 @@ export function Financeiro() {
                       </button>
                     )}
                     <button
-                      onClick={() => abrirBoletoInter(l.id)}
+                      onClick={() => abrirBoletoInter(l)}
                       className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-white"
                     >
                       <FileDown className="w-3 h-3" /> PDF do boleto
