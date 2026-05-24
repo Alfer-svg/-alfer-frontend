@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode } from 'lucide-react'
 
 const CATEGORIAS: { v: string; l: string }[] = [
   { v: 'MANUTENCAO',         l: 'Manutenção' },
@@ -66,6 +66,28 @@ async function abrirFaturaPdf(id: string) {
   }
 }
 
+async function abrirBoletoInter(id: string) {
+  try {
+    const token = localStorage.getItem('alfer_token')
+    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
+    const r = await fetch(`${baseUrl}/inter/lancamentos/${id}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) throw new Error('Erro ao baixar boleto')
+    const blob = await r.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `boleto-${id}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  } catch (err: any) {
+    alert(err.message || 'Erro ao baixar boleto.')
+  }
+}
+
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
@@ -122,6 +144,45 @@ export function Financeiro() {
     } catch (e: any) {
       setErroAcao(e.response?.data?.message || 'Erro ao cancelar')
     }
+  }
+
+  const emitirBoleto = async (l: any) => {
+    if (!confirm(`Gerar boleto + Pix no Banco Inter pra ${l.cliente?.razaoSocial} (R$ ${l.valor})?`)) return
+    setErroAcao('')
+    try {
+      await api.post(`/inter/lancamentos/${l.id}/emitir`)
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao gerar boleto')
+    }
+  }
+
+  const sincronizarInter = async (l: any) => {
+    setErroAcao('')
+    try {
+      const r = await api.post(`/inter/lancamentos/${l.id}/sincronizar`)
+      await carregar()
+      const status = r.data?.interStatus || '?'
+      alert(`Status atualizado: ${status}`)
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao sincronizar')
+    }
+  }
+
+  const cancelarBoleto = async (l: any) => {
+    if (!confirm('Cancelar o boleto no Banco Inter? Esta ação NÃO pode ser desfeita no Inter.')) return
+    setErroAcao('')
+    try {
+      await api.post(`/inter/lancamentos/${l.id}/cancelar`, { motivo: 'Cancelado pelo emitente' })
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao cancelar boleto')
+    }
+  }
+
+  const copiar = (texto: string, label: string) => {
+    navigator.clipboard.writeText(texto)
+    alert(`${label} copiado!`)
   }
 
   const excluir = async (l: any) => {
@@ -266,6 +327,61 @@ export function Financeiro() {
                     </div>
                   </div>
                 </div>
+                {l.tipo === 'RECEITA' && l.interCodigoSolicitacao && (
+                  <div className="mt-3 ml-5 p-2.5 rounded-xl flex items-center gap-2 flex-wrap" style={{
+                    background: l.interStatus === 'RECEBIDO' ? '#EAF3DE' : '#FFF8E6',
+                    border: `1px solid ${l.interStatus === 'RECEBIDO' ? '#C5DDA2' : '#FFD577'}`,
+                  }}>
+                    <Banknote className="w-4 h-4 text-orange-700" />
+                    <span className="text-xs font-semibold text-gray-700">Boleto Inter:</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
+                      background: l.interStatus === 'RECEBIDO' ? '#27500A' : '#FFAF06',
+                      color: 'white',
+                    }}>
+                      {l.interStatus}
+                    </span>
+                    {l.interLinhaDigitavel && (
+                      <button
+                        onClick={() => copiar(l.interLinhaDigitavel, 'Linha digitável')}
+                        className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-white"
+                        title={l.interLinhaDigitavel}
+                      >
+                        <Copy className="w-3 h-3" /> Linha digitável
+                      </button>
+                    )}
+                    {l.interPixCopiaCola && (
+                      <button
+                        onClick={() => copiar(l.interPixCopiaCola, 'Pix copia e cola')}
+                        className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-white"
+                      >
+                        <QrCode className="w-3 h-3" /> Pix copia e cola
+                      </button>
+                    )}
+                    <button
+                      onClick={() => abrirBoletoInter(l.id)}
+                      className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-white"
+                    >
+                      <FileDown className="w-3 h-3" /> PDF do boleto
+                    </button>
+                    {l.interStatus !== 'RECEBIDO' && l.interStatus !== 'CANCELADO' && (
+                      <>
+                        <button
+                          onClick={() => sincronizarInter(l)}
+                          title="Consultar status no Inter"
+                          className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-white"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Sincronizar
+                        </button>
+                        <button
+                          onClick={() => cancelarBoleto(l)}
+                          className="text-xs flex items-center gap-1 px-2 py-0.5 rounded-md text-red-600 hover:bg-red-50"
+                        >
+                          <XCircle className="w-3 h-3" /> Cancelar boleto
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
                 {(l.tipo === 'RECEITA' || l.status !== 'PAGO') && (
                   <div className="flex gap-2 flex-wrap mt-3 ml-5">
                     {l.tipo === 'RECEITA' && (
@@ -276,6 +392,16 @@ export function Financeiro() {
                         style={{ border: '1px solid #E0DDD8' }}
                       >
                         <FileDown className="w-3 h-3" /> PDF
+                      </button>
+                    )}
+                    {l.tipo === 'RECEITA' && l.status !== 'PAGO' && l.status !== 'CANCELADO' && !l.interCodigoSolicitacao && (
+                      <button
+                        onClick={() => emitirBoleto(l)}
+                        title="Gerar boleto + Pix no Banco Inter"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-white"
+                        style={{ background: '#FF6800' }}
+                      >
+                        <Banknote className="w-3 h-3" /> Boleto Inter
                       </button>
                     )}
                     {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
