@@ -40,6 +40,7 @@ import OrdemServicoPoliDetalhe from './pages/OrdemServicoPoliDetalhe'
 import Usuarios from './pages/Usuarios'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
+import RedefinirSenha from './pages/RedefinirSenha'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -58,6 +59,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={usuario ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/confirmar-recebimento" element={<ConfirmarRecebimento />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />

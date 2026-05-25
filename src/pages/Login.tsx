@@ -9,8 +9,32 @@ export default function Login() {
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [esqueciOpen, setEsqueciOpen] = useState(false)
+  const [esqueciEmail, setEsqueciEmail] = useState('')
+  const [esqueciLoading, setEsqueciLoading] = useState(false)
+  const [esqueciMsg, setEsqueciMsg] = useState<string | null>(null)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  const enviarEsqueci = async (e: FormEvent) => {
+    e.preventDefault()
+    setEsqueciLoading(true)
+    setEsqueciMsg(null)
+    try {
+      const API_URL = (import.meta as any).env?.VITE_API_URL || 'https://alfer-backend-production.up.railway.app/api/v1'
+      const r = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: esqueciEmail }),
+      })
+      const data = await r.json().catch(() => ({}))
+      setEsqueciMsg(data.message || 'Se este e-mail tem acesso, você receberá um link em instantes.')
+    } catch {
+      setEsqueciMsg('Não foi possível processar o pedido. Tente novamente.')
+    } finally {
+      setEsqueciLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -145,6 +169,17 @@ export default function Login() {
                   </>
                 )}
               </button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setEsqueciOpen(true)}
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: '#666' }}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </form>
 
             <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-xs" style={{ color: '#7A7A7A' }}>
@@ -157,6 +192,74 @@ export default function Login() {
         </div>
 
       </div>
+
+      {esqueciOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setEsqueciOpen(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl font-bold text-gray-900">Esqueci minha senha</h2>
+              <button onClick={() => setEsqueciOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <span className="text-gray-500 text-xl leading-none">&times;</span>
+              </button>
+            </div>
+
+            {esqueciMsg ? (
+              <div className="py-4">
+                <div className="p-4 rounded-xl text-sm" style={{ background: '#EAF7E6', color: '#27500A', border: '1px solid #C5DDA2' }}>
+                  {esqueciMsg}
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Confere sua caixa de entrada (e o spam) nos próximos minutos. O link é válido por 1 hora.
+                </p>
+                <button
+                  onClick={() => { setEsqueciOpen(false); setEsqueciMsg(null); setEsqueciEmail('') }}
+                  className="w-full mt-5 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  style={{ border: '1px solid #E0DDD8' }}
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={enviarEsqueci}>
+                <p className="text-sm text-gray-600 mb-4">
+                  Digite o e-mail da sua conta. Se você for <strong>Administrador</strong> ou <strong>Gestor</strong>, vamos enviar um link de redefinição.
+                </p>
+                <input
+                  type="email" required
+                  value={esqueciEmail}
+                  onChange={(e) => setEsqueciEmail(e.target.value)}
+                  placeholder="seu@email.com.br"
+                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                  style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0' }}
+                  autoFocus
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  Demais perfis devem solicitar reset ao administrador do sistema.
+                </p>
+                <div className="flex gap-2 mt-5">
+                  <button
+                    type="button"
+                    onClick={() => setEsqueciOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={esqueciLoading || !esqueciEmail}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: '#FFAF06' }}
+                  >
+                    {esqueciLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Enviar link
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
