@@ -12,7 +12,12 @@ const statusInfo: Record<string, { bg: string; text: string; label: string }> = 
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
+const fmtDate = (d?: string) => {
+  if (!d) return '—'
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d))
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`
+  return new Date(d).toLocaleDateString('pt-BR')
+}
 
 const condicaoPagamentoLabel = (v?: string) => ({
   A_VISTA: 'À vista',

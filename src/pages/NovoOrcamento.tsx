@@ -135,8 +135,9 @@ export default function NovoOrcamento() {
           formaPagamento: o.formaPagamento || 'BOLETO',
           diaVencFatura: String(o.diaVencFatura ?? 5),
           localMobilizacao: o.localMobilizacao || '',
-          dtInicio: o.dtInicio ? new Date(o.dtInicio).toISOString().slice(0, 10) : '',
-          dtFim: o.dtFim ? new Date(o.dtFim).toISOString().slice(0, 10) : '',
+          // Pega só YYYY-MM-DD direto da string pra evitar shift de fuso (UTC -> BR vira -1 dia)
+          dtInicio: o.dtInicio ? String(o.dtInicio).slice(0, 10) : '',
+          dtFim: o.dtFim ? String(o.dtFim).slice(0, 10) : '',
           validade: String(o.validade ?? 7),
           observacoes: o.observacoes || '',
         })
