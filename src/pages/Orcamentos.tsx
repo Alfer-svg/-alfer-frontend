@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle } from 'lucide-react'
+import { Modal } from '../components/Modal'
+import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle, X, Star } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho', icon: FileText },
@@ -28,13 +29,35 @@ export default function Orcamentos() {
   const [filtroArquivado, setFiltroArquivado] = useState('false')
   const [aprovando, setAprovando] = useState<string | null>(null)
   const [erroAcao, setErroAcao] = useState('')
+  // Modal de aprovação — escolha de emissor (Multi-CNPJ)
+  const [modalAprovar, setModalAprovar] = useState<any | null>(null)
+  const [emissores, setEmissores] = useState<any[]>([])
+  const [emissorEscolhido, setEmissorEscolhido] = useState<string>('')
 
   const aprovar = async (e: React.MouseEvent, o: any) => {
     e.stopPropagation()
-    if (!confirm(`Aprovar o orçamento ${o.numero}? Vai gerar automaticamente um pedido + contrato (RASCUNHO) com base nele.`)) return
+    setErroAcao('')
+    // Abre modal pedindo em nome de qual emissor o contrato será emitido.
+    try {
+      const r = await api.get('/emissores', { params: { ativo: 'true' } })
+      const ativos = (r.data || []).filter((em: any) => em.ativo)
+      setEmissores(ativos)
+      const padrao = ativos.find((em: any) => em.padrao) || ativos[0]
+      setEmissorEscolhido(padrao?.id || '')
+    } catch {
+      setEmissores([])
+      setEmissorEscolhido('')
+    }
+    setModalAprovar(o)
+  }
+
+  const confirmarAprovacao = async () => {
+    if (!modalAprovar) return
+    const o = modalAprovar
     setAprovando(o.id); setErroAcao('')
     try {
-      const r = await api.post(`/orcamentos/${o.id}/aprovar`)
+      const r = await api.post(`/orcamentos/${o.id}/aprovar`, { emissorId: emissorEscolhido || undefined })
+      setModalAprovar(null)
       load()
       if (r.data?.contratoId) {
         if (confirm(`Aprovado! Pedido ${r.data.pedido?.numero} criado. Abrir o contrato pra finalizar o cadastro?`)) {
@@ -208,6 +231,104 @@ export default function Orcamentos() {
             )
           })}
         </div>
+      )}
+
+      {/* Modal de aprovação — escolha do emissor (Multi-CNPJ) */}
+      {modalAprovar && (
+        <Modal onClose={() => setModalAprovar(null)} maxWidth="max-w-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-gray-900">
+              Aprovar orçamento {modalAprovar.numero}
+            </h2>
+            <button type="button" onClick={() => setModalAprovar(null)}>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Será gerado um <b>pedido</b> e um <b>contrato</b> em rascunho.
+            Escolha em nome de qual empresa o <b>contrato, fatura e boleto</b> serão emitidos.
+          </p>
+
+          {emissores.length === 0 ? (
+            <div className="text-sm text-gray-500 italic mb-4">
+              Nenhum emissor cadastrado — vai usar o padrão (Alfer) automaticamente.
+            </div>
+          ) : (
+            <div className="space-y-2 mb-4">
+              {emissores.map((em) => {
+                const sel = emissorEscolhido === em.id
+                return (
+                  <label
+                    key={em.id}
+                    className="flex items-start gap-3 rounded-xl p-3 cursor-pointer transition"
+                    style={{
+                      border: sel ? '1px solid #FFAF06' : '1px solid #E0DDD8',
+                      background: sel ? '#FEF3E2' : '#fff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="emissor"
+                      className="mt-1"
+                      checked={sel}
+                      onChange={() => setEmissorEscolhido(em.id)}
+                      style={{ accentColor: '#FFAF06' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
+                        {em.padrao && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1"
+                                style={{ background: '#FEF3E2', color: '#633806' }}>
+                            <Star className="w-2.5 h-2.5 fill-current" /> Padrão
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        CNPJ {em.cnpj} · Fatura {em.faturaInicio}+
+                        {em.interClientId ? ' · Inter ✓' : ' · Inter pendente'}
+                      </div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 mb-4">
+            O cliente continua falando com Alfer pelo mesmo canal — só os 3 documentos legais
+            mostram o CNPJ escolhido.
+          </p>
+
+          {erroAcao && (
+            <div className="p-3 mb-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+                 style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setModalAprovar(null)}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              style={{ border: '1px solid #E0DDD8' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmarAprovacao}
+              disabled={!!aprovando}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2"
+              style={{ background: aprovando ? '#CC8C00' : '#FFAF06' }}
+            >
+              {aprovando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Aprovar e gerar contrato
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )
