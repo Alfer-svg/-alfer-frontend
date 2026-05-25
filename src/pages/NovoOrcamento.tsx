@@ -26,6 +26,7 @@ export default function NovoOrcamento() {
     periodicidade: 'Mensal',
     condicaoPagamento: 'D_30',
     formaPagamento: 'BOLETO',
+    diaVencFatura: '5',
     localMobilizacao: '',
     dtInicio: '',
     dtFim: '',
@@ -132,6 +133,7 @@ export default function NovoOrcamento() {
           periodicidade: o.periodicidade || 'Mensal',
           condicaoPagamento: o.condicaoPagamento || 'D_30',
           formaPagamento: o.formaPagamento || 'BOLETO',
+          diaVencFatura: String(o.diaVencFatura ?? 5),
           localMobilizacao: o.localMobilizacao || '',
           dtInicio: o.dtInicio ? new Date(o.dtInicio).toISOString().slice(0, 10) : '',
           dtFim: o.dtFim ? new Date(o.dtFim).toISOString().slice(0, 10) : '',
@@ -176,6 +178,7 @@ export default function NovoOrcamento() {
         periodicidade: form.periodicidade,
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
+        diaVencFatura: Math.max(1, Math.min(31, Number(form.diaVencFatura) || 5)),
         localMobilizacao: form.localMobilizacao || null,
         dtInicio: form.dtInicio || null,
         dtFim: form.dtFim || null,
@@ -313,6 +316,20 @@ export default function NovoOrcamento() {
                 <option value="NF_TED">NF + TED</option>
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dia de vencimento da fatura</label>
+              <div className="flex items-center gap-2">
+                <input
+                  value={form.diaVencFatura}
+                  onChange={(e) => set('diaVencFatura', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                  type="number" min="1" max="31"
+                  className={`${inputCls} max-w-[120px]`}
+                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  placeholder="5"
+                />
+                <span className="text-xs text-gray-500">de cada mês (1–31)</span>
+              </div>
             </div>
           </div>
         </div>

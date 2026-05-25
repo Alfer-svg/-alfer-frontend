@@ -73,6 +73,7 @@ export default function OrcamentoDetalhe() {
       o.desconto && `   (com desconto de ${Number(o.desconto)}%)`,
       `💳 Condição: ${condicaoPagamentoLabel(o.condicaoPagamento)}`,
       `🏦 Forma: ${formaPagamentoLabel(o.formaPagamento)}`,
+      o.diaVencFatura != null && `📅 Vencimento da fatura: dia ${o.diaVencFatura} de cada mês`,
       o.dtInicio && o.dtFim && `📅 Vigência: ${fmtDate(o.dtInicio)} a ${fmtDate(o.dtFim)}`,
       `⏰ Validade da proposta: ${o.validade} dias`,
       '',
@@ -413,6 +414,12 @@ export default function OrcamentoDetalhe() {
             <div className="text-xs text-gray-500 mb-1">Forma</div>
             <div className="font-medium text-gray-700">{formaPagamentoLabel(o.formaPagamento)}</div>
           </div>
+          {o.diaVencFatura != null && (
+            <div className="col-span-2">
+              <div className="text-xs text-gray-500 mb-1">Vencimento da fatura</div>
+              <div className="font-medium text-gray-700">Todo dia {o.diaVencFatura} de cada mês</div>
+            </div>
+          )}
         </div>
       </div>
 

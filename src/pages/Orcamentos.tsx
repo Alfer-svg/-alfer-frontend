@@ -177,6 +177,7 @@ export default function Orcamentos() {
                     <span className="font-medium text-gray-700">{o.cliente?.razaoSocial}</span>
                     {o.descricao && <span className="truncate max-w-md">{o.descricao}</span>}
                     <span>Validade: {o.validade}d</span>
+                    {o.diaVencFatura != null && <span>Venc. fatura: dia {o.diaVencFatura}</span>}
                     <span>Criado: {fmtDate(o.createdAt)}</span>
                   </div>
                 </div>
