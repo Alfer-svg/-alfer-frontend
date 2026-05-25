@@ -39,6 +39,7 @@ import OrdensServicoPoli from './pages/OrdensServicoPoli'
 import OrdemServicoPoliDetalhe from './pages/OrdemServicoPoliDetalhe'
 import Usuarios from './pages/Usuarios'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
+import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -56,6 +57,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={usuario ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/confirmar-recebimento" element={<ConfirmarRecebimento />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />

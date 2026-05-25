@@ -108,7 +108,7 @@ export default function Dashboard() {
   ]
 
   const totalAlertas = alertas
-    ? (alertas.contratosUrgentes?.length || 0) + (alertas.inadimplentes?.length || 0) + (alertas.cacambasChecas?.length || 0)
+    ? (alertas.contratosUrgentes?.length || 0) + (alertas.inadimplentes?.length || 0) + (alertas.cacambasChecas?.length || 0) + (alertas.faturasNaoConfirmadas?.length || 0)
     : 0
 
   return (
@@ -269,6 +269,20 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+            {alertas.faturasNaoConfirmadas?.slice(0, 4).map((l: any) => {
+              const horas = Math.floor((Date.now() - new Date(l.emailEnviadoEm).getTime()) / 3_600_000)
+              return (
+                <div key={l.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#FFF8E6' }}>
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#B07900' }} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-900">{l.cliente?.razaoSocial || 'Cliente'}</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      Fatura {l.numeroFatura ? `NF ${l.numeroFatura}` : ''} enviada há {horas}h sem confirmação
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

@@ -387,6 +387,15 @@ export function Financeiro() {
                           {catLabel}
                         </span>
                       )}
+                      {l.recebimentoConfirmadoEm && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                          style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0' }}
+                          title={`Recebimento confirmado pelo cliente em ${new Date(l.recebimentoConfirmadoEm).toLocaleString('pt-BR')}`}
+                        >
+                          ✓ Confirmado
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-gray-400 truncate">{l.descricao}</div>
                     <div className="text-[11px] text-gray-400 mt-0.5">
