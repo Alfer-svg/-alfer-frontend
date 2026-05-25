@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Loader2, Plus, Trash2, Search, AlertCircle, CheckCircle2 } from 'lucide-react'
@@ -6,10 +6,10 @@ import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
 import { buscarCep, limparCep, formatarCep } from '../utils/cep'
 
 interface Contato {
-  nome: string; cargo: string; telefone: string; email: string; principal: boolean; recebeFatura?: boolean
+  id?: string; nome: string; cargo: string; telefone: string; email: string; principal: boolean; recebeFatura?: boolean
 }
 interface Endereco {
-  logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; estado: string; cep: string; principal: boolean
+  id?: string; logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; estado: string; cep: string; principal: boolean
 }
 
 export default function NovoCliente() {
@@ -25,6 +25,9 @@ export default function NovoCliente() {
     segmento: 'CONSTRUTORA', limiteCredito: '', prazoPagemento: '30',
     reajusteIndice: 'IPCA', formaCobranca: 'BOLETO', observacoes: '',
   })
+  // IDs originais dos contatos/endereços carregados, pra saber o que foi deletado
+  const contatosIniciaisRef = useRef<string[]>([])
+  const enderecosIniciaisRef = useRef<string[]>([])
   const [contatos, setContatos] = useState<Contato[]>([
     { nome: '', cargo: '', telefone: '', email: '', principal: true, recebeFatura: true }
   ])
@@ -49,14 +52,22 @@ export default function NovoCliente() {
           formaCobranca: c.formaCobranca || 'BOLETO',
           observacoes: c.observacoes || '',
         })
-        if (c.contatos?.length) setContatos(c.contatos.map((ct: any) => ({
-          nome: ct.nome || '', cargo: ct.cargo || '', telefone: ct.telefone || '', email: ct.email || '',
-          principal: !!ct.principal, recebeFatura: !!ct.recebeFatura,
-        })))
-        if (c.enderecos?.length) setEnderecos(c.enderecos.map((e: any) => ({
-          logradouro: e.logradouro || '', numero: e.numero || '', complemento: e.complemento || '',
-          bairro: e.bairro || '', cidade: e.cidade || '', estado: e.estado || 'PE', cep: e.cep || '', principal: !!e.principal,
-        })))
+        if (c.contatos?.length) {
+          const cts = c.contatos.map((ct: any) => ({
+            id: ct.id, nome: ct.nome || '', cargo: ct.cargo || '', telefone: ct.telefone || '', email: ct.email || '',
+            principal: !!ct.principal, recebeFatura: !!ct.recebeFatura,
+          }))
+          setContatos(cts)
+          contatosIniciaisRef.current = cts.map((x: Contato) => x.id!).filter(Boolean)
+        }
+        if (c.enderecos?.length) {
+          const ens = c.enderecos.map((e: any) => ({
+            id: e.id, logradouro: e.logradouro || '', numero: e.numero || '', complemento: e.complemento || '',
+            bairro: e.bairro || '', cidade: e.cidade || '', estado: e.estado || 'PE', cep: e.cep || '', principal: !!e.principal,
+          }))
+          setEnderecos(ens)
+          enderecosIniciaisRef.current = ens.map((x: Endereco) => x.id!).filter(Boolean)
+        }
       })
       .finally(() => setCarregando(false))
   }, [id, isEdit])
@@ -194,6 +205,32 @@ export default function NovoCliente() {
       }
       if (isEdit) {
         await api.put(`/clientes/${id}`, payload)
+        // Sincroniza contatos: criar novos, atualizar existentes, deletar removidos
+        const idsContatosAtuais = contatos.map(c => c.id).filter(Boolean) as string[]
+        const removidosContatos = contatosIniciaisRef.current.filter(x => !idsContatosAtuais.includes(x))
+        for (const cid of removidosContatos) {
+          await api.delete(`/clientes/contatos/${cid}`).catch(() => {})
+        }
+        for (const c of contatos.filter(c => c.nome)) {
+          if (c.id) {
+            await api.put(`/clientes/contatos/${c.id}`, c).catch(() => {})
+          } else {
+            await api.post(`/clientes/${id}/contatos`, c).catch(() => {})
+          }
+        }
+        // Sincroniza endereços
+        const idsEnderecosAtuais = enderecos.map(e => e.id).filter(Boolean) as string[]
+        const removidosEnderecos = enderecosIniciaisRef.current.filter(x => !idsEnderecosAtuais.includes(x))
+        for (const eid of removidosEnderecos) {
+          await api.delete(`/clientes/enderecos/${eid}`).catch(() => {})
+        }
+        for (const e of enderecos.filter(e => e.logradouro)) {
+          if (e.id) {
+            await api.put(`/clientes/enderecos/${e.id}`, e).catch(() => {})
+          } else {
+            await api.post(`/clientes/${id}/enderecos`, e).catch(() => {})
+          }
+        }
       } else {
         const cliente = await api.post('/clientes', payload)
         const newId = cliente.data.id
