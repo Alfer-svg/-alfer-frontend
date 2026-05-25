@@ -1,7 +1,9 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { Building2, Plus, Pencil, Trash2, AlertCircle, Loader2, Star, Power, X } from 'lucide-react'
+import {
+  Building2, Plus, Pencil, Trash2, AlertCircle, Star, X,
+} from 'lucide-react'
 
 type Emissor = {
   id: string
@@ -69,270 +71,304 @@ export default function Emissores() {
 
   useEffect(() => { load() }, [])
 
-  const salvar = async (e: FormEvent) => {
-    e.preventDefault()
-    setErro('')
-    if (!modal) return
-    try {
-      if (modal.id) {
-        await api.put(`/emissores/${modal.id}`, modal)
-      } else {
-        await api.post('/emissores', modal)
-      }
-      setModal(null)
-      load()
-    } catch (err: any) {
-      setErro(err?.response?.data?.message || 'Erro ao salvar')
-    }
-  }
-
   const excluir = async (em: Emissor) => {
     if (!confirm(`Excluir o emissor "${em.razaoSocial}"?`)) return
     try {
       await api.delete(`/emissores/${em.id}`)
       load()
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Erro ao excluir')
+      setErro(err?.response?.data?.message || 'Erro ao excluir')
+    }
+  }
+
+  const inativar = async (em: Emissor) => {
+    try {
+      await api.put(`/emissores/${em.id}`, { ativo: !em.ativo })
+      load()
+    } catch (err: any) {
+      setErro(err?.response?.data?.message || 'Erro ao alterar')
     }
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-8 animate-fade-in">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="w-7 h-7 text-orange-500" />
-            Emissores (CNPJs)
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Empresas que emitem contratos, faturas e boletos. O orçamento sempre sai como o emissor padrão;
-            na aprovação você escolhe em nome de qual emissor o contrato será gerado.
+          <h1 className="font-display text-2xl font-bold text-gray-900">Emissores</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            CNPJs que podem emitir contratos, faturas e boletos
           </p>
         </div>
         <button
           onClick={() => setModal({ ...EMPTY })}
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90"
+          style={{ background: '#FFAF06' }}
         >
           <Plus className="w-4 h-4" /> Novo emissor
         </button>
       </div>
 
+      <p className="text-xs text-gray-400 mb-6 max-w-3xl">
+        O orçamento sempre sai como o emissor padrão. Na aprovação, você escolhe em
+        nome de qual CNPJ o contrato será emitido — fatura e boleto seguem o mesmo.
+      </p>
+
+      {erro && (
+        <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2"
+             style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erro}
+        </div>
+      )}
+
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+               style={{ borderColor: '#FFAF06', borderTopColor: 'transparent' }} />
+        </div>
+      ) : itens.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Nenhum emissor cadastrado</p>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="space-y-3 stagger">
           {itens.map((em) => (
-            <div
-              key={em.id}
-              className={`bg-white rounded-lg border ${em.padrao ? 'border-orange-300' : 'border-gray-200'} p-4 flex items-start justify-between`}
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-gray-900">{em.razaoSocial}</span>
+            <div key={em.id}
+                 className="bg-white rounded-2xl p-5 flex items-center gap-4 animate-fade-in"
+                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: '#FEF3E2' }}>
+                <Building2 className="w-5 h-5" style={{ color: '#FFAF06' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-1 flex-wrap">
+                  <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
                   {em.padrao && (
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1"
+                          style={{ background: '#FEF3E2', color: '#633806' }}>
                       <Star className="w-3 h-3 fill-current" /> Padrão
                     </span>
                   )}
                   {!em.ativo && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Power className="w-3 h-3" /> Inativo
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ background: '#F1EFE8', color: '#888' }}>
+                      Inativo
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-gray-600">
-                  <div>CNPJ: <span className="font-mono">{em.cnpj}</span> {em.ie ? `· IE ${em.ie}` : ''}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {em.logradouro}, {em.numero}{em.complemento ? ` · ${em.complemento}` : ''} · {em.bairro}, {em.cidade}/{em.uf} · CEP {em.cep}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {em.telefone} · {em.email} · Fatura inicia em <b>{em.faturaInicio}</b>
-                    {em.interClientId ? ' · Inter: ✓ configurado' : ' · Inter: pendente'}
-                  </div>
+                <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                  <span>CNPJ: {em.cnpj}</span>
+                  {em.ie && <span>IE: {em.ie}</span>}
+                  <span>{em.cidade}/{em.uf}</span>
+                  <span>Fatura {em.faturaInicio}+</span>
+                  <span>{em.interClientId ? 'Inter: configurado' : 'Inter: pendente'}</span>
                 </div>
               </div>
-              <div className="flex gap-2 ml-3">
+              {!em.padrao && (
                 <button
-                  onClick={() => setModal({ ...em })}
-                  className="text-gray-500 hover:text-orange-500 p-1.5"
-                  title="Editar"
+                  onClick={() => inativar(em)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  style={{ border: '1px solid #E0DDD8' }}
                 >
-                  <Pencil className="w-4 h-4" />
+                  {em.ativo ? 'Inativar' : 'Reativar'}
                 </button>
-                {!em.padrao && (
-                  <button
-                    onClick={() => excluir(em)}
-                    className="text-gray-500 hover:text-red-500 p-1.5"
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              )}
+              <button
+                onClick={() => setModal({ ...em })}
+                title="Editar"
+                className="p-2 rounded-lg text-gray-700 hover:bg-gray-50"
+                style={{ border: '1px solid #E0DDD8' }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              {!em.padrao && (
+                <button
+                  onClick={() => excluir(em)}
+                  title="Excluir"
+                  className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                  style={{ border: '1px solid #FACACA' }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
 
       {modal && (
-        <Modal onClose={() => setModal(null)} maxWidth="max-w-3xl">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-gray-900">
-              {modal.id ? 'Editar emissor' : 'Novo emissor'}
-            </h2>
-            <button type="button" onClick={() => setModal(null)}>
-              <X className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
-          <form onSubmit={salvar} className="space-y-4">
-            {erro && (
-              <div className="flex items-center gap-2 bg-red-50 text-red-700 text-sm px-3 py-2 rounded">
-                <AlertCircle className="w-4 h-4" /> {erro}
-              </div>
-            )}
-
-            <fieldset className="border rounded-lg p-3 space-y-2">
-              <legend className="text-xs font-semibold text-gray-600 px-1">Dados cadastrais</legend>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="Razão social" required>
-                  <input className="input" value={modal.razaoSocial || ''}
-                    onChange={(e) => setModal({ ...modal, razaoSocial: e.target.value })} required />
-                </Field>
-                <Field label="Nome fantasia">
-                  <input className="input" value={modal.nomeFantasia || ''}
-                    onChange={(e) => setModal({ ...modal, nomeFantasia: e.target.value })} />
-                </Field>
-                <Field label="CNPJ" required>
-                  <input className="input" value={modal.cnpj || ''}
-                    onChange={(e) => setModal({ ...modal, cnpj: e.target.value })} required />
-                </Field>
-                <Field label="Inscrição estadual">
-                  <input className="input" placeholder="ISENTO se for ME" value={modal.ie || ''}
-                    onChange={(e) => setModal({ ...modal, ie: e.target.value })} />
-                </Field>
-              </div>
-            </fieldset>
-
-            <fieldset className="border rounded-lg p-3 space-y-2">
-              <legend className="text-xs font-semibold text-gray-600 px-1">Endereço</legend>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="md:col-span-2">
-                  <Field label="Logradouro">
-                    <input className="input" value={modal.logradouro || ''}
-                      onChange={(e) => setModal({ ...modal, logradouro: e.target.value })} />
-                  </Field>
-                </div>
-                <Field label="Número">
-                  <input className="input" value={modal.numero || ''}
-                    onChange={(e) => setModal({ ...modal, numero: e.target.value })} />
-                </Field>
-                <Field label="Complemento">
-                  <input className="input" value={modal.complemento || ''}
-                    onChange={(e) => setModal({ ...modal, complemento: e.target.value })} />
-                </Field>
-                <Field label="Bairro">
-                  <input className="input" value={modal.bairro || ''}
-                    onChange={(e) => setModal({ ...modal, bairro: e.target.value })} />
-                </Field>
-                <Field label="Cidade">
-                  <input className="input" value={modal.cidade || ''}
-                    onChange={(e) => setModal({ ...modal, cidade: e.target.value })} />
-                </Field>
-                <Field label="UF">
-                  <input className="input" maxLength={2} value={modal.uf || ''}
-                    onChange={(e) => setModal({ ...modal, uf: e.target.value.toUpperCase() })} />
-                </Field>
-                <Field label="CEP">
-                  <input className="input" value={modal.cep || ''}
-                    onChange={(e) => setModal({ ...modal, cep: e.target.value })} />
-                </Field>
-              </div>
-            </fieldset>
-
-            <fieldset className="border rounded-lg p-3 space-y-2">
-              <legend className="text-xs font-semibold text-gray-600 px-1">Contato e PDF</legend>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="Telefone">
-                  <input className="input" value={modal.telefone || ''}
-                    onChange={(e) => setModal({ ...modal, telefone: e.target.value })} />
-                </Field>
-                <Field label="E-mail">
-                  <input className="input" type="email" value={modal.email || ''}
-                    onChange={(e) => setModal({ ...modal, email: e.target.value })} />
-                </Field>
-                <Field label="Logo (path ou URL)">
-                  <input className="input" placeholder="logos/empresa.png" value={modal.logoUrl || ''}
-                    onChange={(e) => setModal({ ...modal, logoUrl: e.target.value })} />
-                </Field>
-                <Field label="Fatura inicia em">
-                  <input className="input" type="number" value={modal.faturaInicio ?? 1}
-                    onChange={(e) => setModal({ ...modal, faturaInicio: Number(e.target.value) })} />
-                </Field>
-              </div>
-              <div className="flex gap-4 pt-1">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={!!modal.padrao}
-                    onChange={(e) => setModal({ ...modal, padrao: e.target.checked })} />
-                  Emissor padrão (usado quando nada é escolhido)
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={modal.ativo !== false}
-                    onChange={(e) => setModal({ ...modal, ativo: e.target.checked })} />
-                  Ativo
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset className="border rounded-lg p-3 space-y-2">
-              <legend className="text-xs font-semibold text-gray-600 px-1">
-                Credenciais Banco Inter (boleto/Pix) — opcional
-              </legend>
-              <p className="text-xs text-gray-500 mb-2">
-                Cada emissor precisa da própria conta no Inter PJ — o beneficiário do boleto é sempre o titular da conta.
-                Pode deixar em branco e plugar depois.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="Client ID">
-                  <input className="input" value={modal.interClientId || ''}
-                    onChange={(e) => setModal({ ...modal, interClientId: e.target.value })} />
-                </Field>
-                <Field label="Client Secret">
-                  <input className="input" type="password" value={modal.interClientSecret || ''}
-                    onChange={(e) => setModal({ ...modal, interClientSecret: e.target.value })} />
-                </Field>
-                <Field label="Cert (.crt) — path no servidor">
-                  <input className="input" value={modal.interCertPath || ''}
-                    onChange={(e) => setModal({ ...modal, interCertPath: e.target.value })} />
-                </Field>
-                <Field label="Chave (.key) — path no servidor">
-                  <input className="input" value={modal.interKeyPath || ''}
-                    onChange={(e) => setModal({ ...modal, interKeyPath: e.target.value })} />
-                </Field>
-                <Field label="Conta corrente">
-                  <input className="input" value={modal.interContaCorrente || ''}
-                    onChange={(e) => setModal({ ...modal, interContaCorrente: e.target.value })} />
-                </Field>
-              </div>
-            </fieldset>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setModal(null)} className="px-4 py-2 text-gray-700 rounded hover:bg-gray-100">
-                Cancelar
-              </button>
-              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
-                Salvar
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <EmissorModal
+          emissor={modal.id ? (modal as Emissor) : null}
+          initial={modal}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); load() }}
+        />
       )}
+    </div>
+  )
+}
 
-      <style>{`
-        .input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem; }
-        .input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); }
-      `}</style>
+function EmissorModal({
+  emissor, initial, onClose, onSaved,
+}: {
+  emissor: Emissor | null
+  initial: Partial<Emissor>
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const isEdit = !!emissor?.id
+  const [form, setForm] = useState<Partial<Emissor>>(initial)
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const set = (k: keyof Emissor, v: any) => setForm((f) => ({ ...f, [k]: v }))
+
+  const salvar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErro('')
+    setEnviando(true)
+    try {
+      if (isEdit) {
+        await api.put(`/emissores/${emissor!.id}`, form)
+      } else {
+        await api.post('/emissores', form)
+      }
+      onSaved()
+    } catch (err: any) {
+      setErro(err?.response?.data?.message || 'Erro ao salvar')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-display text-lg font-bold text-gray-900">
+          {isEdit ? 'Editar emissor' : 'Novo emissor'}
+        </h2>
+        <button type="button" onClick={onClose}>
+          <X className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+
+      <form onSubmit={salvar} className="space-y-5">
+        {/* Dados cadastrais */}
+        <Section title="Dados cadastrais">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Razão social" required>
+              <Input value={form.razaoSocial || ''} onChange={(v) => set('razaoSocial', v)} required />
+            </Field>
+            <Field label="Nome fantasia">
+              <Input value={form.nomeFantasia || ''} onChange={(v) => set('nomeFantasia', v)} />
+            </Field>
+            <Field label="CNPJ" required>
+              <Input value={form.cnpj || ''} onChange={(v) => set('cnpj', v)} required />
+            </Field>
+            <Field label="Inscrição estadual">
+              <Input placeholder="ISENTO" value={form.ie || ''} onChange={(v) => set('ie', v)} />
+            </Field>
+          </div>
+        </Section>
+
+        {/* Endereço */}
+        <Section title="Endereço">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="md:col-span-3">
+              <Field label="Logradouro"><Input value={form.logradouro || ''} onChange={(v) => set('logradouro', v)} /></Field>
+            </div>
+            <div className="md:col-span-1">
+              <Field label="Número"><Input value={form.numero || ''} onChange={(v) => set('numero', v)} /></Field>
+            </div>
+            <div className="md:col-span-2">
+              <Field label="Complemento"><Input value={form.complemento || ''} onChange={(v) => set('complemento', v)} /></Field>
+            </div>
+            <div className="md:col-span-2">
+              <Field label="Bairro"><Input value={form.bairro || ''} onChange={(v) => set('bairro', v)} /></Field>
+            </div>
+            <div className="md:col-span-2">
+              <Field label="Cidade"><Input value={form.cidade || ''} onChange={(v) => set('cidade', v)} /></Field>
+            </div>
+            <div className="md:col-span-1">
+              <Field label="UF"><Input maxLength={2} value={form.uf || ''} onChange={(v) => set('uf', v.toUpperCase())} /></Field>
+            </div>
+            <div className="md:col-span-1">
+              <Field label="CEP"><Input value={form.cep || ''} onChange={(v) => set('cep', v)} /></Field>
+            </div>
+          </div>
+        </Section>
+
+        {/* Contato + PDF */}
+        <Section title="Contato e PDF">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Telefone"><Input value={form.telefone || ''} onChange={(v) => set('telefone', v)} /></Field>
+            <Field label="E-mail"><Input type="email" value={form.email || ''} onChange={(v) => set('email', v)} /></Field>
+            <Field label="Logo (path / URL)">
+              <Input placeholder="logos/empresa.png" value={form.logoUrl || ''} onChange={(v) => set('logoUrl', v)} />
+            </Field>
+            <Field label="Fatura inicia em">
+              <Input type="number" value={String(form.faturaInicio ?? 1)} onChange={(v) => set('faturaInicio', Number(v))} />
+            </Field>
+          </div>
+          <div className="flex gap-5 pt-3 text-sm text-gray-700">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!form.padrao}
+                     onChange={(e) => set('padrao', e.target.checked)}
+                     style={{ accentColor: '#FFAF06' }} />
+              Emissor padrão
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.ativo !== false}
+                     onChange={(e) => set('ativo', e.target.checked)}
+                     style={{ accentColor: '#FFAF06' }} />
+              Ativo
+            </label>
+          </div>
+        </Section>
+
+        {/* Inter — colapsável visualmente, mas sem precisar abrir */}
+        <Section title="Banco Inter (boleto/Pix)" hint="Opcional — pode plugar depois">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Client ID"><Input value={form.interClientId || ''} onChange={(v) => set('interClientId', v)} /></Field>
+            <Field label="Client Secret"><Input type="password" value={form.interClientSecret || ''} onChange={(v) => set('interClientSecret', v)} /></Field>
+            <Field label="Cert (.crt) path"><Input value={form.interCertPath || ''} onChange={(v) => set('interCertPath', v)} /></Field>
+            <Field label="Chave (.key) path"><Input value={form.interKeyPath || ''} onChange={(v) => set('interKeyPath', v)} /></Field>
+            <Field label="Conta corrente"><Input value={form.interContaCorrente || ''} onChange={(v) => set('interContaCorrente', v)} /></Field>
+          </div>
+        </Section>
+
+        {erro && (
+          <div className="p-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+               style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+            <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erro}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onClose}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  style={{ border: '1px solid #E0DDD8' }}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={enviando}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2"
+                  style={{ background: enviando ? '#CC8C00' : '#FFAF06' }}>
+            {enviando ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h3>
+        {hint && <span className="text-xs text-gray-400">{hint}</span>}
+      </div>
+      {children}
     </div>
   )
 }
@@ -340,10 +376,32 @@ export default function Emissores() {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">
-        {label}{required && <span className="text-red-500">*</span>}
+      <span className="text-xs font-medium text-gray-600 mb-1 block">
+        {label}{required && <span style={{ color: '#FFAF06' }}> *</span>}
       </span>
       {children}
     </label>
+  )
+}
+
+function Input({ value, onChange, type = 'text', placeholder, required, maxLength }: {
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  placeholder?: string
+  required?: boolean
+  maxLength?: number
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      required={required}
+      maxLength={maxLength}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+      style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+    />
   )
 }

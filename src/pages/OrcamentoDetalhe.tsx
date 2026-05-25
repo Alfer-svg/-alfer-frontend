@@ -507,69 +507,74 @@ export default function OrcamentoDetalhe() {
           </div>
 
           <p className="text-sm text-gray-600 mb-4">
-            Será gerado automaticamente um <b>pedido</b> e um <b>contrato</b> (em rascunho).
+            Será gerado um <b>pedido</b> e um <b>contrato</b> em rascunho.
             Escolha em nome de qual empresa o <b>contrato, fatura e boleto</b> serão emitidos.
           </p>
 
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-xs text-orange-800">
-            <b>Importante:</b> o cliente continua falando com Alfer (mesmo e-mail, mesmo WhatsApp).
-            Só o conteúdo dos 3 documentos é que mostra esse CNPJ.
-          </div>
-
           {emissores.length === 0 ? (
             <div className="text-sm text-gray-500 italic mb-4">
-              Nenhum emissor cadastrado. Vai usar o emissor padrão (Alfer) automaticamente.
+              Nenhum emissor cadastrado — vai usar o padrão (Alfer) automaticamente.
             </div>
           ) : (
             <div className="space-y-2 mb-4">
-              <label className="text-xs font-semibold text-gray-700">Emitir em nome de:</label>
-              {emissores.map((em) => (
-                <label
-                  key={em.id}
-                  className={`flex items-start gap-3 border rounded-lg p-3 cursor-pointer transition ${
-                    emissorEscolhido === em.id
-                      ? 'border-orange-400 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="emissor"
-                    className="mt-1"
-                    checked={emissorEscolhido === em.id}
-                    onChange={() => setEmissorEscolhido(em.id)}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
-                      {em.padrao && (
-                        <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Star className="w-2.5 h-2.5 fill-current" /> Padrão
-                        </span>
-                      )}
+              {emissores.map((em) => {
+                const sel = emissorEscolhido === em.id
+                return (
+                  <label
+                    key={em.id}
+                    className="flex items-start gap-3 rounded-xl p-3 cursor-pointer transition"
+                    style={{
+                      border: sel ? '1px solid #FFAF06' : '1px solid #E0DDD8',
+                      background: sel ? '#FEF3E2' : '#fff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="emissor"
+                      className="mt-1"
+                      checked={sel}
+                      onChange={() => setEmissorEscolhido(em.id)}
+                      style={{ accentColor: '#FFAF06' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
+                        {em.padrao && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1"
+                                style={{ background: '#FEF3E2', color: '#633806' }}>
+                            <Star className="w-2.5 h-2.5 fill-current" /> Padrão
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        CNPJ {em.cnpj} · Fatura {em.faturaInicio}+
+                        {em.interClientId ? ' · Inter ✓' : ' · Inter pendente'}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 font-mono">{em.cnpj}</div>
-                    <div className="text-xs text-gray-500">
-                      Fatura inicia em {em.faturaInicio}
-                      {em.interClientId ? ' · boleto Inter: ✓' : ' · boleto Inter: pendente'}
-                    </div>
-                  </div>
-                </label>
-              ))}
+                  </label>
+                )
+              })}
             </div>
           )}
+
+          <p className="text-xs text-gray-400 mb-4">
+            O cliente continua falando com Alfer pelo mesmo canal — só os 3 documentos legais
+            mostram o CNPJ escolhido.
+          </p>
 
           {erro && (
-            <div className="flex items-center gap-2 bg-red-50 text-red-700 text-sm px-3 py-2 rounded mb-3">
-              <AlertCircle className="w-4 h-4" /> {erro}
+            <div className="p-3 mb-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+                 style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erro}
             </div>
           )}
 
-          <div className="flex justify-end gap-2">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setModalAprovar(null)}
-              className="px-4 py-2 text-gray-700 rounded hover:bg-gray-100"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              style={{ border: '1px solid #E0DDD8' }}
             >
               Cancelar
             </button>
@@ -577,7 +582,8 @@ export default function OrcamentoDetalhe() {
               type="button"
               onClick={confirmarAprovacao}
               disabled={!!acao}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2"
+              style={{ background: acao ? '#CC8C00' : '#FFAF06' }}
             >
               {acao === 'aprovar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Aprovar e gerar contrato
