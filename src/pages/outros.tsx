@@ -588,6 +588,7 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
         setForm((f) => ({
           ...f,
           destinatario: r.data.destinatarioSugerido || '',
+          cc: r.data.ccSugerido || '',
           assunto: r.data.assunto || '',
           corpo: r.data.texto || '',
         }))

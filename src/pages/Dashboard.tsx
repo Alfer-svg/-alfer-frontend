@@ -94,7 +94,7 @@ export default function Dashboard() {
       icon: Layers,
       color: '#9B59B6',
       bg: '#F0E6F6',
-      sub: `${data.cacambas.cheias} cheias aguardando coleta`,
+      sub: `${data.cacambas.cheias} para desmobilizar`,
     },
   ] : []
 

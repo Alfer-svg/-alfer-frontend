@@ -3,19 +3,21 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useNavigate } from 'react-router-dom'
 
-const makeImgIcon = (file: string, size = 40) => {
+const makeImgIcon = (file: string, size = 40, vencendoHoje = false) => {
   const imgSize = Math.round(size * 0.78)
   const totalH = size + Math.round(size * 0.3)
   const arrowSize = Math.round(size * 0.18)
+  const bg = vencendoHoje ? '#FEE2E2' : 'white'          // vermelho claro quando vence hoje
+  const border = vencendoHoje ? '#F87171' : '#C7C2BB'    // borda vermelha quando vence hoje
   return L.divIcon({
     className: 'custom-marker',
     html: `
       <div style="position: relative; width: ${size}px; height: ${totalH}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
         <div style="
           width: ${size}px; height: ${size}px;
-          background: white;
+          background: ${bg};
           border-radius: 50%;
-          border: 1px solid #C7C2BB;
+          border: 1px solid ${border};
           display: flex; align-items: center; justify-content: center;
           overflow: hidden;
           box-sizing: border-box;
@@ -28,7 +30,7 @@ const makeImgIcon = (file: string, size = 40) => {
           width: 0; height: 0;
           border-left: ${arrowSize}px solid transparent;
           border-right: ${arrowSize}px solid transparent;
-          border-top: ${Math.round(arrowSize * 1.7)}px solid #C7C2BB;
+          border-top: ${Math.round(arrowSize * 1.7)}px solid ${border};
         "></div>
         <div style="
           position: absolute; bottom: 2px; left: 50%;
@@ -36,7 +38,7 @@ const makeImgIcon = (file: string, size = 40) => {
           width: 0; height: 0;
           border-left: ${arrowSize - 2}px solid transparent;
           border-right: ${arrowSize - 2}px solid transparent;
-          border-top: ${Math.round(arrowSize * 1.5)}px solid white;
+          border-top: ${Math.round(arrowSize * 1.5)}px solid ${bg};
         "></div>
       </div>
     `,
@@ -46,7 +48,7 @@ const makeImgIcon = (file: string, size = 40) => {
   })
 }
 
-const iconePorTipoEquip = (tipo: string, size = 40) => {
+const iconePorTipoEquip = (tipo: string, size = 40, vencendoHoje = false) => {
   const map: Record<string, string> = {
     CONTAINER_SECO: 'container.png',
     CONTAINER_REEFER: 'container_reefer.png',
@@ -55,7 +57,7 @@ const iconePorTipoEquip = (tipo: string, size = 40) => {
     CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
     CAMINHAO_CAVALO_MECANICO: 'cavalo_mecanico.png',
   }
-  return makeImgIcon(map[tipo] || 'container.png', size)
+  return makeImgIcon(map[tipo] || 'container.png', size, vencendoHoje)
 }
 const iconCaminhao = (size = 40) => makeImgIcon('caminhao.png', size)
 
@@ -82,6 +84,7 @@ type Item = {
   latitude: number
   longitude: number
   localizacao?: string
+  vencendoHoje?: boolean
 }
 
 export default function MapaEquipamentos({
@@ -112,12 +115,17 @@ export default function MapaEquipamentos({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {equipamentos.map((e) => (
-          <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip(e.tipo, iconSize)}>
+          <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip(e.tipo, iconSize, e.vencendoHoje)}>
             <Popup>
               <div className="text-sm">
                 <div className="font-semibold">{e.codigo}</div>
                 <div className="text-gray-600">{e.modelo}</div>
                 <div className="text-xs text-gray-500 mt-1">{tipoLabel(e.tipo)}{e.status ? ` • ${e.status}` : ''}</div>
+                {e.vencendoHoje && (
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
+                    ⚠ Vence/desmobiliza hoje
+                  </div>
+                )}
                 {e.localizacao && <div className="text-xs text-gray-500 mt-1">{e.localizacao}</div>}
                 <button onClick={() => navigate(`/equipamentos/${e.id}`)} className="mt-2 text-xs font-medium" style={{ color: '#FFAF06' }}>
                   Ver detalhe →

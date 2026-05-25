@@ -37,6 +37,8 @@ import OrdensServicoMunck from './pages/OrdensServicoMunck'
 import OrdemServicoMunckDetalhe from './pages/OrdemServicoMunckDetalhe'
 import OrdensServicoPoli from './pages/OrdensServicoPoli'
 import OrdemServicoPoliDetalhe from './pages/OrdemServicoPoliDetalhe'
+import Usuarios from './pages/Usuarios'
+import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -76,6 +78,7 @@ function AppRoutes() {
         <Route path="fornecedores" element={<Fornecedores />} />
         <Route path="crm" element={<CRM />} />
         <Route path="equipamentos" element={<Equipamentos />} />
+        <Route path="equipamentos/estoque" element={<EstoqueEquipamentos />} />
         <Route path="equipamentos/novo" element={<NovoEquipamento />} />
         <Route path="equipamentos/:id/editar" element={<NovoEquipamento />} />
         <Route path="equipamentos/:id" element={<EquipamentoDetalhe />} />
@@ -98,6 +101,7 @@ function AppRoutes() {
         <Route path="modelos/:id/editar" element={<NovoModelo />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="mapa" element={<Mapa />} />
+        <Route path="usuarios" element={<Usuarios />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

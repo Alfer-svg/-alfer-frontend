@@ -23,6 +23,7 @@ export default function NovoEquipamento() {
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({
     codigo: '',
+    sequencial: '',
     tipo: 'CONTAINER_SECO',
     modelo: '',
     capacidade: '',
@@ -66,6 +67,7 @@ export default function NovoEquipamento() {
         const e = r.data
         setForm({
           codigo: e.codigo || '',
+          sequencial: e.sequencial != null ? String(e.sequencial) : '',
           tipo: e.tipo || 'CONTAINER_SECO',
           modelo: e.modelo || '',
           capacidade: e.capacidade || '',
@@ -154,6 +156,7 @@ export default function NovoEquipamento() {
       const payload = {
         ...form,
         ano: Number(form.ano),
+        sequencial: form.sequencial !== '' ? Number(form.sequencial) : null,
         horimetro: form.horimetro ? Number(form.horimetro) : null,
         proxManutHs: form.proxManutHs ? Number(form.proxManutHs) : null,
         ultimaManut: form.ultimaManut || null,
@@ -212,6 +215,23 @@ export default function NovoEquipamento() {
                 onChange={(e) => set('codigo', e.target.value)}
                 placeholder="Ex: CS-001"
                 required
+                className={inputCls}
+                style={inputStyle}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sequencial <span className="text-xs font-normal text-gray-400">(opcional — uso livre)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.sequencial}
+                onChange={(e) => set('sequencial', e.target.value)}
+                placeholder="Ex: 47"
                 className={inputCls}
                 style={inputStyle}
                 onFocus={onFocus}

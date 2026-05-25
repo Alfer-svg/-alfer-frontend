@@ -6,7 +6,7 @@ import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
 import { buscarCep, limparCep, formatarCep } from '../utils/cep'
 
 interface Contato {
-  nome: string; cargo: string; telefone: string; email: string; principal: boolean
+  nome: string; cargo: string; telefone: string; email: string; principal: boolean; recebeFatura?: boolean
 }
 interface Endereco {
   logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; estado: string; cep: string; principal: boolean
@@ -26,7 +26,7 @@ export default function NovoCliente() {
     reajusteIndice: 'IPCA', formaCobranca: 'BOLETO', observacoes: '',
   })
   const [contatos, setContatos] = useState<Contato[]>([
-    { nome: '', cargo: '', telefone: '', email: '', principal: true }
+    { nome: '', cargo: '', telefone: '', email: '', principal: true, recebeFatura: true }
   ])
   const [enderecos, setEnderecos] = useState<Endereco[]>([
     { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'PE', cep: '', principal: true }
@@ -50,7 +50,8 @@ export default function NovoCliente() {
           observacoes: c.observacoes || '',
         })
         if (c.contatos?.length) setContatos(c.contatos.map((ct: any) => ({
-          nome: ct.nome || '', cargo: ct.cargo || '', telefone: ct.telefone || '', email: ct.email || '', principal: !!ct.principal,
+          nome: ct.nome || '', cargo: ct.cargo || '', telefone: ct.telefone || '', email: ct.email || '',
+          principal: !!ct.principal, recebeFatura: !!ct.recebeFatura,
         })))
         if (c.enderecos?.length) setEnderecos(c.enderecos.map((e: any) => ({
           logradouro: e.logradouro || '', numero: e.numero || '', complemento: e.complemento || '',
@@ -166,7 +167,17 @@ export default function NovoCliente() {
   }
   const setContato = (i: number, k: string, v: string) => setContatos(cs => cs.map((c, idx) => idx === i ? { ...c, [k]: v } : c))
   const setEndereco = (i: number, k: string, v: string) => setEnderecos(es => es.map((e, idx) => idx === i ? { ...e, [k]: v } : e))
-  const addContato = () => setContatos(cs => [...cs, { nome: '', cargo: '', telefone: '', email: '', principal: false }])
+  const addContato = () => setContatos(cs => [...cs, { nome: '', cargo: '', telefone: '', email: '', principal: false, recebeFatura: false }])
+  const toggleRecebeFatura = (i: number) => setContatos(cs => {
+    const alvo = cs[i]
+    const atualmenteMarcados = cs.filter((c) => c.recebeFatura).length
+    // Se vai marcar (estava false) e já tem 4, bloqueia
+    if (!alvo.recebeFatura && atualmenteMarcados >= 4) {
+      alert('Limite de 4 destinatários de fatura/boleto por cliente. Desmarque um antes.')
+      return cs
+    }
+    return cs.map((c, idx) => idx === i ? { ...c, recebeFatura: !c.recebeFatura } : c)
+  })
   const removeContato = (i: number) => setContatos(cs => cs.filter((_, idx) => idx !== i))
   const addEndereco = () => setEnderecos(es => [...es, { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'PE', cep: '', principal: false }])
   const removeEndereco = (i: number) => setEnderecos(es => es.filter((_, idx) => idx !== i))
@@ -355,8 +366,25 @@ export default function NovoCliente() {
                     <input value={c.email} onChange={e => setContato(i, 'email', e.target.value)} placeholder="nome@empresa.com.br" type="email" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
+                <label className="mt-3 flex items-center gap-2 cursor-pointer" title="Esse contato vai receber faturas e boletos por e-mail. Máximo 4 por cliente.">
+                  <input
+                    type="checkbox"
+                    checked={!!c.recebeFatura}
+                    onChange={() => toggleRecebeFatura(i)}
+                    disabled={!c.email}
+                    className="w-4 h-4"
+                    style={{ accentColor: '#FFAF06' }}
+                  />
+                  <span className={`text-sm ${c.email ? 'text-gray-700' : 'text-gray-300'}`}>
+                    📧 Recebe fatura/boleto por e-mail
+                    {!c.email && <span className="text-xs"> (preenche o e-mail primeiro)</span>}
+                  </span>
+                </label>
               </div>
             ))}
+            <p className="text-xs text-gray-400">
+              Marca até <strong>4 contatos</strong> pra receber fatura/boleto automaticamente. O primeiro vai como destinatário principal, os demais como cópia.
+            </p>
           </div>
         </div>
 

@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -52,6 +52,7 @@ const nav: NavItem[] = [
     icon: Package,
     basePath: '/equipamentos',
     children: [
+      { to: '/equipamentos/estoque', label: 'Estoque' },
       { to: '/equipamentos', label: 'Cadastrar equipamentos' },
       { to: '/modelos', label: 'Cadastrar modelos' },
       { to: '/caminhoes', label: 'Frota' },
@@ -66,18 +67,32 @@ const nav: NavItem[] = [
       { to: '/ordens-servico/poli', label: 'OS Poliguindaste' },
     ],
   },
-  { to: '/motoristas', icon: User, label: 'Motoristas' },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/mapa', icon: Map, label: 'Mapa' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: boolean; onClose?: () => void } = {}) {
   const { usuario, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Grupo "Pessoas" — sempre aparece com Motoristas; Usuários só pra ADMIN/GESTOR
+  const podeVerUsuarios = usuario?.perfil === 'ADMIN' || usuario?.perfil === 'GESTOR'
+  const pessoasGroup: GroupItem = {
+    label: 'Pessoas',
+    icon: User,
+    basePath: '/motoristas',
+    children: [
+      { to: '/motoristas', label: 'Motoristas' },
+      ...(podeVerUsuarios ? [{ to: '/usuarios', label: 'Usuários do sistema' }] : []),
+    ],
+  }
+
+  // Insere "Pessoas" antes de Agenda/Mapa (depois de OSs)
+  const navVisivel: NavItem[] = [...nav.slice(0, -2), pessoasGroup, ...nav.slice(-2)]
+
   const initialOpen: Record<string, boolean> = {}
-  nav.forEach((i) => {
+  navVisivel.forEach((i) => {
     if (isGroup(i)) {
       const extras =
         i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] :
@@ -97,13 +112,26 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-60 flex flex-col z-40" style={{ background: '#FFFFFF', borderRight: '1px solid #E0DDD8' }}>
-      <div className="p-5 border-b flex items-center justify-center" style={{ borderColor: '#F1EFE8' }}>
+    <aside
+      className={`fixed left-0 top-0 h-full w-60 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${
+        mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'
+      }`}
+      style={{ background: '#FFFFFF', borderRight: '1px solid #E0DDD8' }}
+    >
+      <div className="p-5 border-b flex items-center justify-between" style={{ borderColor: '#F1EFE8' }}>
         <AlferLogo size={96} />
+        {/* Botão fechar (só mobile) */}
+        <button
+          onClick={onClose}
+          aria-label="Fechar menu"
+          className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100"
+        >
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
         <div className="px-3 space-y-0.5">
-          {nav.map((item) => {
+          {navVisivel.map((item) => {
             if (isGroup(item)) {
               const Icon = item.icon
               const isOpen = !!open[item.label]

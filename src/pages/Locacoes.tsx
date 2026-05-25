@@ -58,7 +58,9 @@ const statusColor: Record<string, { bg: string; text: string; label: string }> =
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
   AGUARDANDO_ASSINATURA: { bg: '#E3EEFA', text: '#1A5276', label: 'Aguardando assinatura' },
   ATIVA: { bg: '#EAF3DE', text: '#27500A', label: 'Ativa' },
-  CHEIA: { bg: '#FFF3D6', text: '#A77400', label: 'Cheia' },
+  // CHEIA foi unificado em PARA_DESMOBILIZAR — fallback pra registros antigos
+  CHEIA: { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
+  PARA_DESMOBILIZAR: { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
   ENCERRADA: { bg: '#F1EFE8', text: '#888', label: 'Encerrada' },
 }
 
@@ -99,7 +101,7 @@ export default function Locacoes() {
     }
   }
 
-  const ativos = itens.filter((i) => ['ATIVO', 'ATIVA', 'VENCENDO', 'CHEIA'].includes(i.status))
+  const ativos = itens.filter((i) => ['ATIVO', 'ATIVA', 'VENCENDO', 'PARA_DESMOBILIZAR'].includes(i.status))
 
   return (
     <div className="p-8 animate-fade-in">
@@ -135,7 +137,7 @@ export default function Locacoes() {
           <option value="VENCENDO">Só Vencendo</option>
           <option value="ENCERRADO">Só Encerrado</option>
           <option value="RESCINDIDO">Só Rescindido</option>
-          <option value="CHEIA">Só Cheia (caçambas)</option>
+          <option value="PARA_DESMOBILIZAR">Só Para desmobilizar (caçambas)</option>
           <option value="ENCERRADA">Só Encerrada (caçambas)</option>
         </select>
       </div>

@@ -8,7 +8,8 @@ const statusColor: Record<string, { bg: string; text: string; label: string }> =
   PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
   EM_ROTA_MOBILIZACAO:    { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (mobilização)' },
   ATIVA:                  { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizada' },
-  CHEIA:                  { bg: '#FEF3E2', text: '#633806', label: 'Cheia' },
+  // CHEIA foi unificado em PARA_DESMOBILIZAR — registros antigos seguem aparecendo até a migração rodar
+  CHEIA:                  { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
   PARA_DESMOBILIZAR:      { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
   EM_ROTA_DESMOBILIZACAO: { bg: '#F4E3FA', text: '#5B1A76', label: 'Em rota (desmob/troca)' },
   ENCERRADA:              { bg: '#F1EFE8', text: '#888',    label: 'Encerrada' },
@@ -18,7 +19,6 @@ const STATUS_ORDEM = [
   'PARA_MOBILIZAR',
   'EM_ROTA_MOBILIZACAO',
   'ATIVA',
-  'CHEIA',
   'PARA_DESMOBILIZAR',
   'EM_ROTA_DESMOBILIZACAO',
   'ENCERRADA',

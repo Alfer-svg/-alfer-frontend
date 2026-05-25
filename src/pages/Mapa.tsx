@@ -7,16 +7,19 @@ import api from '../services/api'
 import { Map as MapIcon, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 
 // Ícone dentro de balão branco com ponteiro (estilo pin de mapa)
-const makeImgIcon = (file: string) =>
-  L.divIcon({
+// vencendoHoje=true pinta o interior de vermelho claro (contrato termina hoje ou desmob agendada pra hoje)
+const makeImgIcon = (file: string, vencendoHoje = false) => {
+  const bg = vencendoHoje ? '#FEE2E2' : 'white'
+  const border = vencendoHoje ? '#F87171' : '#C7C2BB'
+  return L.divIcon({
     className: 'custom-marker',
     html: `
       <div style="position: relative; width: 56px; height: 68px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
         <div style="
           width: 56px; height: 56px;
-          background: white;
+          background: ${bg};
           border-radius: 50%;
-          border: 1px solid #C7C2BB;
+          border: 1px solid ${border};
           display: flex; align-items: center; justify-content: center;
           overflow: hidden;
           box-sizing: border-box;
@@ -29,7 +32,7 @@ const makeImgIcon = (file: string) =>
           width: 0; height: 0;
           border-left: 8px solid transparent;
           border-right: 8px solid transparent;
-          border-top: 14px solid #C7C2BB;
+          border-top: 14px solid ${border};
         "></div>
         <div style="
           position: absolute; bottom: 2px; left: 50%;
@@ -37,7 +40,7 @@ const makeImgIcon = (file: string) =>
           width: 0; height: 0;
           border-left: 6px solid transparent;
           border-right: 6px solid transparent;
-          border-top: 11px solid white;
+          border-top: 11px solid ${bg};
         "></div>
       </div>
     `,
@@ -45,21 +48,24 @@ const makeImgIcon = (file: string) =>
     iconAnchor: [28, 68],
     popupAnchor: [0, -68],
   })
+}
 
-const iconePorTipoEquip: Record<string, L.DivIcon> = {
-  CONTAINER_SECO: makeImgIcon('container.png'),
-  CONTAINER_REEFER: makeImgIcon('container_reefer.png'),
-  CACAMBA_ESTACIONARIA: makeImgIcon('cacamba.png'),
-  CAMINHAO_MUNCK: makeImgIcon('munck.png'),
-  CAMINHAO_POLIGUINDASTE: makeImgIcon('poliguindaste.png'),
-  CAMINHAO_CAVALO_MECANICO: makeImgIcon('cavalo_mecanico.png'),
+const iconePorTipoEquip = (tipo: string, vencendoHoje = false): L.DivIcon => {
+  const map: Record<string, string> = {
+    CONTAINER_SECO: 'container.png',
+    CONTAINER_REEFER: 'container_reefer.png',
+    CACAMBA_ESTACIONARIA: 'cacamba.png',
+    CAMINHAO_MUNCK: 'munck.png',
+    CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
+    CAMINHAO_CAVALO_MECANICO: 'cavalo_mecanico.png',
+  }
+  return makeImgIcon(map[tipo] || 'container.png', vencendoHoje)
 }
 const iconPorTipoCam: Record<string, L.DivIcon> = {
   MUNCK: makeImgIcon('munck.png'),
   POLIGUINDASTE: makeImgIcon('poliguindaste.png'),
   CAVALO_MECANICO: makeImgIcon('cavalo_mecanico.png'),
 }
-const iconEquipDefault = makeImgIcon('container.png')
 const iconCaminhaoDefault = makeImgIcon('caminhao.png')
 
 const tipoEquipLabel: Record<string, string> = {
@@ -260,7 +266,7 @@ export default function Mapa() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {equipamentosVisiveis.map((e) => (
-              <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip[e.tipo] || iconEquipDefault}>
+              <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip(e.tipo, e.vencendoHoje)}>
                 <Popup>
                   <div className="text-sm">
                     <div className="font-semibold">{e.codigo}</div>
@@ -268,6 +274,11 @@ export default function Mapa() {
                     <div className="text-xs text-gray-500 mt-1">
                       {tipoEquipLabel[e.tipo] || e.tipo} • {e.status}
                     </div>
+                    {e.vencendoHoje && (
+                      <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
+                        ⚠ Vence/desmobiliza hoje
+                      </div>
+                    )}
                     {e.localizacao && <div className="text-xs text-gray-500 mt-1">{e.localizacao}</div>}
                     <button
                       onClick={() => navigate(`/equipamentos/${e.id}`)}
