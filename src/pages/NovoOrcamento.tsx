@@ -2,8 +2,9 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X, MapPin, Search } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X, MapPin, Search, UserPlus } from 'lucide-react'
 import { buscarCep, formatarCep, limparCep } from '../utils/cep'
+import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
 
 export default function NovoOrcamento() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function NovoOrcamento() {
   const [erro, setErro] = useState('')
   const [clientes, setClientes] = useState<any[]>([])
   const [equipamentos, setEquipamentos] = useState<any[]>([])
+  const [novoClienteModal, setNovoClienteModal] = useState(false)
   const [form, setForm] = useState({
     clienteId: '',
     equipamentoId: '',
@@ -224,10 +226,22 @@ export default function NovoOrcamento() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-              <select value={form.clienteId} onChange={(e) => set('clienteId', e.target.value)} required className={inputCls} style={inputStyle}>
-                <option value="">Selecione</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.razaoSocial}</option>)}
-              </select>
+              <div className="flex gap-2">
+                <select value={form.clienteId} onChange={(e) => set('clienteId', e.target.value)} required className={inputCls + ' flex-1'} style={inputStyle}>
+                  <option value="">Selecione</option>
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.razaoSocial}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setNovoClienteModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90 whitespace-nowrap"
+                  style={{ background: '#FFAF06' }}
+                  title="Cadastrar cliente novo sem sair daqui"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Novo
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Equipamento (opcional)</label>
@@ -484,7 +498,214 @@ export default function NovoOrcamento() {
           onConfirm={aplicarCondicoes}
         />
       )}
+
+      {novoClienteModal && (
+        <NovoClienteRapido
+          onClose={() => setNovoClienteModal(false)}
+          onCriado={(novo) => {
+            // Coloca o novo cliente no topo da lista e já seleciona ele
+            setClientes((cs) => [novo, ...cs])
+            set('clienteId', novo.id)
+            setNovoClienteModal(false)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Modal compacto pra cadastrar cliente sem sair do orçamento.
+ * Pede só o essencial — endereço/contatos podem ser preenchidos depois
+ * editando o cliente. CNPJ tem auto-busca na Receita Federal.
+ */
+function NovoClienteRapido({ onClose, onCriado }: { onClose: () => void; onCriado: (c: any) => void }) {
+  const [form, setForm] = useState({
+    razaoSocial: '',
+    cnpj: '',
+    inscricaoEstadual: '',
+    segmento: 'CONSTRUTORA',
+    prazoPagemento: '30',
+  })
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false)
+  const [erroCnpj, setErroCnpj] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  const setF = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  const handleCnpjBlur = async () => {
+    setErroCnpj('')
+    const limpo = limparCnpj(form.cnpj)
+    if (!limpo) return
+    if (limpo.length !== 14) {
+      setErroCnpj('CNPJ precisa ter 14 dígitos.')
+      return
+    }
+    setBuscandoCnpj(true)
+    try {
+      const d = await buscarCnpj(form.cnpj)
+      setForm((f) => ({
+        ...f,
+        cnpj: d.cnpj,
+        razaoSocial: f.razaoSocial || d.razaoSocial,
+      }))
+    } catch (e: any) {
+      setErroCnpj(e?.message || 'Não foi possível buscar o CNPJ.')
+    } finally {
+      setBuscandoCnpj(false)
+    }
+  }
+
+  const salvar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErro('')
+    if (!form.razaoSocial.trim()) {
+      setErro('Razão social é obrigatória.')
+      return
+    }
+    if (!form.cnpj.trim() || limparCnpj(form.cnpj).length !== 14) {
+      setErro('CNPJ inválido — precisa ter 14 dígitos.')
+      return
+    }
+    setSalvando(true)
+    try {
+      const r = await api.post('/clientes', {
+        razaoSocial: form.razaoSocial.trim(),
+        cnpj: form.cnpj.trim(),
+        inscricaoEstadual: form.inscricaoEstadual.trim() || undefined,
+        segmento: form.segmento,
+        status: 'ATIVO',
+        prazoPagemento: Number(form.prazoPagemento),
+      })
+      onCriado(r.data)
+    } catch (e: any) {
+      setErro(e?.response?.data?.message || 'Erro ao criar cliente.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-md">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <UserPlus className="w-5 h-5" style={{ color: '#FFAF06' }} />
+          Novo cliente
+        </h2>
+        <button type="button" onClick={onClose}>
+          <X className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500 mb-4">
+        Cadastro rápido — só o essencial. Você pode completar endereço, contatos e
+        outros dados depois editando o cliente.
+      </p>
+
+      <form onSubmit={salvar} className="space-y-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">CNPJ <span style={{ color: '#FFAF06' }}>*</span></label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={form.cnpj}
+              onChange={(e) => setF('cnpj', formatarCnpj(e.target.value))}
+              onBlur={handleCnpjBlur}
+              placeholder="00.000.000/0000-00"
+              required
+              className="flex-1 px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+              style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+            />
+            <button
+              type="button"
+              onClick={handleCnpjBlur}
+              disabled={buscandoCnpj}
+              className="px-3 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap"
+              style={{ border: '1px solid #E0DDD8' }}
+              title="Buscar dados na Receita Federal"
+            >
+              {buscandoCnpj ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Search className="w-3.5 h-3.5 inline mr-1" />Buscar</>}
+            </button>
+          </div>
+          {erroCnpj && <p className="text-[11px] text-red-600 mt-1">{erroCnpj}</p>}
+          {!erroCnpj && <p className="text-[11px] text-gray-400 mt-1">Ao sair do campo, busca dados automaticamente na Receita.</p>}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Razão social <span style={{ color: '#FFAF06' }}>*</span></label>
+          <input
+            type="text"
+            value={form.razaoSocial}
+            onChange={(e) => setF('razaoSocial', e.target.value)}
+            required
+            className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+            style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Inscrição estadual</label>
+            <input
+              type="text"
+              value={form.inscricaoEstadual}
+              onChange={(e) => setF('inscricaoEstadual', e.target.value)}
+              placeholder="ISENTO"
+              className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+              style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Prazo pagamento (dias)</label>
+            <input
+              type="number"
+              value={form.prazoPagemento}
+              onChange={(e) => setF('prazoPagemento', e.target.value)}
+              min={0}
+              className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+              style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Segmento <span style={{ color: '#FFAF06' }}>*</span></label>
+          <select
+            value={form.segmento}
+            onChange={(e) => setF('segmento', e.target.value)}
+            className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
+            style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
+          >
+            <option value="CONSTRUTORA">Construtora</option>
+            <option value="INDUSTRIA_REFINARIA">Indústria / Refinaria</option>
+            <option value="PORTO_LOGISTICA">Porto / Logística</option>
+            <option value="PREFEITURA_GOVERNO">Prefeitura / Governo</option>
+            <option value="OUTROS">Outros</option>
+          </select>
+        </div>
+
+        {erro && (
+          <div className="p-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+               style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+            <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erro}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onClose}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  style={{ border: '1px solid #E0DDD8' }}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={salvando}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2"
+                  style={{ background: salvando ? '#CC8C00' : '#FFAF06' }}>
+            {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cadastrar e usar'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
