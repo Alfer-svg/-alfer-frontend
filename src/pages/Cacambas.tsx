@@ -2,7 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2, DollarSign, FileText } from 'lucide-react'
+import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2, DollarSign, FileText, MoreVertical, RefreshCw, ArrowDownLeft } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
@@ -53,6 +53,8 @@ export default function Cacambas() {
   const [trocaModal, setTrocaModal] = useState<any>(null)
   const [showFechamento, setShowFechamento] = useState(false)
   const [contagens, setContagens] = useState<Record<string, number>>({})
+  const [kebabOpen, setKebabOpen] = useState<string | null>(null)
+  const [renovarModal, setRenovarModal] = useState<any>(null) // { locacao, contrato, dtFim, valor, observacoes }
 
   const load = () => {
     setLoading(true)
@@ -72,6 +74,14 @@ export default function Cacambas() {
   }
   useEffect(load, [filtroStatus])
 
+  // Fecha o kebab ao clicar fora
+  useEffect(() => {
+    if (!kebabOpen) return
+    const handler = () => setKebabOpen(null)
+    setTimeout(() => document.addEventListener('click', handler), 0)
+    return () => document.removeEventListener('click', handler)
+  }, [kebabOpen])
+
   const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 
   const [erroAcao, setErroAcao] = useState('')
@@ -80,6 +90,65 @@ export default function Cacambas() {
     if (!confirm('Encerrar esta locação? A caçamba ficará disponível novamente.')) return
     await api.put(`/cacambas/locacoes/${id}/encerrar`)
     load()
+  }
+
+  // Abre modal de renovação de contrato (Troca → Renovação)
+  const abrirRenovacao = async (l: any) => {
+    setKebabOpen(null)
+    if (!l.contrato?.id) return
+    setErroAcao('')
+    try {
+      const { data: c } = await api.get(`/contratos/${l.contrato.id}`)
+      // Default: novaDtFim = dtFim atual + 30 dias
+      const atual = new Date(c.dtFim)
+      atual.setDate(atual.getDate() + 30)
+      const novaDtFimDefault = atual.toISOString().slice(0, 10)
+      setRenovarModal({
+        locacao: l,
+        contrato: c,
+        novaDtFim: novaDtFimDefault,
+        novoValor: String(Number(c.valor).toFixed(2)),
+        observacoes: '',
+        salvando: false,
+      })
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao carregar contrato.')
+    }
+  }
+
+  const salvarRenovacao = async () => {
+    if (!renovarModal) return
+    setRenovarModal((r: any) => ({ ...r, salvando: true }))
+    try {
+      await api.post(`/contratos/${renovarModal.contrato.id}/renovar`, {
+        novaDtFim: renovarModal.novaDtFim,
+        novoValor: Number(renovarModal.novoValor),
+        observacoes: renovarModal.observacoes || undefined,
+      })
+      setRenovarModal(null)
+      load()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao renovar contrato.')
+      setRenovarModal((r: any) => ({ ...r, salvando: false }))
+    }
+  }
+
+  // Retirada → encerra contrato (caçamba se ajusta via módulo logística)
+  const encerrarContrato = async (l: any) => {
+    setKebabOpen(null)
+    if (!l.contrato?.id) return
+    if (!confirm(
+      `Encerrar o contrato ${l.contrato.numero}?\n\n` +
+      `Isso encerra o contrato e libera a caçamba ${l.cacamba?.codigo}. ` +
+      `Esta ação não pode ser desfeita.`
+    )) return
+    setErroAcao('')
+    try {
+      await api.put(`/contratos/${l.contrato.id}/status`, { status: 'ENCERRADO' })
+      load()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao encerrar contrato.')
+    }
   }
 
   const mudarStatus = async (id: string, novoStatus: string, origem?: string) => {
@@ -259,15 +328,52 @@ export default function Cacambas() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap" style={{ borderColor: '#F1EFE8' }}>
+                <div className="flex gap-2 mt-4 pt-4 border-t flex-wrap items-center" style={{ borderColor: '#F1EFE8' }}>
                   {l._origem === 'LOGISTICA' ? (
-                    <button
-                      onClick={() => navigate('/logistica')}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
-                      style={{ border: '1px solid #E0DDD8' }}
-                    >
-                      Gerenciar no módulo Logística →
-                    </button>
+                    <>
+                      <button
+                        onClick={() => navigate('/logistica')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        style={{ border: '1px solid #E0DDD8' }}
+                      >
+                        Gerenciar no módulo Logística →
+                      </button>
+                      {/* Menu de ações do contrato (... → Troca / Retirada) */}
+                      <div className="relative ml-auto" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setKebabOpen(kebabOpen === l.id ? null : l.id)}
+                          title="Mais ações"
+                          className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {kebabOpen === l.id && (
+                          <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-lg z-20 overflow-hidden" style={{ border: '1px solid #E0DDD8' }}>
+                            <button
+                              onClick={() => abrirRenovacao(l)}
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                            >
+                              <RefreshCw className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#FFAF06' }} />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">Troca</div>
+                                <div className="text-xs text-gray-500">Renovar o contrato {l.contrato?.numero}</div>
+                              </div>
+                            </button>
+                            <div style={{ borderTop: '1px solid #F1EFE8' }} />
+                            <button
+                              onClick={() => encerrarContrato(l)}
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors"
+                            >
+                              <ArrowDownLeft className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">Retirada</div>
+                                <div className="text-xs text-gray-500">Encerrar o contrato {l.contrato?.numero}</div>
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     l.status !== 'ENCERRADA' && (
                       <>
@@ -307,6 +413,68 @@ export default function Cacambas() {
 
       {trocaModal && (
         <TrocaModal locacao={trocaModal} onClose={() => setTrocaModal(null)} onSuccess={() => { setTrocaModal(null); load() }} />
+      )}
+
+      {renovarModal && (
+        <Modal onClose={() => setRenovarModal(null)}>
+          <div className="p-6">
+            <h2 className="font-display text-xl font-bold text-gray-900 mb-1">Renovar contrato {renovarModal.contrato.numero}</h2>
+            <p className="text-sm text-gray-500 mb-5">Estende o prazo e cria um registro de renovação no histórico.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Nova data de término</label>
+                <input
+                  type="date"
+                  value={renovarModal.novaDtFim}
+                  onChange={(e) => setRenovarModal((r: any) => ({ ...r, novaDtFim: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Novo valor (R$)</label>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={renovarModal.novoValor}
+                  onChange={(e) => setRenovarModal((r: any) => ({ ...r, novoValor: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0' }}
+                />
+                <p className="text-xs text-gray-400 mt-1">Mantenha o valor atual se não tiver reajuste.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Observações (opcional)</label>
+                <textarea
+                  rows={2}
+                  value={renovarModal.observacoes}
+                  onChange={(e) => setRenovarModal((r: any) => ({ ...r, observacoes: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+                  style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0' }}
+                  placeholder="Ex: troca de caçamba na obra X, reajuste IPCA, etc."
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                onClick={() => setRenovarModal(null)}
+                disabled={renovarModal.salvando}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                style={{ border: '1px solid #E0DDD8' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarRenovacao}
+                disabled={renovarModal.salvando || !renovarModal.novaDtFim || !renovarModal.novoValor}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50 flex items-center gap-2"
+                style={{ background: '#FFAF06' }}
+              >
+                {renovarModal.salvando && <Loader2 className="w-4 h-4 animate-spin" />}
+                Renovar contrato
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {showFechamento && (
