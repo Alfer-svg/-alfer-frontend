@@ -110,6 +110,25 @@ const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
+/** Abrevia razão social do emissor pro chip discreto no Financeiro.
+ * "ALBUQUERQUE E ARAUJO ENGENHARIA LTDA" → "Albuquerque e Araújo"
+ * "ALFER ALUGUEL DE CONTAINERS LTDA"     → "Alfer"
+ */
+function abreviarEmissor(razaoSocial: string): string {
+  if (!razaoSocial) return ''
+  const s = razaoSocial.toLowerCase()
+  if (s.startsWith('alfer')) return 'Alfer'
+  if (s.startsWith('albuquerque')) return 'Albuquerque'
+  // Genérico: primeiras 2 palavras "humanizadas"
+  return razaoSocial
+    .replace(/\bLTDA\b|\bS\.?A\.?\b|\bME\b|\bEIRELI\b/gi, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
+
 function limparTelefone(tel?: string): string {
   if (!tel) return ''
   const d = tel.replace(/\D/g, '')
@@ -385,6 +404,20 @@ export function Financeiro() {
                       {catLabel && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#F1EFE8', color: '#666' }}>
                           {catLabel}
+                        </span>
+                      )}
+                      {l.tipo === 'RECEITA' && l.contrato?.emissor && (
+                        // Chip discreto indicando emissor da fatura. Cinza pro padrão
+                        // (Alfer), âmbar suave pros demais (Albuquerque etc.).
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: l.contrato.emissor.padrao ? '#F1EFE8' : '#FEF3E2',
+                            color: l.contrato.emissor.padrao ? '#888' : '#633806',
+                          }}
+                          title={l.contrato.emissor.razaoSocial}
+                        >
+                          {l.contrato.emissor.nomeFantasia || abreviarEmissor(l.contrato.emissor.razaoSocial)}
                         </span>
                       )}
                       {l.recebimentoConfirmadoEm && (
