@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2 } from 'lucide-react'
 
 const CATEGORIAS: { v: string; l: string }[] = [
   { v: 'MANUTENCAO',         l: 'Manutenção' },
@@ -195,6 +195,9 @@ export function Financeiro() {
   const [filtroStatus, setFiltroStatus] = useState('')
   const [novaDespesaModal, setNovaDespesaModal] = useState(false)
   const [enviarEmailModal, setEnviarEmailModal] = useState<any>(null)
+  // Modal de troca de emissor da fatura
+  const [emissorModal, setEmissorModal] = useState<any>(null)
+  const [emissoresList, setEmissoresList] = useState<any[]>([])
 
   const carregar = () => {
     const params: any = {}
@@ -278,6 +281,53 @@ export function Financeiro() {
   const copiar = (texto: string, label: string) => {
     navigator.clipboard.writeText(texto)
     alert(`${label} copiado!`)
+  }
+
+  // Abre o modal pra trocar emissor de uma fatura. Só permitido se não PAGO.
+  const abrirModalEmissor = async (l: any) => {
+    if (l.status === 'PAGO') return
+    setErroAcao('')
+    // Lazy-load emissores
+    if (emissoresList.length === 0) {
+      try {
+        const r = await api.get('/emissores', { params: { ativo: 'true' } })
+        setEmissoresList((r.data || []).filter((e: any) => e.ativo))
+      } catch {}
+    }
+    const atual =
+      l.emissor?.id ||
+      l.contrato?.emissor?.id ||
+      null
+    setEmissorModal({ lanc: l, emissorId: atual })
+  }
+
+  const salvarTrocaEmissor = async () => {
+    if (!emissorModal) return
+    const { lanc, emissorId } = emissorModal
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${lanc.id}/emissor`, { emissorId })
+      // Se já tinha número de fatura, oferece renumerar pra usar a faixa do novo emissor
+      const podeRenumerar = lanc.status !== 'PAGO' && lanc.status !== 'CANCELADO' && lanc.numeroFatura
+      let renumerou = false
+      if (podeRenumerar) {
+        const novoEmissor = emissoresList.find((e) => e.id === emissorId)
+        const faixa = novoEmissor?.faturaInicio || '?'
+        if (confirm(
+          `Emissor atualizado. A fatura está numerada como NF ${lanc.numeroFatura}.\n\n` +
+          `Quer renumerar pra usar a faixa do emissor "${novoEmissor?.nomeFantasia || novoEmissor?.razaoSocial}" (${faixa}+)?\n\n` +
+          `O próximo PDF vai pegar o próximo número disponível.`
+        )) {
+          await api.post(`/financeiro/lancamentos/${lanc.id}/renumerar`)
+          renumerou = true
+        }
+      }
+      setEmissorModal(null)
+      await carregar()
+      if (renumerou) alert('Fatura renumerada. Gere o PDF de novo pra atribuir o novo número.')
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao trocar emissor')
+    }
   }
 
   const excluir = async (l: any) => {
@@ -406,20 +456,29 @@ export function Financeiro() {
                           {catLabel}
                         </span>
                       )}
-                      {l.tipo === 'RECEITA' && l.contrato?.emissor && (
-                        // Chip discreto indicando emissor da fatura. Cinza pro padrão
-                        // (Alfer), âmbar suave pros demais (Albuquerque etc.).
-                        <span
-                          className="text-[10px] px-1.5 py-0.5 rounded-full"
-                          style={{
-                            background: l.contrato.emissor.padrao ? '#F1EFE8' : '#FEF3E2',
-                            color: l.contrato.emissor.padrao ? '#888' : '#633806',
-                          }}
-                          title={l.contrato.emissor.razaoSocial}
-                        >
-                          {l.contrato.emissor.nomeFantasia || abreviarEmissor(l.contrato.emissor.razaoSocial)}
-                        </span>
-                      )}
+                      {l.tipo === 'RECEITA' && (l.emissor || l.contrato?.emissor) && (() => {
+                        // Override por lançamento tem prioridade sobre o do contrato.
+                        const em = l.emissor || l.contrato?.emissor
+                        const podeEditar = l.status !== 'PAGO'
+                        return (
+                          <button
+                            type="button"
+                            onClick={podeEditar ? () => abrirModalEmissor(l) : undefined}
+                            disabled={!podeEditar}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full transition ${podeEditar ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
+                            style={{
+                              background: em.padrao ? '#F1EFE8' : '#FEF3E2',
+                              color: em.padrao ? '#888' : '#633806',
+                            }}
+                            title={podeEditar
+                              ? `${em.razaoSocial} — clique pra trocar`
+                              : em.razaoSocial}
+                          >
+                            {em.nomeFantasia || abreviarEmissor(em.razaoSocial)}
+                            {l.emissor && <span style={{ marginLeft: 3, opacity: 0.6 }}>•</span>}
+                          </button>
+                        )
+                      })()}
                       {l.recebimentoConfirmadoEm && (
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
@@ -603,6 +662,97 @@ export function Financeiro() {
           onClose={() => setEnviarEmailModal(null)}
           onSent={() => { setEnviarEmailModal(null); carregar() }}
         />
+      )}
+
+      {/* Modal de troca de emissor (Multi-CNPJ) */}
+      {emissorModal && (
+        <Modal onClose={() => setEmissorModal(null)} maxWidth="max-w-md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5" style={{ color: '#FFAF06' }} />
+              Trocar emissor da fatura
+            </h2>
+            <button type="button" onClick={() => setEmissorModal(null)}>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-500 mb-4">
+            Define em nome de qual CNPJ esta fatura será emitida (override sobre o emissor do contrato).
+            {emissorModal.lanc.numeroFatura && (
+              <> Esta fatura tem o número <b>NF {emissorModal.lanc.numeroFatura}</b> — vou perguntar se você quer renumerar depois.</>
+            )}
+          </div>
+
+          {emissoresList.length === 0 ? (
+            <div className="text-sm text-gray-500 italic mb-4">Carregando emissores…</div>
+          ) : (
+            <div className="space-y-2 mb-4">
+              {emissoresList.map((em) => {
+                const sel = emissorModal.emissorId === em.id
+                return (
+                  <label
+                    key={em.id}
+                    className="flex items-start gap-3 rounded-xl p-3 cursor-pointer transition"
+                    style={{
+                      border: sel ? '1px solid #FFAF06' : '1px solid #E0DDD8',
+                      background: sel ? '#FEF3E2' : '#fff',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="emissor-troca"
+                      className="mt-1"
+                      checked={sel}
+                      onChange={() => setEmissorModal({ ...emissorModal, emissorId: em.id })}
+                      style={{ accentColor: '#FFAF06' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
+                        {em.padrao && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1"
+                                style={{ background: '#FEF3E2', color: '#633806' }}>
+                            <Star className="w-2.5 h-2.5 fill-current" /> Padrão
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        CNPJ {em.cnpj} · Fatura {em.faturaInicio}+
+                      </div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+          )}
+
+          {erroAcao && (
+            <div className="p-3 mb-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+                 style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEmissorModal(null)}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              style={{ border: '1px solid #E0DDD8' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={salvarTrocaEmissor}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900"
+              style={{ background: '#FFAF06' }}
+            >
+              Salvar
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )
