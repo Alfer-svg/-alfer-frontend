@@ -431,10 +431,13 @@ export function Financeiro() {
 
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="divide-y divide-gray-50">
-          {lancamentos.map((l) => {
+          {lancamentos.map((l, idx) => {
             const catLabel = l.categoria ? CATEGORIAS.find((c) => c.v === l.categoria)?.l : null
+            // Zebra discreta: alterna branco / creme muito sutil (#FBFAF7 — paleta
+            // quente do sistema) só pra dar respiro visual entre lançamentos.
+            const fundoAlternado = idx % 2 === 1 ? '#FBFAF7' : '#fff'
             return (
-              <div key={l.id} className="px-5 py-4">
+              <div key={l.id} className="px-5 py-4" style={{ background: fundoAlternado }}>
                 <div className="flex items-start gap-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-2`} style={{ background: l.tipo === 'RECEITA' ? '#27AE60' : '#E74C3C' }} />
                   <div className="flex-1 min-w-0">
