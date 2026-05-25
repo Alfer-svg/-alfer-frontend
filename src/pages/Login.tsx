@@ -1,13 +1,14 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { AlertCircle, Loader2, ArrowRight } from 'lucide-react'
+import { AlertCircle, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('admin@alferequipamentos.com.br')
   const [senha, setSenha] = useState('alfer2026')
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -96,17 +97,27 @@ export default function Login() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#555555' }}>Senha</label>
-                <input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0', color: '#1A1C1E' }}
-                  onFocus={(e) => { e.target.style.borderColor = '#FFAF06'; e.target.style.background = '#FFFFFF' }}
-                  onBlur={(e) => { e.target.style.borderColor = '#E8E5E0'; e.target.style.background = '#FAFAFA' }}
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={mostrarSenha ? 'text' : 'password'}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    required
+                    className="w-full pl-4 pr-12 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ background: '#FAFAFA', border: '1.5px solid #E8E5E0', color: '#1A1C1E' }}
+                    onFocus={(e) => { e.target.style.borderColor = '#FFAF06'; e.target.style.background = '#FFFFFF' }}
+                    onBlur={(e) => { e.target.style.borderColor = '#E8E5E0'; e.target.style.background = '#FAFAFA' }}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha((v) => !v)}
+                    aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {erro && (
