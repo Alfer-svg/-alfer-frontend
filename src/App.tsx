@@ -38,6 +38,7 @@ import OrdemServicoMunckDetalhe from './pages/OrdemServicoMunckDetalhe'
 import OrdensServicoPoli from './pages/OrdensServicoPoli'
 import OrdemServicoPoliDetalhe from './pages/OrdemServicoPoliDetalhe'
 import Usuarios from './pages/Usuarios'
+import Emissores from './pages/Emissores'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
 import RedefinirSenha from './pages/RedefinirSenha'
@@ -106,6 +107,7 @@ function AppRoutes() {
         <Route path="agenda" element={<Agenda />} />
         <Route path="mapa" element={<Mapa />} />
         <Route path="usuarios" element={<Usuarios />} />
+        <Route path="emissores" element={<Emissores />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

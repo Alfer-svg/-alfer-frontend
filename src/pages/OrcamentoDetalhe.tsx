@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
-import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown, Archive, ArchiveRestore } from 'lucide-react'
+import { Modal } from '../components/Modal'
+import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown, Archive, ArchiveRestore, X, Star } from 'lucide-react'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
@@ -44,6 +45,10 @@ export default function OrcamentoDetalhe() {
   const [loading, setLoading] = useState(true)
   const [acao, setAcao] = useState('')
   const [erro, setErro] = useState('')
+  // Modal de aprovação (escolha de emissor)
+  const [modalAprovar, setModalAprovar] = useState<null | { contexto: 'aprovar' | 'status' }>(null)
+  const [emissores, setEmissores] = useState<any[]>([])
+  const [emissorEscolhido, setEmissorEscolhido] = useState<string>('')
 
   const load = () => {
     if (!id) return
@@ -148,16 +153,43 @@ export default function OrcamentoDetalhe() {
     }
   }
 
-  const aprovar = async () => {
-    if (!confirm('Aprovar este orçamento? Será gerado automaticamente um pedido e um contrato (em rascunho).')) return
+  // Abre o modal de aprovação — carrega emissores ativos pra mostrar o seletor.
+  const abrirModalAprovar = async (contexto: 'aprovar' | 'status') => {
+    try {
+      const r = await api.get('/emissores', { params: { ativo: 'true' } })
+      const ativos = (r.data || []).filter((e: any) => e.ativo)
+      setEmissores(ativos)
+      // Default = padrão (Alfer)
+      const padrao = ativos.find((e: any) => e.padrao) || ativos[0]
+      setEmissorEscolhido(padrao?.id || '')
+      setModalAprovar({ contexto })
+    } catch {
+      // Se falhar (endpoint ainda não no ar), aprova com padrão direto
+      setEmissores([])
+      setEmissorEscolhido('')
+      setModalAprovar({ contexto })
+    }
+  }
+
+  const confirmarAprovacao = async () => {
+    if (!modalAprovar) return
     setErro(''); setAcao('aprovar')
     try {
-      const r = await api.post(`/orcamentos/${id}/aprovar`)
-      navigate(`/pedidos/${r.data.pedido.id}`)
+      if (modalAprovar.contexto === 'aprovar') {
+        const r = await api.post(`/orcamentos/${id}/aprovar`, { emissorId: emissorEscolhido || undefined })
+        setModalAprovar(null)
+        navigate(`/pedidos/${r.data.pedido.id}`)
+      } else {
+        await api.put(`/orcamentos/${id}/status`, { status: 'APROVADO', emissorId: emissorEscolhido || undefined })
+        setModalAprovar(null)
+        load()
+      }
     }
     catch (err: any) { setErro(err.response?.data?.message || 'Erro ao aprovar.') }
     finally { setAcao('') }
   }
+
+  const aprovar = () => abrirModalAprovar('aprovar')
 
   const recusar = async () => {
     const motivo = prompt('Motivo da recusa (opcional):')
@@ -193,13 +225,14 @@ export default function OrcamentoDetalhe() {
 
   const mudarStatus = async (novoStatus: string) => {
     if (novoStatus === o.status) return
+    // Se vai gerar pedido+contrato, abre modal pra escolher emissor
+    if (novoStatus === 'APROVADO' && !o.pedido) {
+      return abrirModalAprovar('status')
+    }
     const labels: Record<string, string> = {
       RASCUNHO: 'Rascunho', ENVIADO: 'Enviado', APROVADO: 'Aprovado', RECUSADO: 'Recusado', EXPIRADO: 'Expirado',
     }
-    let confirmMsg = `Mudar status de "${labels[o.status]}" para "${labels[novoStatus]}"?`
-    if (novoStatus === 'APROVADO' && !o.pedido) {
-      confirmMsg += '\n\n⚠ Como ainda não existe pedido pra este orçamento, isso vai GERAR automaticamente o pedido e o contrato (em rascunho).'
-    }
+    const confirmMsg = `Mudar status de "${labels[o.status]}" para "${labels[novoStatus]}"?`
     if (!confirm(confirmMsg)) return
     setErro(''); setAcao('status')
     try {
@@ -461,6 +494,96 @@ export default function OrcamentoDetalhe() {
           <h2 className="font-semibold text-gray-900 mb-3">Observações</h2>
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{o.observacoes}</p>
         </div>
+      )}
+
+      {/* Modal de aprovação — escolha do emissor (Multi-CNPJ) */}
+      {modalAprovar && (
+        <Modal onClose={() => setModalAprovar(null)} maxWidth="max-w-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-gray-900">Aprovar orçamento</h2>
+            <button type="button" onClick={() => setModalAprovar(null)}>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Será gerado automaticamente um <b>pedido</b> e um <b>contrato</b> (em rascunho).
+            Escolha em nome de qual empresa o <b>contrato, fatura e boleto</b> serão emitidos.
+          </p>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-xs text-orange-800">
+            <b>Importante:</b> o cliente continua falando com Alfer (mesmo e-mail, mesmo WhatsApp).
+            Só o conteúdo dos 3 documentos é que mostra esse CNPJ.
+          </div>
+
+          {emissores.length === 0 ? (
+            <div className="text-sm text-gray-500 italic mb-4">
+              Nenhum emissor cadastrado. Vai usar o emissor padrão (Alfer) automaticamente.
+            </div>
+          ) : (
+            <div className="space-y-2 mb-4">
+              <label className="text-xs font-semibold text-gray-700">Emitir em nome de:</label>
+              {emissores.map((em) => (
+                <label
+                  key={em.id}
+                  className={`flex items-start gap-3 border rounded-lg p-3 cursor-pointer transition ${
+                    emissorEscolhido === em.id
+                      ? 'border-orange-400 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="emissor"
+                    className="mt-1"
+                    checked={emissorEscolhido === em.id}
+                    onChange={() => setEmissorEscolhido(em.id)}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
+                      {em.padrao && (
+                        <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-current" /> Padrão
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 font-mono">{em.cnpj}</div>
+                    <div className="text-xs text-gray-500">
+                      Fatura inicia em {em.faturaInicio}
+                      {em.interClientId ? ' · boleto Inter: ✓' : ' · boleto Inter: pendente'}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {erro && (
+            <div className="flex items-center gap-2 bg-red-50 text-red-700 text-sm px-3 py-2 rounded mb-3">
+              <AlertCircle className="w-4 h-4" /> {erro}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setModalAprovar(null)}
+              className="px-4 py-2 text-gray-700 rounded hover:bg-gray-100"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmarAprovacao}
+              disabled={!!acao}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {acao === 'aprovar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Aprovar e gerar contrato
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )
