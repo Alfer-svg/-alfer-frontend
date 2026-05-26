@@ -350,17 +350,25 @@ export default function NovoOrcamento() {
                   {equipamentos
                     .filter((e) => !equipamentoIds.includes(e.id))
                     .map((e) => {
-                      // Visual: 🔴 LOCADO  ·  🟡 MANUTENCAO  ·  ⚫ DESCARTADO  ·  ✅ DISPONIVEL (sem prefixo)
-                      const prefixo = e.status === 'LOCADO' ? '🔴 LOCADO  ·  ' :
-                                       e.status === 'MANUTENCAO' ? '🟡 MANUTENÇÃO  ·  ' :
-                                       e.status === 'DESCARTADO' ? '⚫ DESCARTADO  ·  ' : ''
-                      // Style inline funciona em Safari/Firefox (Chrome ignora style em <option>)
-                      const bg = e.status === 'LOCADO' ? '#FDEEEE' :
-                                  e.status === 'MANUTENCAO' ? '#FEF3E2' :
-                                  e.status === 'DESCARTADO' ? '#F1EFE8' : undefined
-                      const cor = e.status === 'LOCADO' ? '#8B0000' :
-                                   e.status === 'MANUTENCAO' ? '#633806' :
-                                   e.status === 'DESCARTADO' ? '#888' : undefined
+                      // Detecta "ocupado": status LOCADO no banco OU tem ContratoEquipamento
+                      // em contrato ATIVO/VENCENDO (status do equipamento só muda na
+                      // mobilização da logística, mas pra fins de orçamento o que importa
+                      // é se já tem contrato vivo cobrindo esse equipamento).
+                      const emContratoAtivo = (e.contratosEquip || []).some((ce: any) =>
+                        ce.contrato && (ce.contrato.status === 'ATIVO' || ce.contrato.status === 'VENCENDO')
+                      )
+                      const efetivoStatus = e.status === 'LOCADO' || emContratoAtivo ? 'LOCADO' : e.status
+
+                      // Visual: 🔴 LOCADO  ·  🟡 MANUTENÇÃO  ·  ⚫ DESCARTADO  ·  ✅ DISPONIVEL (sem prefixo)
+                      const prefixo = efetivoStatus === 'LOCADO' ? '🔴 LOCADO  ·  ' :
+                                       efetivoStatus === 'MANUTENCAO' ? '🟡 MANUTENÇÃO  ·  ' :
+                                       efetivoStatus === 'DESCARTADO' ? '⚫ DESCARTADO  ·  ' : ''
+                      const bg = efetivoStatus === 'LOCADO' ? '#FDEEEE' :
+                                  efetivoStatus === 'MANUTENCAO' ? '#FEF3E2' :
+                                  efetivoStatus === 'DESCARTADO' ? '#F1EFE8' : undefined
+                      const cor = efetivoStatus === 'LOCADO' ? '#8B0000' :
+                                   efetivoStatus === 'MANUTENCAO' ? '#633806' :
+                                   efetivoStatus === 'DESCARTADO' ? '#888' : undefined
                       return (
                         <option key={e.id} value={e.id} style={bg ? { background: bg, color: cor } : undefined}>
                           {prefixo}{e.codigo} — {e.modelo}
