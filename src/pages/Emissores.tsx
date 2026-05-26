@@ -136,10 +136,7 @@ export default function Emissores() {
             <div key={em.id}
                  className="bg-white rounded-2xl p-5 flex items-center gap-4 animate-fade-in"
                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: '#FEF3E2' }}>
-                <Building2 className="w-5 h-5" style={{ color: '#FFAF06' }} />
-              </div>
+              <EmissorAvatar emissor={em} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-1 flex-wrap">
                   <span className="font-semibold text-gray-900 text-sm">{em.razaoSocial}</span>
@@ -403,5 +400,36 @@ function Input({ value, onChange, type = 'text', placeholder, required, maxLengt
       className="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none focus:ring-2"
       style={{ border: '1px solid #E0DDD8', ['--tw-ring-color' as any]: '#FFD580' }}
     />
+  )
+}
+
+/**
+ * Avatar quadrado do emissor — usa a logo do backend (servida via
+ * /emissores/:id/logo) com fallback pro ícone de prédio se a logo
+ * não carregar ou não estiver configurada.
+ */
+function EmissorAvatar({ emissor }: { emissor: Emissor }) {
+  const [erroLogo, setErroLogo] = useState(false)
+  // Endpoint público no backend (logo aparece em PDFs que o cliente recebe).
+  const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '')
+  const src = `${baseUrl}/emissores/${emissor.id}/logo`
+  if (erroLogo) {
+    return (
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+           style={{ background: '#FEF3E2' }}>
+        <Building2 className="w-5 h-5" style={{ color: '#FFAF06' }} />
+      </div>
+    )
+  }
+  return (
+    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+         style={{ background: '#FFF' }}>
+      <img
+        src={src}
+        alt={emissor.razaoSocial}
+        className="w-full h-full object-contain"
+        onError={() => setErroLogo(true)}
+      />
+    </div>
   )
 }
