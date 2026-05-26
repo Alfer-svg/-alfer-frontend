@@ -44,6 +44,7 @@ const nav: NavItem[] = [
     basePath: '/financeiro',
     children: [
       { to: '/financeiro', label: 'Lançamentos' },
+      { to: '/relatorios', label: 'Relatórios' },
       { to: '/fornecedores', label: 'Fornecedores' },
       { to: '/emissores', label: 'Emissores (CNPJs)' },
     ],
