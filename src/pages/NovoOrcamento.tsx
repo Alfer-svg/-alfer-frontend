@@ -16,11 +16,12 @@ export default function NovoOrcamento() {
   const [clientes, setClientes] = useState<any[]>([])
   const [equipamentos, setEquipamentos] = useState<any[]>([])
   const [novoClienteModal, setNovoClienteModal] = useState(false)
-  // Lista de equipamentos vinculados ao orçamento (M2M). O campo `equipamentoId`
-  // do form continua existindo só pra compat com lugares antigos.
-  const [equipamentoIds, setEquipamentoIds] = useState<string[]>([])
+  // Lista de equipamentos vinculados ao orçamento (M2M, com valor por item).
+  // O campo `equipamentoId` do form continua existindo só pra compat.
+  const [equipamentosForm, setEquipamentosForm] = useState<{ equipamentoId: string; valor: string }[]>([])
   // Equipamento selecionado no dropdown (pré-adição). Botão "+" adiciona à lista.
   const [equipParaAdicionar, setEquipParaAdicionar] = useState('')
+  const equipamentoIds = equipamentosForm.map((e) => e.equipamentoId) // helper
   const [form, setForm] = useState({
     clienteId: '',
     equipamentoId: '',
@@ -153,11 +154,16 @@ export default function NovoOrcamento() {
           observacoes: o.observacoes || '',
         })
         setCondicoes(Array.isArray(o.condicoes) && o.condicoes.length ? o.condicoes : [''])
-        // Carrega equipamentos vinculados (M2M) — fallback pro equipamentoId legado.
-        const ids: string[] = Array.isArray(o.equipamentos) && o.equipamentos.length
-          ? o.equipamentos.map((oe: any) => oe.equipamentoId || oe.equipamento?.id).filter(Boolean)
-          : (o.equipamentoId ? [o.equipamentoId] : [])
-        setEquipamentoIds(ids)
+        // Carrega equipamentos vinculados (M2M) com valor por item — fallback pro
+        // equipamentoId legado se a M2M estiver vazia.
+        const itens: { equipamentoId: string; valor: string }[] =
+          Array.isArray(o.equipamentos) && o.equipamentos.length
+            ? o.equipamentos.map((oe: any) => ({
+                equipamentoId: oe.equipamentoId || oe.equipamento?.id,
+                valor: oe.valor != null ? String(Number(oe.valor)) : '',
+              })).filter((x: any) => x.equipamentoId)
+            : (o.equipamentoId ? [{ equipamentoId: o.equipamentoId, valor: '' }] : [])
+        setEquipamentosForm(itens)
       })
       .finally(() => setCarregando(false))
   }, [id, isEdit])
@@ -185,10 +191,13 @@ export default function NovoOrcamento() {
     try {
       const payload = {
         clienteId: form.clienteId,
-        // Multi-equipamento (M2M). Mantém também equipamentoId pro primeiro pra
-        // compat com leitores antigos do backend/frontend.
-        equipamentoIds: equipamentoIds,
-        equipamentoId: equipamentoIds[0] || null,
+        // Multi-equipamento (M2M) com valor por item. Backend usa a soma quando
+        // pelo menos um item tem valor; senão usa o `valor` único do orçamento.
+        equipamentos: equipamentosForm.map((e) => ({
+          equipamentoId: e.equipamentoId,
+          valor: e.valor && Number(e.valor) > 0 ? Number(e.valor) : null,
+        })),
+        equipamentoId: equipamentosForm[0]?.equipamentoId || null,
         descricao: form.descricao || null,
         valor,
         desconto: desconto || null,
@@ -263,34 +272,65 @@ export default function NovoOrcamento() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Equipamentos (opcional)</label>
-              {/* Lista de chips dos equipamentos vinculados */}
-              {equipamentoIds.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {equipamentoIds.map((eid) => {
-                    const e = equipamentos.find((x) => x.id === eid)
+              {/* Lista de equipamentos vinculados — cada um com seu valor mensal */}
+              {equipamentosForm.length > 0 && (
+                <div className="space-y-2 mb-2">
+                  {equipamentosForm.map((item, idx) => {
+                    const e = equipamentos.find((x) => x.id === item.equipamentoId)
                     return (
-                      <span
-                        key={eid}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm"
-                        style={{ background: '#FEF3E2', color: '#633806', border: '1px solid #FFD580' }}
+                      <div
+                        key={item.equipamentoId}
+                        className="flex items-center gap-2 p-3 rounded-xl"
+                        style={{ background: '#FEF3E2', border: '1px solid #FFD580' }}
                       >
-                        {e ? `${e.codigo} — ${e.modelo}` : eid}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium" style={{ color: '#633806' }}>
+                            {e ? `${e.codigo} — ${e.modelo}` : item.equipamentoId}
+                          </div>
+                          {e?.capacidade && (
+                            <div className="text-xs" style={{ color: '#8B5A1F' }}>{e.capacidade}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium" style={{ color: '#633806' }}>R$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.valor}
+                            onChange={(ev) => {
+                              const v = ev.target.value
+                              setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, valor: v } : it))
+                            }}
+                            placeholder="0,00"
+                            className="w-28 px-2 py-1.5 rounded-lg text-sm outline-none focus:ring-2 text-right"
+                            style={{ border: '1px solid #FFD580', background: '#fff', ['--tw-ring-color' as any]: '#FFAF06' }}
+                          />
+                          <span className="text-xs" style={{ color: '#633806' }}>/{form.periodicidade.toLowerCase()}</span>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setEquipamentoIds((ids) => ids.filter((x) => x !== eid))}
-                          className="hover:opacity-70"
+                          onClick={() => setEquipamentosForm((cur) => cur.filter((_, i) => i !== idx))}
+                          className="ml-2 p-1 hover:opacity-70"
                           title="Remover"
+                          style={{ color: '#633806' }}
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-4 h-4" />
                         </button>
-                      </span>
+                      </div>
                     )
                   })}
+                  {equipamentosForm.some((e) => e.valor && Number(e.valor) > 0) && (
+                    <div className="flex justify-end items-baseline gap-2 px-3 text-sm">
+                      <span className="text-gray-500">Total dos equipamentos:</span>
+                      <span className="font-bold text-gray-900">
+                        R$ {equipamentosForm.reduce((s, e) => s + (Number(e.valor) || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
-              {/* Select + botão "+" pra adicionar à lista. Padrão explícito —
-                  evita o problema de selects controlados que não resetam em
-                  alguns browsers. */}
+              {/* Select + botão "+" pra adicionar à lista */}
               <div className="flex gap-2">
                 <select
                   value={equipParaAdicionar}
@@ -299,7 +339,7 @@ export default function NovoOrcamento() {
                   style={inputStyle}
                 >
                   <option value="">
-                    {equipamentoIds.length === 0
+                    {equipamentosForm.length === 0
                       ? '— Selecione um equipamento —'
                       : '— Selecione outro pra adicionar —'}
                   </option>
@@ -313,21 +353,21 @@ export default function NovoOrcamento() {
                   type="button"
                   onClick={() => {
                     if (equipParaAdicionar && !equipamentoIds.includes(equipParaAdicionar)) {
-                      setEquipamentoIds((ids) => [...ids, equipParaAdicionar])
+                      setEquipamentosForm((cur) => [...cur, { equipamentoId: equipParaAdicionar, valor: '' }])
                       setEquipParaAdicionar('')
                     }
                   }}
                   disabled={!equipParaAdicionar}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90 disabled:opacity-40 whitespace-nowrap"
                   style={{ background: '#FFAF06' }}
-                  title="Adicionar à lista"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Locação com vários equipamentos? Adicione um por vez — todos vão pro contrato e pra fatura.
+                Preenchendo valor por equipamento, o valor do orçamento vira a soma automaticamente.
+                Deixe vazio pra usar o "Valor" único abaixo.
               </p>
             </div>
             <div>
