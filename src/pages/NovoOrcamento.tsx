@@ -349,9 +349,24 @@ export default function NovoOrcamento() {
                   </option>
                   {equipamentos
                     .filter((e) => !equipamentoIds.includes(e.id))
-                    .map((e) => (
-                      <option key={e.id} value={e.id}>{e.codigo} — {e.modelo}{e.status && e.status !== 'DISPONIVEL' ? ` (${e.status})` : ''}</option>
-                    ))}
+                    .map((e) => {
+                      // Visual: 🔴 LOCADO  ·  🟡 MANUTENCAO  ·  ⚫ DESCARTADO  ·  ✅ DISPONIVEL (sem prefixo)
+                      const prefixo = e.status === 'LOCADO' ? '🔴 LOCADO  ·  ' :
+                                       e.status === 'MANUTENCAO' ? '🟡 MANUTENÇÃO  ·  ' :
+                                       e.status === 'DESCARTADO' ? '⚫ DESCARTADO  ·  ' : ''
+                      // Style inline funciona em Safari/Firefox (Chrome ignora style em <option>)
+                      const bg = e.status === 'LOCADO' ? '#FDEEEE' :
+                                  e.status === 'MANUTENCAO' ? '#FEF3E2' :
+                                  e.status === 'DESCARTADO' ? '#F1EFE8' : undefined
+                      const cor = e.status === 'LOCADO' ? '#8B0000' :
+                                   e.status === 'MANUTENCAO' ? '#633806' :
+                                   e.status === 'DESCARTADO' ? '#888' : undefined
+                      return (
+                        <option key={e.id} value={e.id} style={bg ? { background: bg, color: cor } : undefined}>
+                          {prefixo}{e.codigo} — {e.modelo}
+                        </option>
+                      )
+                    })}
                 </select>
                 <button
                   type="button"
