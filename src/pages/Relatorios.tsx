@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
-import { BarChart3, TrendingUp, Users, Building2, AlertTriangle, Loader2, Grid3X3 } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, Building2, AlertTriangle, Loader2, Grid3X3, Package } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function Relatorios() {
-  const [aba, setAba] = useState<'fluxo' | 'aging' | 'cliente' | 'emissor' | 'mensal_emissor'>('fluxo')
+  const [aba, setAba] = useState<'fluxo' | 'aging' | 'cliente' | 'emissor' | 'mensal_emissor' | 'equipamento'>('fluxo')
   const [ano, setAno] = useState(new Date().getFullYear())
   const [emissores, setEmissores] = useState<any[]>([])
   const [filtroEmissor, setFiltroEmissor] = useState('')
@@ -63,6 +63,7 @@ export default function Relatorios() {
           { v: 'fluxo',          l: 'Fluxo mensal',     icon: TrendingUp },
           { v: 'aging',          l: 'A receber',        icon: AlertTriangle },
           { v: 'cliente',        l: 'Por cliente',      icon: Users },
+          { v: 'equipamento',    l: 'Por equipamento',  icon: Package },
           { v: 'emissor',        l: 'Por emissor',      icon: Building2 },
           { v: 'mensal_emissor', l: 'Mensal × emissor', icon: Grid3X3 },
         ].map((t) => {
@@ -88,6 +89,7 @@ export default function Relatorios() {
       {aba === 'fluxo'          && <RelatorioFluxo ano={ano} />}
       {aba === 'aging'          && <RelatorioAging emissorId={filtroEmissor} />}
       {aba === 'cliente'        && <RelatorioPorCliente ano={ano} emissorId={filtroEmissor} />}
+      {aba === 'equipamento'    && <RelatorioPorEquipamento ano={ano} emissorId={filtroEmissor} />}
       {aba === 'emissor'        && <RelatorioPorEmissor ano={ano} />}
       {aba === 'mensal_emissor' && <RelatorioMensalPorEmissor ano={ano} />}
     </div>
@@ -356,6 +358,78 @@ function RelatorioPorEmissor({ ano }: { ano: number }) {
                 </div>
               )
             })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: string }) {
+  const [data, setData] = useState<any[] | null>(null)
+  useEffect(() => {
+    setData(null)
+    const params: any = { ano }
+    if (emissorId) params.emissorId = emissorId
+    api.get('/financeiro/relatorios/por-equipamento', { params }).then((r) => setData(r.data))
+  }, [ano, emissorId])
+
+  if (!data) return <Loading />
+  const total = data.reduce((s, e) => s + e.totalFaturado, 0)
+  const max = Math.max(1, ...data.map((e) => e.totalFaturado))
+  const tipoLabel: Record<string, string> = {
+    GUINDASTE: 'Guindaste',
+    CONTAINER_SECO: 'Container Seco',
+    CONTAINER_REEFER: 'Container Reefer',
+    CACAMBA: 'Caçamba',
+    CACAMBA_ESTACIONARIA: 'Caçamba Estacionária',
+    CAMINHAO_MUNCK: 'Caminhão Munck',
+    CAMINHAO_POLIGUINDASTE: 'Caminhão Poliguindaste',
+    CAMINHAO_CAVALO_MECANICO: 'Cavalo Mecânico',
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div className="flex items-baseline justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-gray-900">Faturamento por equipamento em {ano}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {data.length} equipamento(s) com receita · valores distribuídos por contrato
+            </p>
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{fmt(total)}</div>
+        </div>
+        {data.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">Nenhum faturamento por equipamento no período</div>
+        ) : (
+          <div className="space-y-2">
+            {data.map((e) => (
+              <div key={e.equipamentoId} className="py-2 border-b last:border-0" style={{ borderColor: '#F1EFE8' }}>
+                <div className="flex items-baseline gap-3 mb-1 flex-wrap">
+                  <span className="font-semibold text-gray-900 text-sm">{e.codigo}</span>
+                  <span className="text-sm text-gray-700 flex-1 truncate">{e.modelo}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ background: '#F1EFE8', color: '#666' }}>
+                    {tipoLabel[e.tipo] || e.tipo}
+                  </span>
+                  <span className="text-xs text-gray-500 w-20 text-right">{e.quantidadeFaturas} fatura(s)</span>
+                  <span className="font-bold text-gray-900 w-32 text-right">{fmt(e.totalFaturado)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full" style={{ width: `${(e.totalFaturado / max) * 100}%`, background: '#FFAF06' }} />
+                  </div>
+                  <span className="text-[10px] text-gray-500 w-40 text-right">
+                    Pago {fmt(e.totalPago)} · A receber {fmt(e.aReceber)}
+                  </span>
+                </div>
+                {e.ultimoFaturamento && (
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    Última fatura: {fmtDate(e.ultimoFaturamento)}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
