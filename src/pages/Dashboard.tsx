@@ -15,7 +15,7 @@ interface DashData {
   contratos: { ativos: number; vencendoEm30: number }
   financeiro: { receitaMes: number; aReceber: { valor: number; count: number }; inadimplentes: number }
   operacoes: { hoje: number }
-  cacambas: { locadas: number; cheias: number }
+  cacambas: { locadas: number; cheias: number; total?: number }
 }
 
 interface Alerta {
@@ -178,7 +178,7 @@ export default function Dashboard() {
               {[
                 { label: 'Equipamentos locados', value: data.frota.locados, total: data.frota.total, color: '#FFAF06' },
                 { label: 'Caminhões em operação', value: data.caminhoes.emOperacao, total: data.caminhoes.total, color: '#2D80D1' },
-                { label: 'Caçambas locadas', value: data.cacambas.locadas, total: data.frota.total, color: '#9B59B6' },
+                { label: 'Caçambas locadas', value: data.cacambas.locadas, total: data.cacambas.total ?? 0, color: '#9B59B6' },
               ].map((item) => (
                 <div key={item.label}>
                   <div className="flex justify-between text-sm mb-1.5">
