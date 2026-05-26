@@ -171,6 +171,44 @@ export default function ContratoDetalhe() {
               <Send className="w-3 h-3" /> Enviar pra assinatura
             </button>
           )}
+          {/* Upload manual do PDF assinado (Adobe Pro, papel + scan etc.) */}
+          {signStatus?.signStatus !== 'ASSINADO' && (
+            <label
+              title="Já assinou em outra ferramenta (Adobe Pro, DocuSign, papel/scan)? Faz upload aqui."
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 cursor-pointer"
+              style={{ background: '#FFAF06' }}
+            >
+              <FileDown className="w-3 h-3 rotate-180" /> Upload PDF assinado
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                onChange={async (ev) => {
+                  const file = ev.target.files?.[0]
+                  if (!file) return
+                  if (file.size > 20 * 1024 * 1024) {
+                    setErroSign('PDF excede 20MB')
+                    ev.target.value = ''
+                    return
+                  }
+                  if (!confirm(`Confirma upload de "${file.name}" como contrato assinado?\nO contrato será marcado como ASSINADO.`)) {
+                    ev.target.value = ''
+                    return
+                  }
+                  setErroSign('')
+                  try {
+                    const buf = await file.arrayBuffer()
+                    const pdfBase64 = btoa(new Uint8Array(buf).reduce((s, b) => s + String.fromCharCode(b), ''))
+                    await api.post(`/contratos/${id}/upload-pdf-assinado`, { pdfBase64 })
+                    load()
+                  } catch (e: any) {
+                    setErroSign(e.response?.data?.message || 'Erro ao fazer upload')
+                  }
+                  ev.target.value = ''
+                }}
+              />
+            </label>
+          )}
           {c?.tipoModelo === 'CAMINHAO_MUNCK' && (
             <button
               onClick={() => navigate(`/ordens-servico/munck/nova?contratoId=${id}`)}
