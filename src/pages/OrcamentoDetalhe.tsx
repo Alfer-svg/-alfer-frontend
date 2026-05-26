@@ -420,11 +420,27 @@ export default function OrcamentoDetalhe() {
           )}
         </div>
 
-        {o.equipamento && (
+        {(o.equipamentos?.length > 0 || o.equipamento) && (
           <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Package className="w-4 h-4" /> Equipamento</h2>
-            <p className="text-sm font-medium text-gray-700">{o.equipamento.codigo} — {o.equipamento.modelo}</p>
-            <p className="text-xs text-gray-400">{o.equipamento.capacidade}</p>
+            <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              {((o.equipamentos?.length || 0) > 1) ? `Equipamentos (${o.equipamentos.length})` : 'Equipamento'}
+            </h2>
+            {o.equipamentos?.length > 0 ? (
+              <div className="space-y-1.5">
+                {o.equipamentos.map((oe: any) => (
+                  <div key={oe.equipamentoId} className="flex items-baseline gap-2">
+                    <span className="text-sm font-medium text-gray-700">{oe.equipamento?.codigo} — {oe.equipamento?.modelo}</span>
+                    {oe.equipamento?.capacidade && <span className="text-xs text-gray-400">({oe.equipamento.capacidade})</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-700">{o.equipamento.codigo} — {o.equipamento.modelo}</p>
+                <p className="text-xs text-gray-400">{o.equipamento.capacidade}</p>
+              </>
+            )}
           </div>
         )}
       </div>

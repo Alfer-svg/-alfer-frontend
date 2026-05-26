@@ -16,6 +16,9 @@ export default function NovoOrcamento() {
   const [clientes, setClientes] = useState<any[]>([])
   const [equipamentos, setEquipamentos] = useState<any[]>([])
   const [novoClienteModal, setNovoClienteModal] = useState(false)
+  // Lista de equipamentos vinculados ao orçamento (M2M). O campo `equipamentoId`
+  // do form continua existindo só pra compat com lugares antigos.
+  const [equipamentoIds, setEquipamentoIds] = useState<string[]>([])
   const [form, setForm] = useState({
     clienteId: '',
     equipamentoId: '',
@@ -146,6 +149,11 @@ export default function NovoOrcamento() {
           observacoes: o.observacoes || '',
         })
         setCondicoes(Array.isArray(o.condicoes) && o.condicoes.length ? o.condicoes : [''])
+        // Carrega equipamentos vinculados (M2M) — fallback pro equipamentoId legado.
+        const ids: string[] = Array.isArray(o.equipamentos) && o.equipamentos.length
+          ? o.equipamentos.map((oe: any) => oe.equipamentoId || oe.equipamento?.id).filter(Boolean)
+          : (o.equipamentoId ? [o.equipamentoId] : [])
+        setEquipamentoIds(ids)
       })
       .finally(() => setCarregando(false))
   }, [id, isEdit])
@@ -173,7 +181,10 @@ export default function NovoOrcamento() {
     try {
       const payload = {
         clienteId: form.clienteId,
-        equipamentoId: form.equipamentoId || null,
+        // Multi-equipamento (M2M). Mantém também equipamentoId pro primeiro pra
+        // compat com leitores antigos do backend/frontend.
+        equipamentoIds: equipamentoIds,
+        equipamentoId: equipamentoIds[0] || null,
         descricao: form.descricao || null,
         valor,
         desconto: desconto || null,
@@ -246,10 +257,54 @@ export default function NovoOrcamento() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Equipamento (opcional)</label>
-              <select value={form.equipamentoId} onChange={(e) => set('equipamentoId', e.target.value)} className={inputCls} style={inputStyle}>
-                <option value="">— Sem equipamento específico —</option>
-                {equipamentos.map((e) => <option key={e.id} value={e.id}>{e.codigo} — {e.modelo}</option>)}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Equipamentos (opcional)</label>
+              {/* Lista de chips dos equipamentos vinculados */}
+              {equipamentoIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {equipamentoIds.map((eid) => {
+                    const e = equipamentos.find((x) => x.id === eid)
+                    return (
+                      <span
+                        key={eid}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm"
+                        style={{ background: '#FEF3E2', color: '#633806', border: '1px solid #FFD580' }}
+                      >
+                        {e ? `${e.codigo} — ${e.modelo}` : eid}
+                        <button
+                          type="button"
+                          onClick={() => setEquipamentoIds((ids) => ids.filter((x) => x !== eid))}
+                          className="hover:opacity-70"
+                          title="Remover"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              {/* Select pra adicionar um novo equipamento à lista */}
+              <select
+                value=""
+                onChange={(e) => {
+                  const id = e.target.value
+                  if (id && !equipamentoIds.includes(id)) {
+                    setEquipamentoIds((ids) => [...ids, id])
+                  }
+                }}
+                className={inputCls}
+                style={inputStyle}
+              >
+                <option value="">
+                  {equipamentoIds.length === 0
+                    ? '— Selecione pra adicionar (ou deixe vazio) —'
+                    : '+ Adicionar outro equipamento'}
+                </option>
+                {equipamentos
+                  .filter((e) => !equipamentoIds.includes(e.id))
+                  .map((e) => (
+                    <option key={e.id} value={e.id}>{e.codigo} — {e.modelo}</option>
+                  ))}
               </select>
             </div>
             <div>
