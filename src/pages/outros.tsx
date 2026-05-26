@@ -996,6 +996,9 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
   })
   // Anexos extras enviados pelo usuário (boleto manual etc.)
   const [anexosExtras, setAnexosExtras] = useState<{ filename: string; content: string; contentType: string; size: number }[]>([])
+  // Quando enviar: agora ou agendar
+  const [quando, setQuando] = useState<'agora' | 'agendar'>('agora')
+  const [dataAgendada, setDataAgendada] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -1036,13 +1039,27 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
   const enviar = async (e: FormEvent) => {
     e.preventDefault()
     if (!form.destinatario || !/.+@.+/.test(form.destinatario)) return setErro('E-mail destinatário inválido')
+    if (quando === 'agendar') {
+      if (!dataAgendada) return setErro('Defina a data/hora pro agendamento')
+      if (new Date(dataAgendada) <= new Date()) return setErro('Data/hora precisa ser no futuro')
+    }
     setEnviando(true); setErro('')
     try {
-      const r = await api.post(`/email/lancamentos/${lancamento.id}/enviar`, {
+      const payload = {
         ...form,
         anexosExtras: anexosExtras.map(({ filename, content, contentType }) => ({ filename, content, contentType })),
-      })
-      alert(`✓ E-mail enviado pra ${form.destinatario}\n${r.data.anexos || 0} anexo(s)`)
+      }
+      if (quando === 'agendar') {
+        await api.post(`/email/lancamentos/${lancamento.id}/agendar`, {
+          ...payload,
+          dataAgendada,
+        })
+        const quandoFmt = new Date(dataAgendada).toLocaleString('pt-BR')
+        alert(`✓ E-mail agendado pra ${quandoFmt}\nPra ${form.destinatario}`)
+      } else {
+        const r = await api.post(`/email/lancamentos/${lancamento.id}/enviar`, payload)
+        alert(`✓ E-mail enviado pra ${form.destinatario}\n${r.data.anexos || 0} anexo(s)`)
+      }
       onSent()
     } catch (e: any) {
       setErro(e.response?.data?.message || 'Erro ao enviar e-mail')
@@ -1180,18 +1197,50 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
           <p className="text-[10px] text-gray-400">Aceita PDF/PNG/JPG, até 10MB por arquivo.</p>
         </div>
 
+        {/* Quando enviar: agora ou agendar */}
+        <div className="p-3 rounded-xl space-y-2" style={{ background: '#F9F7F4', border: '1px solid #E0DDD8' }}>
+          <div className="text-xs font-medium text-gray-700">📅 Quando enviar</div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="quando" checked={quando === 'agora'} onChange={() => setQuando('agora')} style={{ accentColor: '#FFAF06' }} />
+              Agora
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="quando" checked={quando === 'agendar'} onChange={() => setQuando('agendar')} style={{ accentColor: '#FFAF06' }} />
+              Agendar
+            </label>
+          </div>
+          {quando === 'agendar' && (
+            <>
+              <input
+                type="datetime-local"
+                value={dataAgendada}
+                onChange={(e) => setDataAgendada(e.target.value)}
+                min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none bg-white"
+                style={{ border: '1px solid #E0DDD8' }}
+              />
+              <p className="text-[10px] text-gray-500">
+                O envio acontece automaticamente próximo da hora marcada (processado a cada 5 min).
+              </p>
+            </>
+          )}
+        </div>
+
         {erro && <div className="text-xs text-red-700 flex items-center gap-2 p-2 rounded-lg bg-red-50"><AlertCircle className="w-3 h-3" /> {erro}</div>}
 
         <div className="flex gap-2 pt-2">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
           <button
             type="submit"
-            disabled={enviando || !form.destinatario}
+            disabled={enviando || !form.destinatario || (quando === 'agendar' && !dataAgendada)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
             style={{ background: enviando ? '#1A5276' : '#2D80D1' }}
           >
             {enviando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            {enviando ? 'Enviando...' : 'Enviar e-mail'}
+            {enviando
+              ? (quando === 'agendar' ? 'Agendando...' : 'Enviando...')
+              : (quando === 'agendar' ? 'Agendar envio' : 'Enviar e-mail')}
           </button>
         </div>
       </form>
