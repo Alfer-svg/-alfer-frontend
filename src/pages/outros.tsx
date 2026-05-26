@@ -197,7 +197,7 @@ export function Financeiro() {
   const [emissorModal, setEmissorModal] = useState<any>(null)
   const [emissoresList, setEmissoresList] = useState<any[]>([])
   // Modal de alteração de data de vencimento
-  const [vencModal, setVencModal] = useState<{ lanc: any; nova: string } | null>(null)
+  const [vencModal, setVencModal] = useState<{ lanc: any; nova: string; escopo: 'so_essa' | 'futuras' } | null>(null)
 
   const carregar = () => {
     const params: any = {}
@@ -304,7 +304,7 @@ export function Financeiro() {
 
   const editarVencimento = (l: any) => {
     const atual = l.dtVencimento ? String(l.dtVencimento).slice(0, 10) : ''
-    setVencModal({ lanc: l, nova: atual })
+    setVencModal({ lanc: l, nova: atual, escopo: 'so_essa' })
   }
 
   const salvarNovoVencimento = async () => {
@@ -312,9 +312,27 @@ export function Financeiro() {
     if (!vencModal.nova) return setErroAcao('Informe a nova data de vencimento.')
     setErroAcao('')
     try {
-      await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
-      setVencModal(null)
-      await carregar()
+      if (vencModal.escopo === 'futuras' && vencModal.lanc.contrato?.numero) {
+        // "Essa e todas as futuras": muda o diaVencFatura do contrato pro dia
+        // da nova data. O backend auto-recalcula apagando FUTURO/PENDENTE e
+        // gerando de novo com o dia certo.
+        const dia = Number(vencModal.nova.slice(8, 10))
+        const contratoId = vencModal.lanc.contratoId
+        if (!contratoId) {
+          setErroAcao('Fatura sem contrato vinculado — só dá pra alterar essa fatura específica.')
+          return
+        }
+        const r = await api.put(`/contratos/${contratoId}`, { diaVencFatura: dia })
+        const n = r.data?._faturasRecalculadas
+        setVencModal(null)
+        await carregar()
+        alert(`✓ Dia de vencimento do contrato alterado pro dia ${dia}.${typeof n === 'number' ? ` ${n} fatura(s) pendente(s) recalculada(s).` : ''}`)
+      } else {
+        // "Só essa fatura": muda apenas a dtVencimento dessa.
+        await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
+        setVencModal(null)
+        await carregar()
+      }
     } catch (e: any) {
       setErroAcao(e.response?.data?.message || 'Erro ao alterar vencimento')
     }
@@ -773,9 +791,58 @@ export function Financeiro() {
             autoFocus
           />
 
-          <div className="p-3 mt-4 rounded-xl text-xs" style={{ background: '#FFF8E6', border: '1px solid #FFD577', color: '#633806' }}>
-            <b>Atenção:</b> isso altera <b>só essa fatura</b>. As próximas continuam seguindo
-            o "Dia de vencimento" do contrato. Pra mudar todas as futuras, edite o contrato.
+          {/* Escopo: só essa OU todas as futuras do contrato */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Aplicar a:</label>
+            <div className="space-y-2">
+              <label
+                className="flex items-start gap-3 rounded-xl p-3 cursor-pointer transition"
+                style={{
+                  border: vencModal.escopo === 'so_essa' ? '1px solid #FFAF06' : '1px solid #E0DDD8',
+                  background: vencModal.escopo === 'so_essa' ? '#FEF3E2' : '#fff',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="escopo"
+                  className="mt-0.5"
+                  checked={vencModal.escopo === 'so_essa'}
+                  onChange={() => setVencModal({ ...vencModal, escopo: 'so_essa' })}
+                  style={{ accentColor: '#FFAF06' }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-900 text-sm">Só essa fatura</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    As próximas continuam seguindo o "Dia de vencimento" do contrato.
+                  </div>
+                </div>
+              </label>
+              <label
+                className={`flex items-start gap-3 rounded-xl p-3 transition ${vencModal.lanc.contratoId ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                style={{
+                  border: vencModal.escopo === 'futuras' ? '1px solid #FFAF06' : '1px solid #E0DDD8',
+                  background: vencModal.escopo === 'futuras' ? '#FEF3E2' : '#fff',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="escopo"
+                  className="mt-0.5"
+                  checked={vencModal.escopo === 'futuras'}
+                  onChange={() => setVencModal({ ...vencModal, escopo: 'futuras' })}
+                  disabled={!vencModal.lanc.contratoId}
+                  style={{ accentColor: '#FFAF06' }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-900 text-sm">Essa e todas as futuras</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {vencModal.lanc.contratoId
+                      ? 'Atualiza o "Dia de vencimento" do contrato e regera as pendentes. Pagas ficam intocadas.'
+                      : 'Indisponível — essa fatura não está vinculada a um contrato.'}
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
 
           {erroAcao && (
