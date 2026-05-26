@@ -196,6 +196,8 @@ export function Financeiro() {
   // Modal de troca de emissor da fatura
   const [emissorModal, setEmissorModal] = useState<any>(null)
   const [emissoresList, setEmissoresList] = useState<any[]>([])
+  // Modal de alteração de data de vencimento
+  const [vencModal, setVencModal] = useState<{ lanc: any; nova: string } | null>(null)
 
   const carregar = () => {
     const params: any = {}
@@ -300,20 +302,18 @@ export function Financeiro() {
     }
   }
 
-  const editarVencimento = async (l: any) => {
+  const editarVencimento = (l: any) => {
     const atual = l.dtVencimento ? String(l.dtVencimento).slice(0, 10) : ''
-    const nova = prompt(
-      `Nova data de vencimento (formato AAAA-MM-DD):\n\nFatura: ${l.numeroFatura ? `NF ${l.numeroFatura}` : '—'}\nCliente: ${l.cliente?.razaoSocial || ''}\nVencimento atual: ${atual}`,
-      atual,
-    )
-    if (!nova || nova === atual) return
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(nova)) {
-      alert('Formato inválido. Use AAAA-MM-DD (ex: 2026-06-15).')
-      return
-    }
+    setVencModal({ lanc: l, nova: atual })
+  }
+
+  const salvarNovoVencimento = async () => {
+    if (!vencModal) return
+    if (!vencModal.nova) return setErroAcao('Informe a nova data de vencimento.')
     setErroAcao('')
     try {
-      await api.put(`/financeiro/lancamentos/${l.id}/vencimento`, { dtVencimento: nova })
+      await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
+      setVencModal(null)
       await carregar()
     } catch (e: any) {
       setErroAcao(e.response?.data?.message || 'Erro ao alterar vencimento')
@@ -745,6 +745,61 @@ export function Financeiro() {
       )}
 
       {/* Modal de troca de emissor (Multi-CNPJ) */}
+      {vencModal && (
+        <Modal onClose={() => setVencModal(null)} maxWidth="max-w-md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Clock className="w-5 h-5" style={{ color: '#FFAF06' }} />
+              Alterar data de vencimento
+            </h2>
+            <button type="button" onClick={() => setVencModal(null)}>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+          <div className="text-xs text-gray-500 mb-1">
+            {vencModal.lanc.numeroFatura ? `NF ${vencModal.lanc.numeroFatura}` : 'Fatura'} — {vencModal.lanc.cliente?.razaoSocial}
+          </div>
+          <div className="text-xs text-gray-500 mb-4">
+            Vencimento atual: <b>{fmtDate(vencModal.lanc.dtVencimento)}</b>
+          </div>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nova data de vencimento</label>
+          <input
+            type="date"
+            value={vencModal.nova}
+            onChange={(e) => setVencModal({ ...vencModal, nova: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white"
+            style={{ border: '1px solid #E0DDD8' }}
+            autoFocus
+          />
+
+          <div className="p-3 mt-4 rounded-xl text-xs" style={{ background: '#FFF8E6', border: '1px solid #FFD577', color: '#633806' }}>
+            <b>Atenção:</b> isso altera <b>só essa fatura</b>. As próximas continuam seguindo
+            o "Dia de vencimento" do contrato. Pra mudar todas as futuras, edite o contrato.
+          </div>
+
+          {erroAcao && (
+            <div className="p-3 mt-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+                 style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-4">
+            <button type="button" onClick={() => setVencModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}>
+              Cancelar
+            </button>
+            <button type="button" onClick={salvarNovoVencimento}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900"
+                    style={{ background: '#FFAF06' }}>
+              Salvar
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {emissorModal && (
         <Modal onClose={() => setEmissorModal(null)} maxWidth="max-w-md">
           <div className="flex items-center justify-between mb-4">
