@@ -170,7 +170,11 @@ export default function NovoOrcamento() {
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
-  const valor = Number(form.valor || 0)
+  // Se há equipamentos com valor preenchido, o "Valor" base do orçamento
+  // vira a soma deles automaticamente (não precisa o usuário digitar).
+  const somaEquipamentos = equipamentosForm.reduce((s, e) => s + (Number(e.valor) || 0), 0)
+  const temValorPorEquipamento = equipamentosForm.some((e) => e.valor && Number(e.valor) > 0)
+  const valor = temValorPorEquipamento ? somaEquipamentos : Number(form.valor || 0)
   const desconto = Number(form.desconto || 0)
   const frete = Number(form.frete || 0)
   const valorMobilizacao = Number(form.valorMobilizacao || 0)
@@ -186,7 +190,7 @@ export default function NovoOrcamento() {
     e.preventDefault()
     setErro('')
     if (!form.clienteId) return setErro('Selecione um cliente.')
-    if (!form.valor || valor <= 0) return setErro('Informe um valor válido.')
+    if (valor <= 0) return setErro('Informe um valor válido (no campo "Valor" ou nos valores dos equipamentos).')
     setLoading(true)
     try {
       const payload = {
@@ -381,8 +385,31 @@ export default function NovoOrcamento() {
           <h2 className="font-semibold text-gray-900 mb-4">Valor</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$) *</label>
-              <input value={form.valor} onChange={(e) => set('valor', e.target.value)} type="number" step="0.01" min="0" required placeholder="0,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Valor (R$){!temValorPorEquipamento && ' *'}
+              </label>
+              {temValorPorEquipamento ? (
+                <div
+                  className="px-3 py-2.5 rounded-xl text-sm flex items-center justify-between"
+                  style={{ background: '#FEF3E2', border: '1px solid #FFD580', color: '#633806' }}
+                  title="Calculado automaticamente pela soma dos valores dos equipamentos"
+                >
+                  <span className="font-semibold">{somaEquipamentos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  <span className="text-[10px] opacity-70">soma dos equipamentos</span>
+                </div>
+              ) : (
+                <input
+                  value={form.valor}
+                  onChange={(e) => set('valor', e.target.value)}
+                  type="number" step="0.01" min="0"
+                  required={!temValorPorEquipamento}
+                  placeholder="0,00"
+                  className={inputCls}
+                  style={inputStyle}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
