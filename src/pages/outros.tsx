@@ -190,6 +190,7 @@ export function Financeiro() {
   const [erroAcao, setErroAcao] = useState('')
   const [filtroTipo, setFiltroTipo] = useState<'' | 'RECEITA' | 'DESPESA'>('')
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [filtroEmissor, setFiltroEmissor] = useState('')
   const [novaDespesaModal, setNovaDespesaModal] = useState(false)
   const [enviarEmailModal, setEnviarEmailModal] = useState<any>(null)
   // Modal de troca de emissor da fatura
@@ -200,6 +201,7 @@ export function Financeiro() {
     const params: any = {}
     if (filtroTipo) params.tipo = filtroTipo
     if (filtroStatus) params.status = filtroStatus
+    if (filtroEmissor) params.emissorId = filtroEmissor
     return Promise.all([
       api.get('/financeiro/dashboard'),
       api.get('/financeiro/lancamentos', { params }),
@@ -212,7 +214,14 @@ export function Financeiro() {
   useEffect(() => {
     setLoading(true)
     carregar().finally(() => setLoading(false))
-  }, [filtroTipo, filtroStatus])
+  }, [filtroTipo, filtroStatus, filtroEmissor])
+
+  // Carrega lista de emissores uma vez (pro select do filtro)
+  useEffect(() => {
+    api.get('/emissores', { params: { ativo: 'true' } })
+      .then((r) => setEmissoresList((r.data || []).filter((e: any) => e.ativo)))
+      .catch(() => {})
+  }, [])
 
   const marcarPago = async (l: any) => {
     const hoje = new Date().toISOString().slice(0, 10)
@@ -423,6 +432,26 @@ export function Financeiro() {
           <option value="">Todos os status</option>
           {STATUS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
         </select>
+        {/* Filtro de emissor (separar Alfer / Albuquerque) */}
+        {emissoresList.length > 1 && (
+          <select
+            value={filtroEmissor}
+            onChange={(e) => setFiltroEmissor(e.target.value)}
+            className="px-3 py-2 bg-white rounded-xl text-sm outline-none"
+            style={{
+              border: '1px solid #E0DDD8',
+              ...(filtroEmissor && { background: '#FEF3E2', color: '#633806', fontWeight: 500 }),
+            }}
+            title="Filtrar lançamentos por CNPJ emissor"
+          >
+            <option value="">Todos os emissores</option>
+            {emissoresList.map((em) => (
+              <option key={em.id} value={em.id}>
+                {em.nomeFantasia || abreviarEmissor(em.razaoSocial)}{em.padrao ? ' (padrão)' : ''}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="text-xs text-gray-500 ml-auto">{lancamentos.length} lançamento(s)</span>
       </div>
 
