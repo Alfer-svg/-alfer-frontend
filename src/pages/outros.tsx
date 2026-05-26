@@ -312,18 +312,22 @@ export function Financeiro() {
     if (!vencModal.nova) return setErroAcao('Informe a nova data de vencimento.')
     setErroAcao('')
     try {
-      if (vencModal.escopo === 'futuras' && vencModal.lanc.contrato?.numero) {
-        // "Essa e todas as futuras": muda o diaVencFatura do contrato pro dia
-        // da nova data. O backend auto-recalcula apagando FUTURO/PENDENTE e
-        // gerando de novo com o dia certo.
+      if (vencModal.escopo === 'futuras' && vencModal.lanc.contratoId) {
+        // "Essa e todas as futuras":
+        //   1. Muda o diaVencFatura do contrato → backend auto-recalcula
+        //      apagando FUTURO/PENDENTE e regerando.
+        //   2. ALÉM disso, força a dtVencimento da fatura atual (caso o status
+        //      dela seja INADIMPLENTE/etc — não é apagada pelo recalc).
         const dia = Number(vencModal.nova.slice(8, 10))
         const contratoId = vencModal.lanc.contratoId
-        if (!contratoId) {
-          setErroAcao('Fatura sem contrato vinculado — só dá pra alterar essa fatura específica.')
-          return
-        }
         const r = await api.put(`/contratos/${contratoId}`, { diaVencFatura: dia })
         const n = r.data?._faturasRecalculadas
+        // Garante que ESSA fatura específica também tem a data nova (se ainda
+        // existir — recalc pode ter apagado e recriado, daí a nova data já é
+        // a certa). Tenta atualizar; se a fatura sumiu, falha silenciosa.
+        try {
+          await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
+        } catch { /* fatura pode ter sido apagada pelo recalc — OK */ }
         setVencModal(null)
         await carregar()
         alert(`✓ Dia de vencimento do contrato alterado pro dia ${dia}.${typeof n === 'number' ? ` ${n} fatura(s) pendente(s) recalculada(s).` : ''}`)
