@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
-import { BarChart3, TrendingUp, Users, Building2, AlertTriangle, Loader2 } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, Building2, AlertTriangle, Loader2, Grid3X3 } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function Relatorios() {
-  const [aba, setAba] = useState<'fluxo' | 'aging' | 'cliente' | 'emissor'>('fluxo')
+  const [aba, setAba] = useState<'fluxo' | 'aging' | 'cliente' | 'emissor' | 'mensal_emissor'>('fluxo')
   const [ano, setAno] = useState(new Date().getFullYear())
   const [emissores, setEmissores] = useState<any[]>([])
   const [filtroEmissor, setFiltroEmissor] = useState('')
@@ -39,7 +39,7 @@ export default function Relatorios() {
               return <option key={y} value={y}>{y}</option>
             })}
           </select>
-          {emissores.length > 1 && aba !== 'emissor' && (
+          {emissores.length > 1 && aba !== 'emissor' && aba !== 'mensal_emissor' && (
             <select
               value={filtroEmissor}
               onChange={(e) => setFiltroEmissor(e.target.value)}
@@ -60,10 +60,11 @@ export default function Relatorios() {
 
       <div className="flex gap-1 mb-6 mt-6 border-b" style={{ borderColor: '#E0DDD8' }}>
         {[
-          { v: 'fluxo',   l: 'Fluxo mensal',  icon: TrendingUp },
-          { v: 'aging',   l: 'A receber',     icon: AlertTriangle },
-          { v: 'cliente', l: 'Por cliente',   icon: Users },
-          { v: 'emissor', l: 'Por emissor',   icon: Building2 },
+          { v: 'fluxo',          l: 'Fluxo mensal',     icon: TrendingUp },
+          { v: 'aging',          l: 'A receber',        icon: AlertTriangle },
+          { v: 'cliente',        l: 'Por cliente',      icon: Users },
+          { v: 'emissor',        l: 'Por emissor',      icon: Building2 },
+          { v: 'mensal_emissor', l: 'Mensal × emissor', icon: Grid3X3 },
         ].map((t) => {
           const ativo = aba === t.v
           return (
@@ -84,10 +85,11 @@ export default function Relatorios() {
         })}
       </div>
 
-      {aba === 'fluxo'   && <RelatorioFluxo ano={ano} />}
-      {aba === 'aging'   && <RelatorioAging emissorId={filtroEmissor} />}
-      {aba === 'cliente' && <RelatorioPorCliente ano={ano} emissorId={filtroEmissor} />}
-      {aba === 'emissor' && <RelatorioPorEmissor ano={ano} />}
+      {aba === 'fluxo'          && <RelatorioFluxo ano={ano} />}
+      {aba === 'aging'          && <RelatorioAging emissorId={filtroEmissor} />}
+      {aba === 'cliente'        && <RelatorioPorCliente ano={ano} emissorId={filtroEmissor} />}
+      {aba === 'emissor'        && <RelatorioPorEmissor ano={ano} />}
+      {aba === 'mensal_emissor' && <RelatorioMensalPorEmissor ano={ano} />}
     </div>
   )
 }
@@ -284,6 +286,114 @@ function RelatorioPorEmissor({ ano }: { ano: number }) {
             })}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function RelatorioMensalPorEmissor({ ano }: { ano: number }) {
+  const [data, setData] = useState<any | null>(null)
+  useEffect(() => {
+    setData(null)
+    api.get('/financeiro/relatorios/mensal-por-emissor', { params: { ano } })
+      .then((r) => setData(r.data))
+  }, [ano])
+
+  if (!data) return <Loading />
+  const cores = ['#FFAF06', '#1A5276', '#27500A', '#8B0000']
+  const max = Math.max(1, ...data.dados.map((d: any) => d.total))
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs por emissor (totais do ano) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KpiCard label="Total geral do ano" valor={data.totalGeral} cor="#1A1C1E" />
+        {data.emissores.slice(0, 2).map((em: any, idx: number) => (
+          <KpiCard
+            key={em.id}
+            label={em.nomeFantasia || em.razaoSocial}
+            valor={data.totaisPorEmissor[em.id] || 0}
+            cor={cores[idx % cores.length]}
+          />
+        ))}
+      </div>
+
+      {/* Gráfico de barras agrupadas */}
+      <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <h3 className="font-semibold text-gray-900 mb-4">Faturamento mensal por emissor ({ano})</h3>
+        <div className="grid grid-cols-12 gap-2 items-end" style={{ minHeight: 200 }}>
+          {data.dados.map((d: any) => (
+            <div key={d.mes} className="flex flex-col items-center gap-1">
+              <div className="flex items-end gap-0.5 w-full" style={{ height: 180 }}>
+                {data.emissores.map((em: any, idx: number) => {
+                  const v = d.valores[em.id] || 0
+                  return (
+                    <div
+                      key={em.id}
+                      className="flex-1 rounded-t"
+                      style={{
+                        background: cores[idx % cores.length],
+                        height: `${(v / max) * 100}%`,
+                        minHeight: v > 0 ? 2 : 0,
+                      }}
+                      title={`${em.nomeFantasia || em.razaoSocial} — ${d.nome}: ${fmt(v)}`}
+                    />
+                  )
+                })}
+              </div>
+              <div className="text-[10px] text-gray-500">{d.nome}</div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 text-xs text-gray-500 mt-4 justify-center flex-wrap">
+          {data.emissores.map((em: any, idx: number) => (
+            <div key={em.id} className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ background: cores[idx % cores.length] }} />
+              {em.nomeFantasia || em.razaoSocial}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white rounded-2xl p-5 overflow-x-auto" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b" style={{ borderColor: '#E0DDD8' }}>
+              <th className="text-left py-2 px-2 font-semibold text-gray-700">Mês</th>
+              {data.emissores.map((em: any) => (
+                <th key={em.id} className="text-right py-2 px-2 font-semibold text-gray-700">
+                  {em.nomeFantasia || em.razaoSocial}
+                </th>
+              ))}
+              <th className="text-right py-2 px-2 font-semibold text-gray-900">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.dados.map((d: any, idx: number) => (
+              <tr key={d.mes} className="border-b" style={{ borderColor: '#F1EFE8', background: idx % 2 === 1 ? '#FBFAF7' : '#fff' }}>
+                <td className="py-2 px-2 text-gray-700 font-medium">{d.nome}</td>
+                {data.emissores.map((em: any) => (
+                  <td key={em.id} className="text-right py-2 px-2 text-gray-700 tabular-nums">
+                    {d.valores[em.id] ? fmt(d.valores[em.id]) : '—'}
+                  </td>
+                ))}
+                <td className="text-right py-2 px-2 font-semibold text-gray-900 tabular-nums">
+                  {d.total > 0 ? fmt(d.total) : '—'}
+                </td>
+              </tr>
+            ))}
+            <tr style={{ background: '#FEF3E2', borderTop: '2px solid #FFAF06' }}>
+              <td className="py-2.5 px-2 font-bold text-gray-900">Total do ano</td>
+              {data.emissores.map((em: any) => (
+                <td key={em.id} className="text-right py-2.5 px-2 font-bold text-gray-900 tabular-nums">
+                  {fmt(data.totaisPorEmissor[em.id] || 0)}
+                </td>
+              ))}
+              <td className="text-right py-2.5 px-2 font-bold text-gray-900 tabular-nums">{fmt(data.totalGeral)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   )
