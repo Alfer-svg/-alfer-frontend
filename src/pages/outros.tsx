@@ -314,23 +314,30 @@ export function Financeiro() {
     try {
       if (vencModal.escopo === 'futuras' && vencModal.lanc.contratoId) {
         // "Essa e todas as futuras":
-        //   1. Muda o diaVencFatura do contrato → backend auto-recalcula
-        //      apagando FUTURO/PENDENTE e regerando.
-        //   2. ALÉM disso, força a dtVencimento da fatura atual (caso o status
-        //      dela seja INADIMPLENTE/etc — não é apagada pelo recalc).
+        //   1. Atualiza contrato com diaVencFatura E dtPrimeiraFatura (a nova
+        //      data crava como primeira). Mandar dtPrimeiraFatura SEMPRE
+        //      garante que o backend detecta mudança e dispara o recalc
+        //      (mesmo se o dia já era o mesmo numericamente).
+        //   2. Força dtVencimento da fatura atual também (caso INADIMPLENTE
+        //      ou outro status que o recalc não toque).
         const dia = Number(vencModal.nova.slice(8, 10))
         const contratoId = vencModal.lanc.contratoId
-        const r = await api.put(`/contratos/${contratoId}`, { diaVencFatura: dia })
+        const r = await api.put(`/contratos/${contratoId}`, {
+          diaVencFatura: dia,
+          dtPrimeiraFatura: vencModal.nova,
+        })
         const n = r.data?._faturasRecalculadas
-        // Garante que ESSA fatura específica também tem a data nova (se ainda
-        // existir — recalc pode ter apagado e recriado, daí a nova data já é
-        // a certa). Tenta atualizar; se a fatura sumiu, falha silenciosa.
         try {
           await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
         } catch { /* fatura pode ter sido apagada pelo recalc — OK */ }
         setVencModal(null)
         await carregar()
-        alert(`✓ Dia de vencimento do contrato alterado pro dia ${dia}.${typeof n === 'number' ? ` ${n} fatura(s) pendente(s) recalculada(s).` : ''}`)
+        alert(
+          `✓ Vencimento alterado.\n` +
+          `Primeira fatura cravada em ${vencModal.nova.split('-').reverse().join('/')}, ` +
+          `próximas no dia ${dia} do mês.` +
+          (typeof n === 'number' ? `\n${n} fatura(s) pendente(s) regenerada(s).` : '')
+        )
       } else {
         // "Só essa fatura": muda apenas a dtVencimento dessa.
         await api.put(`/financeiro/lancamentos/${vencModal.lanc.id}/vencimento`, { dtVencimento: vencModal.nova })
