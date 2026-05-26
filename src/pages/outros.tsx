@@ -771,6 +771,8 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
     anexarFatura: true,
     anexarBoleto: !!lancamento.interCodigoSolicitacao,
   })
+  // Anexos extras enviados pelo usuário (boleto manual etc.)
+  const [anexosExtras, setAnexosExtras] = useState<{ filename: string; content: string; contentType: string; size: number }[]>([])
 
   useEffect(() => {
     setLoading(true)
@@ -789,12 +791,34 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
       .finally(() => setLoading(false))
   }, [lancamento.id])
 
+  const onPickAnexos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    const novos: typeof anexosExtras = []
+    for (const f of files) {
+      if (f.size > 10 * 1024 * 1024) {
+        setErro(`Arquivo "${f.name}" excede 10MB (limite por anexo).`)
+        continue
+      }
+      const buf = await f.arrayBuffer()
+      const content = btoa(new Uint8Array(buf).reduce((s, b) => s + String.fromCharCode(b), ''))
+      novos.push({ filename: f.name, content, contentType: f.type || 'application/octet-stream', size: f.size })
+    }
+    setAnexosExtras((prev) => [...prev, ...novos])
+    e.target.value = '' // reseta pra permitir re-selecionar mesmo arquivo
+  }
+
+  const removerAnexo = (idx: number) => setAnexosExtras((prev) => prev.filter((_, i) => i !== idx))
+
   const enviar = async (e: FormEvent) => {
     e.preventDefault()
     if (!form.destinatario || !/.+@.+/.test(form.destinatario)) return setErro('E-mail destinatário inválido')
     setEnviando(true); setErro('')
     try {
-      const r = await api.post(`/email/lancamentos/${lancamento.id}/enviar`, form)
+      const r = await api.post(`/email/lancamentos/${lancamento.id}/enviar`, {
+        ...form,
+        anexosExtras: anexosExtras.map(({ filename, content, contentType }) => ({ filename, content, contentType })),
+      })
       alert(`✓ E-mail enviado pra ${form.destinatario}\n${r.data.anexos || 0} anexo(s)`)
       onSent()
     } catch (e: any) {
@@ -908,8 +932,29 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
             </label>
           )}
           {!preview?.temBoletoInter && (
-            <p className="text-xs text-gray-500">⚠ Sem boleto Inter emitido. Gere o boleto antes se quiser anexar.</p>
+            <p className="text-xs text-gray-500">⚠ Sem boleto Inter emitido. Use "+ Anexar arquivo" abaixo pra incluir um boleto manual ou comprovante.</p>
           )}
+          {/* Anexos extras enviados pelo usuário (boleto manual etc.) */}
+          {anexosExtras.length > 0 && (
+            <div className="space-y-1 pt-1">
+              {anexosExtras.map((a, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs bg-white px-2.5 py-1.5 rounded-lg" style={{ border: '1px solid #E0DDD8' }}>
+                  <FileDown className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                  <span className="flex-1 truncate">{a.filename}</span>
+                  <span className="text-gray-400 flex-shrink-0">{(a.size / 1024).toFixed(0)} KB</span>
+                  <button type="button" onClick={() => removerAnexo(idx)} className="text-red-500 hover:text-red-700 flex-shrink-0" title="Remover">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer px-3 py-1.5 rounded-lg hover:bg-white transition" style={{ border: '1px solid #E0DDD8', color: '#633806' }}>
+            <Plus className="w-3.5 h-3.5" />
+            Anexar arquivo (boleto, comprovante, etc.)
+            <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg" className="hidden" onChange={onPickAnexos} />
+          </label>
+          <p className="text-[10px] text-gray-400">Aceita PDF/PNG/JPG, até 10MB por arquivo.</p>
         </div>
 
         {erro && <div className="text-xs text-red-700 flex items-center gap-2 p-2 rounded-lg bg-red-50"><AlertCircle className="w-3 h-3" /> {erro}</div>}
