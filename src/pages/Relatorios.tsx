@@ -367,6 +367,7 @@ function RelatorioPorEmissor({ ano }: { ano: number }) {
 
 function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: string }) {
   const [data, setData] = useState<any[] | null>(null)
+  const [busca, setBusca] = useState('')
   useEffect(() => {
     setData(null)
     const params: any = { ano }
@@ -375,8 +376,17 @@ function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: 
   }, [ano, emissorId])
 
   if (!data) return <Loading />
-  const total = data.reduce((s, e) => s + e.totalFaturado, 0)
-  const max = Math.max(1, ...data.map((e) => e.totalFaturado))
+  const filtrados = busca.trim()
+    ? data.filter((e) => {
+        const q = busca.toLowerCase()
+        return (
+          (e.codigo || '').toLowerCase().includes(q) ||
+          (e.modelo || '').toLowerCase().includes(q)
+        )
+      })
+    : data
+  const total = filtrados.reduce((s, e) => s + e.totalFaturado, 0)
+  const max = Math.max(1, ...filtrados.map((e) => e.totalFaturado))
   const tipoLabel: Record<string, string> = {
     GUINDASTE: 'Guindaste',
     CONTAINER_SECO: 'Container Seco',
@@ -391,23 +401,37 @@ function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div className="flex items-baseline justify-between mb-4">
+        <div className="flex items-baseline justify-between mb-3 flex-wrap gap-3">
           <div>
             <h3 className="font-semibold text-gray-900">Faturamento por equipamento em {ano}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              {data.length} equipamento(s) com valor específico no contrato
+              {busca ? `${filtrados.length} de ${data.length}` : `${data.length} equipamento(s) com valor específico no contrato`}
             </p>
           </div>
           <div className="text-2xl font-bold text-gray-900">{fmt(total)}</div>
+        </div>
+        <div className="mb-4">
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por código ou modelo… (ex: C0001, container)"
+            className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8', background: busca ? '#FEF3E2' : '#fff' }}
+          />
         </div>
         {data.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             <p>Nenhum faturamento por equipamento no período</p>
             <p className="text-[11px] mt-1">Só aparecem equipamentos com valor específico definido no contrato.</p>
           </div>
+        ) : filtrados.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">
+            Nenhum equipamento corresponde à busca "{busca}"
+          </div>
         ) : (
           <div className="space-y-2">
-            {data.map((e) => {
+            {filtrados.map((e) => {
               const ef = e.efetividade ?? 0
               // Cor da efetividade: vermelho < 30%, amber 30-70%, verde > 70%
               const corEf = ef >= 70 ? '#27500A' : ef >= 30 ? '#633806' : '#8B0000'
