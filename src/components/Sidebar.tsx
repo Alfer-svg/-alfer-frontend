@@ -45,6 +45,7 @@ const nav: NavItem[] = [
     children: [
       { to: '/financeiro', label: 'Lançamentos' },
       { to: '/relatorios', label: 'Relatórios' },
+      { to: '/emails-agendados', label: 'E-mails agendados' },
       { to: '/fornecedores', label: 'Fornecedores' },
       { to: '/emissores', label: 'Emissores (CNPJs)' },
     ],

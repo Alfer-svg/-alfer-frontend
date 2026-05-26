@@ -40,6 +40,7 @@ import OrdemServicoPoliDetalhe from './pages/OrdemServicoPoliDetalhe'
 import Usuarios from './pages/Usuarios'
 import Emissores from './pages/Emissores'
 import Relatorios from './pages/Relatorios'
+import EmailAgendados from './pages/EmailAgendados'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
 import RedefinirSenha from './pages/RedefinirSenha'
@@ -110,6 +111,7 @@ function AppRoutes() {
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="emissores" element={<Emissores />} />
         <Route path="relatorios" element={<Relatorios />} />
+        <Route path="emails-agendados" element={<EmailAgendados />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
