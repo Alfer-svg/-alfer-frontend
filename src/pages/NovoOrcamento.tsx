@@ -19,6 +19,8 @@ export default function NovoOrcamento() {
   // Lista de equipamentos vinculados ao orçamento (M2M). O campo `equipamentoId`
   // do form continua existindo só pra compat com lugares antigos.
   const [equipamentoIds, setEquipamentoIds] = useState<string[]>([])
+  // Equipamento selecionado no dropdown (pré-adição). Botão "+" adiciona à lista.
+  const [equipParaAdicionar, setEquipParaAdicionar] = useState('')
   const [form, setForm] = useState({
     clienteId: '',
     equipamentoId: '',
@@ -286,29 +288,47 @@ export default function NovoOrcamento() {
                   })}
                 </div>
               )}
-              {/* Select pra adicionar um novo equipamento à lista */}
-              <select
-                value=""
-                onChange={(e) => {
-                  const id = e.target.value
-                  if (id && !equipamentoIds.includes(id)) {
-                    setEquipamentoIds((ids) => [...ids, id])
-                  }
-                }}
-                className={inputCls}
-                style={inputStyle}
-              >
-                <option value="">
-                  {equipamentoIds.length === 0
-                    ? '— Selecione pra adicionar (ou deixe vazio) —'
-                    : '+ Adicionar outro equipamento'}
-                </option>
-                {equipamentos
-                  .filter((e) => !equipamentoIds.includes(e.id))
-                  .map((e) => (
-                    <option key={e.id} value={e.id}>{e.codigo} — {e.modelo}</option>
-                  ))}
-              </select>
+              {/* Select + botão "+" pra adicionar à lista. Padrão explícito —
+                  evita o problema de selects controlados que não resetam em
+                  alguns browsers. */}
+              <div className="flex gap-2">
+                <select
+                  value={equipParaAdicionar}
+                  onChange={(e) => setEquipParaAdicionar(e.target.value)}
+                  className={inputCls + ' flex-1'}
+                  style={inputStyle}
+                >
+                  <option value="">
+                    {equipamentoIds.length === 0
+                      ? '— Selecione um equipamento —'
+                      : '— Selecione outro pra adicionar —'}
+                  </option>
+                  {equipamentos
+                    .filter((e) => !equipamentoIds.includes(e.id))
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>{e.codigo} — {e.modelo}{e.status && e.status !== 'DISPONIVEL' ? ` (${e.status})` : ''}</option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (equipParaAdicionar && !equipamentoIds.includes(equipParaAdicionar)) {
+                      setEquipamentoIds((ids) => [...ids, equipParaAdicionar])
+                      setEquipParaAdicionar('')
+                    }
+                  }}
+                  disabled={!equipParaAdicionar}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90 disabled:opacity-40 whitespace-nowrap"
+                  style={{ background: '#FFAF06' }}
+                  title="Adicionar à lista"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Locação com vários equipamentos? Adicione um por vez — todos vão pro contrato e pra fatura.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Descrição do que está sendo orçado</label>
