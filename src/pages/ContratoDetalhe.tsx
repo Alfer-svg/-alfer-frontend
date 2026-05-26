@@ -83,7 +83,12 @@ export default function ContratoDetalhe() {
     if (!confirm('Recalcular as faturas deste contrato?\n\nAs faturas com status FUTURO ou PENDENTE (não pagas) serão APAGADAS e reggeradas com base na condição de pagamento atual.\n\nFaturas já PAGAS ou CANCELADAS não são afetadas.')) return
     try {
       const r = await api.post(`/contratos/${id}/recalcular-faturas`)
-      alert(`✓ ${r.data?.geradas || 0} fatura(s) gerada(s) com a regra atual.`)
+      // Se gerou zero, mostra o motivo retornado pelo backend (diagnóstico).
+      if ((r.data?.geradas || 0) === 0 && r.data?.mensagem) {
+        alert(`⚠ Nenhuma fatura foi gerada.\n\nMotivo: ${r.data.mensagem}`)
+      } else {
+        alert(`✓ ${r.data?.geradas || 0} fatura(s) gerada(s) com a regra atual.`)
+      }
       load()
     } catch (e: any) {
       alert(e.response?.data?.message || 'Erro ao recalcular')
