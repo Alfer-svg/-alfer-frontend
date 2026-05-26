@@ -28,7 +28,9 @@ export default function EditarContrato() {
     periodicidade: 'Mensal',
     reajuste: 'IPCA',
     formaCobranca: 'BOLETO',
-    condicaoPagamento: 'D_30',
+    // Default PERSONALIZADO: usa periodicidade + diaVencFatura (caso de aluguel mensal recorrente).
+    // D_30/A_VISTA/PARCELADO geram UMA fatura só, ignorando diaVencFatura.
+    condicaoPagamento: 'PERSONALIZADO',
     diaVencFatura: '5',
     inadimpDias: '30',
     multaRescisaoPct: '',
@@ -107,7 +109,7 @@ export default function EditarContrato() {
           periodicidade: c.periodicidade || 'Mensal',
           reajuste: c.reajuste || 'IPCA',
           formaCobranca: c.formaCobranca || 'BOLETO',
-          condicaoPagamento: c.condicaoPagamento || 'D_30',
+          condicaoPagamento: c.condicaoPagamento || 'PERSONALIZADO',
           diaVencFatura: String(c.diaVencFatura ?? 5),
           inadimpDias: String(c.inadimpDias ?? 30),
           multaRescisaoPct: c.multaRescisaoPct != null ? String(Number(c.multaRescisaoPct)) : '',
@@ -135,7 +137,7 @@ export default function EditarContrato() {
     if (!form.valor || Number(form.valor) <= 0) return setErro('Valor inválido.')
     setLoading(true)
     try {
-      await api.put(`/contratos/${id}`, {
+      const r = await api.put(`/contratos/${id}`, {
         ...form,
         valor: Number(form.valor),
         diaVencFatura: Number(form.diaVencFatura) || 5,
@@ -149,6 +151,12 @@ export default function EditarContrato() {
         localMobilizacao: form.localMobilizacao || null,
         observacoes: form.observacoes || null,
       })
+      // Backend agora auto-recalcula faturas quando muda dia/condição/datas/valor —
+      // avisa o usuário se isso aconteceu pra ele não se assustar.
+      const n = r.data?._faturasRecalculadas
+      if (typeof n === 'number' && n > 0) {
+        alert(`Contrato salvo. ${n} fatura(s) pendente(s) foram recalculadas automaticamente com as novas regras.`)
+      }
       navigate(`/contratos/${id}`)
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao salvar alterações.')

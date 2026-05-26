@@ -26,7 +26,9 @@ export default function NovoOrcamento() {
     valorMobilizacao: '',
     valorDesmobilizacao: '',
     periodicidade: 'Mensal',
-    condicaoPagamento: 'D_30',
+    // Default PERSONALIZADO: faturas mensais recorrentes usam periodicidade+diaVencFatura.
+    // As outras opções (D_30, A_VISTA, PARCELADO) só geram UMA fatura — ignoram diaVencFatura.
+    condicaoPagamento: 'PERSONALIZADO',
     formaPagamento: 'BOLETO',
     diaVencFatura: '5',
     localMobilizacao: '',
@@ -133,7 +135,7 @@ export default function NovoOrcamento() {
           valorMobilizacao: o.valorMobilizacao != null ? String(o.valorMobilizacao) : '',
           valorDesmobilizacao: o.valorDesmobilizacao != null ? String(o.valorDesmobilizacao) : '',
           periodicidade: o.periodicidade || 'Mensal',
-          condicaoPagamento: o.condicaoPagamento || 'D_30',
+          condicaoPagamento: o.condicaoPagamento || 'PERSONALIZADO',
           formaPagamento: o.formaPagamento || 'BOLETO',
           diaVencFatura: String(o.diaVencFatura ?? 5),
           localMobilizacao: o.localMobilizacao || '',
