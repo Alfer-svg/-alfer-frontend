@@ -395,13 +395,16 @@ function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: 
           <div>
             <h3 className="font-semibold text-gray-900">Faturamento por equipamento em {ano}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              {data.length} equipamento(s) com receita · valores distribuídos por contrato
+              {data.length} equipamento(s) com valor específico no contrato
             </p>
           </div>
           <div className="text-2xl font-bold text-gray-900">{fmt(total)}</div>
         </div>
         {data.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">Nenhum faturamento por equipamento no período</div>
+          <div className="text-center text-gray-400 py-8">
+            <p>Nenhum faturamento por equipamento no período</p>
+            <p className="text-[11px] mt-1">Só aparecem equipamentos com valor específico definido no contrato.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {data.map((e) => (
