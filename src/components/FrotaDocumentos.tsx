@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from './Modal'
 import { FileText, Plus, AlertCircle, Loader2, X, Pencil, Trash2 } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const TIPOS_DOC = [
   { v: 'CRLV', l: 'CRLV / Licenciamento' },
@@ -13,7 +14,6 @@ const TIPOS_DOC = [
   { v: 'OUTRO', l: 'Outro' },
 ]
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 function statusVencimento(dtVencimento: string | null, alertaDias: number) {
   if (!dtVencimento) return { bg: '#F1EFE8', text: '#888', label: 'Sem data' }

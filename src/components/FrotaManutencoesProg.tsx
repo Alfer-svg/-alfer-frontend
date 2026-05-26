@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from './Modal'
 import { Wrench, Plus, AlertCircle, Loader2, X, Pencil, Trash2, CheckCircle2 } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const TIPOS = [
   { v: 'REVISAO_KM', l: 'Revisão por KM' },
@@ -9,7 +10,6 @@ const TIPOS = [
   { v: 'CHECKLIST_ITEM', l: 'Item de checklist (pneu, óleo, freio, etc)' },
 ]
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 function statusManut(m: any, kmAtual: number) {
   let label = 'Pendente'

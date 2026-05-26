@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle, X, Star } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho', icon: FileText },
@@ -13,13 +14,6 @@ const statusInfo: Record<string, { bg: string; text: string; label: string; icon
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => {
-  if (!d) return '—'
-  // TZ-safe: se vier YYYY-MM-DD ou ISO, pega só a parte da data
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d))
-  if (m) return `${m[3]}/${m[2]}/${m[1]}`
-  return new Date(d).toLocaleDateString('pt-BR')
-}
 
 export default function Orcamentos() {
   const navigate = useNavigate()

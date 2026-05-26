@@ -4,6 +4,7 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
 import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2 } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const CATEGORIAS: { v: string; l: string }[] = [
   { v: 'MANUTENCAO',         l: 'Manutenção' },
@@ -77,9 +78,7 @@ function sanitizarFilename(s: string): string {
 function montarNomeBoleto(lanc: any): string {
   const numero = lanc.numeroFatura ? String(lanc.numeroFatura) : lanc.id.slice(-6).toUpperCase()
   const cliente = sanitizarFilename(lanc.cliente?.razaoSocial || 'sem-cliente')
-  const venc = lanc.dtVencimento
-    ? new Date(lanc.dtVencimento).toLocaleDateString('pt-BR').replace(/\//g, '-')
-    : 'sem-data'
+  const venc = lanc.dtVencimento ? fmtDate(lanc.dtVencimento).replace(/\//g, '-') : 'sem-data'
   return `BOLETO ${numero} ${cliente} ${venc}.pdf`
 }
 
@@ -108,8 +107,6 @@ async function abrirBoletoInter(lanc: any) {
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
-
 /** Abrevia razão social do emissor pro chip discreto no Financeiro.
  * "ALBUQUERQUE E ARAUJO ENGENHARIA LTDA" → "Albuquerque e Araújo"
  * "ALFER ALUGUEL DE CONTAINERS LTDA"     → "Alfer"
@@ -162,7 +159,7 @@ async function enviarWhatsAppLancamento(l: any) {
     texto = r.data.texto || ''
   } catch {
     // Fallback simples caso o preview falhe
-    const venc = new Date(l.dtVencimento).toLocaleDateString('pt-BR')
+    const venc = fmtDate(l.dtVencimento)
     const valor = fmt(Number(l.valor))
     const numero = l.numeroFatura || ''
     texto = `Olá! Segue a sua fatura ${numero} no valor de ${valor} com vencimento em ${venc}.\n\nAlfer Equipamentos\n📞 0800 620 0050 / (81) 9 7109-4000`

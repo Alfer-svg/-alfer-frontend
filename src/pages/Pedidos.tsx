@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { FileSignature, ChevronRight, Clock, FileText, CheckCircle2, XCircle } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
   PENDENTE: { bg: '#FEF3E2', text: '#633806', label: 'Pendente', icon: Clock },
@@ -11,7 +12,6 @@ const statusInfo: Record<string, { bg: string; text: string; label: string; icon
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 export default function Pedidos() {
   const navigate = useNavigate()

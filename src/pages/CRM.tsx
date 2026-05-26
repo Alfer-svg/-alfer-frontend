@@ -43,7 +43,7 @@ const TIPOS_INTERACAO = [
 
 const fmtBRL = (v?: number | null) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
+import { fmtDate } from '../utils/data'
 
 function diasAte(d?: string | null) {
   if (!d) return null

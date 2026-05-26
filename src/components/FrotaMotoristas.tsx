@@ -2,8 +2,8 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from './Modal'
 import { Users, Plus, AlertCircle, Loader2, X, Trash2, Clock } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 function diasEntre(ini: string, fim?: string | null) {
   const inicio = new Date(ini).getTime()

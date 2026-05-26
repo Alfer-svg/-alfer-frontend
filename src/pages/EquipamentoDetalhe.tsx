@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { ArrowLeft, Package, Wrench, MapPin, Calendar, FileText, AlertCircle, Loader2, Pencil, Truck, ChevronRight } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const tipoLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',
@@ -19,7 +20,6 @@ const statusColor: Record<string, { bg: string; text: string; label: string }> =
   INATIVO: { bg: '#F1EFE8', text: '#888', label: 'Inativo' },
 }
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 export default function EquipamentoDetalhe() {
   const navigate = useNavigate()

@@ -7,6 +7,7 @@ import FrotaManutencoesProg from '../components/FrotaManutencoesProg'
 import FrotaAbastecimentos from '../components/FrotaAbastecimentos'
 import FrotaMotoristas from '../components/FrotaMotoristas'
 import FrotaMultas from '../components/FrotaMultas'
+import { fmtDate } from '../utils/data'
 
 const tipoLabel: Record<string, string> = {
   MUNCK: 'Munck',
@@ -14,7 +15,6 @@ const tipoLabel: Record<string, string> = {
   CAVALO_MECANICO: 'Cavalo Mecânico',
 }
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 export default function CaminhaoDetalhe() {
   const navigate = useNavigate()

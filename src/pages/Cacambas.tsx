@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { Layers, Plus, MapPin, Calendar, AlertTriangle, Loader2, AlertCircle, X, Trash2, DollarSign, FileText, MoreVertical, RefreshCw, ArrowDownLeft } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
@@ -24,7 +25,6 @@ const STATUS_ORDEM = [
   'ENCERRADA',
 ]
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 /** Cor de urgência baseada em dias até retirada */
 function corContagem(dias: number): { bg: string; text: string; label: string; icon: string } {

@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from './Modal'
 import { Fuel, Plus, AlertCircle, Loader2, X, Pencil, Trash2, TrendingUp } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const COMBUSTIVEIS = [
   { v: 'DIESEL_S10', l: 'Diesel S10' },
@@ -13,7 +14,6 @@ const COMBUSTIVEIS = [
   { v: 'OUTRO', l: 'Outro' },
 ]
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 const fmtBRL = (v?: number | null) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtNum = (v?: number | null, dec = 2) =>

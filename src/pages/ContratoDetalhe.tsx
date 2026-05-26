@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { ArrowLeft, FileText, Package, DollarSign, Calendar, AlertCircle, Loader2, RotateCw, X, Building2, Bell, Pencil, Trash2, ClipboardList, FileDown, Send, Mail, CheckCircle2, XCircle, RefreshCw, Plus, Copy, Clock, MapPin } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -23,7 +24,6 @@ const tipoLabel: Record<string, string> = {
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 export default function ContratoDetalhe() {
   const navigate = useNavigate()

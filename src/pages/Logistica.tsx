@@ -4,6 +4,7 @@ import api from '../services/api'
 import { Truck, Package, Loader2, AlertCircle, X, MapPin, Calendar, User, ImagePlus, Camera, AlertTriangle, CheckCircle2, ArrowRight, FileText, Pencil } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
 import { Modal } from '../components/Modal'
+import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:     { bg: '#FEF3E2', text: '#633806', label: 'Para mobilizar' },
@@ -13,7 +14,6 @@ const statusInfo: Record<string, { bg: string; text: string; label: string }> = 
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 
 function statusData(dt?: string | null): { bg: string; text: string; label: string; days: number | null } {
   if (!dt) return { bg: '#F1EFE8', text: '#888', label: 'Sem data programada', days: null }

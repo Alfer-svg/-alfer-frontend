@@ -28,7 +28,7 @@ type Locacao = {
 
 const fmt = (v: number | null) =>
   v == null ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
+import { fmtDate } from '../utils/data'
 
 const subtipoLabel: Record<string, string> = {
   CONTAINER_SECO: 'Container Seco',

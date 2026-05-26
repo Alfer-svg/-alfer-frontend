@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { ArrowLeft, FileText, Building2, Package, AlertCircle, Loader2, Send, CheckCircle2, XCircle, Pencil, Trash2, FileSignature, MessageCircle, Mail, FileDown, Archive, ArchiveRestore, X, Star } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
   RASCUNHO: { bg: '#F1EFE8', text: '#888', label: 'Rascunho' },
@@ -13,12 +14,6 @@ const statusInfo: Record<string, { bg: string; text: string; label: string }> = 
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
-const fmtDate = (d?: string) => {
-  if (!d) return '—'
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d))
-  if (m) return `${m[3]}/${m[2]}/${m[1]}`
-  return new Date(d).toLocaleDateString('pt-BR')
-}
 
 const condicaoPagamentoLabel = (v?: string) => ({
   A_VISTA: 'À vista',

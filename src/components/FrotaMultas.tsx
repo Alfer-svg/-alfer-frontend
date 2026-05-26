@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from './Modal'
 import { AlertOctagon, Plus, AlertCircle, Loader2, X, Pencil, Trash2 } from 'lucide-react'
+import { fmtDate } from '../utils/data'
 
 const STATUS_OPTS = [
   { v: 'PENDENTE', l: 'Pendente', bg: '#FEF3E2', text: '#633806' },
@@ -21,7 +22,6 @@ const GRAVIDADES = [
 
 const PONTOS_PADRAO: Record<string, number> = { LEVE: 3, MEDIA: 4, GRAVE: 5, GRAVISSIMA: 7 }
 
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—')
 const fmtBRL = (v?: number | null) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
