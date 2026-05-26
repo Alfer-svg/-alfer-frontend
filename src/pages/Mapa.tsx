@@ -279,8 +279,8 @@ export default function Mapa() {
               maxClusterRadius={50}
               iconCreateFunction={(cluster: any) => {
                 const count = cluster.getChildCount()
-                const size = count < 10 ? 26 : count < 100 ? 32 : 38
-                const fontSize = count < 10 ? 11 : count < 100 ? 12 : 13
+                const size = count < 10 ? 22 : count < 100 ? 28 : 34
+                const fontSize = count < 10 ? 10 : count < 100 ? 11 : 12
                 return L.divIcon({
                   html: `<div style="
                     width:${size}px;height:${size}px;
