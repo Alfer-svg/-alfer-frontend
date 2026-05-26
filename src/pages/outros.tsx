@@ -349,10 +349,10 @@ export function Financeiro() {
   }
 
   const statusColor: Record<string, string> = {
-    PAGO: '#27AE60', PENDENTE: '#FFAF06', FUTURO: '#2D80D1', VENCIDO: '#E74C3C', INADIMPLENTE: '#8B0000', CANCELADO: '#8B0000',
+    PAGO: '#27AE60', PENDENTE: '#FFAF06', FUTURO: '#2D80D1', VENCIDO: '#713F12', INADIMPLENTE: '#713F12', CANCELADO: '#8B0000',
   }
   const statusBg: Record<string, string> = {
-    PAGO: '#EAF3DE', PENDENTE: '#FEF3E2', FUTURO: '#E3EEFA', VENCIDO: '#FDEEEE', INADIMPLENTE: '#FDEEEE', CANCELADO: '#FDEEEE',
+    PAGO: '#EAF3DE', PENDENTE: '#FEF3E2', FUTURO: '#E3EEFA', VENCIDO: '#FEF08A', INADIMPLENTE: '#FEF08A', CANCELADO: '#FDEEEE',
   }
 
   if (loading && !dash) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
