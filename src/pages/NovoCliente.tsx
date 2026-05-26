@@ -403,7 +403,7 @@ export default function NovoCliente() {
                     <input value={c.email} onChange={e => setContato(i, 'email', e.target.value)} placeholder="nome@empresa.com.br" type="email" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </div>
                 </div>
-                <label className="mt-3 flex items-center gap-2 cursor-pointer" title="Esse contato vai receber faturas e boletos por e-mail. Máximo 4 por cliente.">
+                <label className="mt-3 flex items-center gap-2 cursor-pointer" title="Esse contato vai receber faturas e boletos por e-mail. Máximo 6 por cliente.">
                   <input
                     type="checkbox"
                     checked={!!c.recebeFatura}
