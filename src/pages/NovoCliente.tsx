@@ -182,9 +182,9 @@ export default function NovoCliente() {
   const toggleRecebeFatura = (i: number) => setContatos(cs => {
     const alvo = cs[i]
     const atualmenteMarcados = cs.filter((c) => c.recebeFatura).length
-    // Se vai marcar (estava false) e já tem 4, bloqueia
-    if (!alvo.recebeFatura && atualmenteMarcados >= 4) {
-      alert('Limite de 4 destinatários de fatura/boleto por cliente. Desmarque um antes.')
+    // Se vai marcar (estava false) e já tem 6, bloqueia
+    if (!alvo.recebeFatura && atualmenteMarcados >= 6) {
+      alert('Limite de 6 destinatários de fatura/boleto por cliente. Desmarque um antes.')
       return cs
     }
     return cs.map((c, idx) => idx === i ? { ...c, recebeFatura: !c.recebeFatura } : c)
