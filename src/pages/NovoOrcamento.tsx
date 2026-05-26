@@ -354,8 +354,12 @@ export default function NovoOrcamento() {
                       // em contrato ATIVO/VENCENDO (status do equipamento só muda na
                       // mobilização da logística, mas pra fins de orçamento o que importa
                       // é se já tem contrato vivo cobrindo esse equipamento).
+                      // Considera "ocupado" qualquer contrato vivo — inclusive RASCUNHO
+                      // e AGUARDANDO_ASSINATURA (equipamento já comprometido mesmo que
+                      // contrato ainda não tenha sido ativado). Só ENCERRADO/RESCINDIDO
+                      // libera o equipamento.
                       const emContratoAtivo = (e.contratosEquip || []).some((ce: any) =>
-                        ce.contrato && (ce.contrato.status === 'ATIVO' || ce.contrato.status === 'VENCENDO')
+                        ce.contrato && !['ENCERRADO', 'RESCINDIDO'].includes(ce.contrato.status)
                       )
                       const efetivoStatus = e.status === 'LOCADO' || emContratoAtivo ? 'LOCADO' : e.status
 
