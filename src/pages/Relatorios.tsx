@@ -407,32 +407,46 @@ function RelatorioPorEquipamento({ ano, emissorId }: { ano: number; emissorId?: 
           </div>
         ) : (
           <div className="space-y-2">
-            {data.map((e) => (
-              <div key={e.equipamentoId} className="py-2 border-b last:border-0" style={{ borderColor: '#F1EFE8' }}>
-                <div className="flex items-baseline gap-3 mb-1 flex-wrap">
-                  <span className="font-semibold text-gray-900 text-sm">{e.codigo}</span>
-                  <span className="text-sm text-gray-700 flex-1 truncate">{e.modelo}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ background: '#F1EFE8', color: '#666' }}>
-                    {tipoLabel[e.tipo] || e.tipo}
-                  </span>
-                  <span className="text-xs text-gray-500 w-20 text-right">{e.quantidadeFaturas} fatura(s)</span>
-                  <span className="font-bold text-gray-900 w-32 text-right">{fmt(e.totalFaturado)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full" style={{ width: `${(e.totalFaturado / max) * 100}%`, background: '#FFAF06' }} />
+            {data.map((e) => {
+              const ef = e.efetividade ?? 0
+              // Cor da efetividade: vermelho < 30%, amber 30-70%, verde > 70%
+              const corEf = ef >= 70 ? '#27500A' : ef >= 30 ? '#633806' : '#8B0000'
+              const bgEf = ef >= 70 ? '#EAF3DE' : ef >= 30 ? '#FEF3E2' : '#FDEEEE'
+              return (
+                <div key={e.equipamentoId} className="py-2 border-b last:border-0" style={{ borderColor: '#F1EFE8' }}>
+                  <div className="flex items-baseline gap-3 mb-1 flex-wrap">
+                    <span className="font-semibold text-gray-900 text-sm">{e.codigo}</span>
+                    <span className="text-sm text-gray-700 flex-1 truncate">{e.modelo}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ background: '#F1EFE8', color: '#666' }}>
+                      {tipoLabel[e.tipo] || e.tipo}
+                    </span>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: bgEf, color: corEf }}
+                      title={`${e.diasLocados || 0} de ${e.diasNoAno || 365} dias locado no ano`}
+                    >
+                      {ef}% efetividade
+                    </span>
+                    <span className="text-xs text-gray-500 w-20 text-right">{e.quantidadeFaturas} fatura(s)</span>
+                    <span className="font-bold text-gray-900 w-32 text-right">{fmt(e.totalFaturado)}</span>
                   </div>
-                  <span className="text-[10px] text-gray-500 w-40 text-right">
-                    Pago {fmt(e.totalPago)} · A receber {fmt(e.aReceber)}
-                  </span>
-                </div>
-                {e.ultimoFaturamento && (
-                  <div className="text-[10px] text-gray-400 mt-1">
-                    Última fatura: {fmtDate(e.ultimoFaturamento)}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full" style={{ width: `${(e.totalFaturado / max) * 100}%`, background: '#FFAF06' }} />
+                    </div>
+                    <span className="text-[10px] text-gray-500 w-40 text-right">
+                      Pago {fmt(e.totalPago)} · A receber {fmt(e.aReceber)}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
+                    {e.ultimoFaturamento && <span>Última fatura: {fmtDate(e.ultimoFaturamento)}</span>}
+                    {e.diasLocados != null && (
+                      <span>Locado: {e.diasLocados} de {e.diasNoAno} dias</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
