@@ -365,12 +365,9 @@ export default function NovoOrcamento() {
                       const cor = efetivoStatus === 'LOCADO' ? '#8B0000' :
                                    efetivoStatus === 'MANUTENCAO' ? '#633806' :
                                    efetivoStatus === 'DESCARTADO' ? '#888' : undefined
-                      // Debug visual: [status banco · N contratos vivos] no final do label
-                      // (temporário até confirmar que detecção funciona; remover depois)
-                      const debug = ` · [${e.status}, ${contratosVivos.length} ctr]`
                       return (
                         <option key={e.id} value={e.id} style={bg ? { background: bg, color: cor } : undefined}>
-                          {prefixo}{e.codigo} — {e.modelo}{debug}
+                          {prefixo}{e.codigo} — {e.modelo}
                         </option>
                       )
                     })}
