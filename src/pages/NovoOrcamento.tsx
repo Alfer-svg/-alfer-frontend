@@ -34,6 +34,7 @@ export default function NovoOrcamento() {
     condicaoPagamento: 'PERSONALIZADO',
     formaPagamento: 'BOLETO',
     diaVencFatura: '5',
+    dtPrimeiraFatura: '', // opcional — se preenchido, sobrepõe o cálculo automático
     localMobilizacao: '',
     dtInicio: '',
     dtFim: '',
@@ -141,6 +142,7 @@ export default function NovoOrcamento() {
           condicaoPagamento: o.condicaoPagamento || 'PERSONALIZADO',
           formaPagamento: o.formaPagamento || 'BOLETO',
           diaVencFatura: String(o.diaVencFatura ?? 5),
+          dtPrimeiraFatura: o.dtPrimeiraFatura ? String(o.dtPrimeiraFatura).slice(0, 10) : '',
           localMobilizacao: o.localMobilizacao || '',
           // Pega só YYYY-MM-DD direto da string pra evitar shift de fuso (UTC -> BR vira -1 dia)
           dtInicio: o.dtInicio ? String(o.dtInicio).slice(0, 10) : '',
@@ -195,6 +197,7 @@ export default function NovoOrcamento() {
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
         diaVencFatura: Math.max(1, Math.min(31, Number(form.diaVencFatura) || 5)),
+        dtPrimeiraFatura: form.dtPrimeiraFatura || null,
         localMobilizacao: form.localMobilizacao || null,
         dtInicio: form.dtInicio || null,
         dtFim: form.dtFim || null,
@@ -389,7 +392,7 @@ export default function NovoOrcamento() {
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Dia de vencimento da fatura</label>
               <div className="flex items-center gap-2">
                 <input
@@ -402,6 +405,19 @@ export default function NovoOrcamento() {
                 />
                 <span className="text-xs text-gray-500">de cada mês (1–31)</span>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data da primeira fatura <span className="text-xs text-gray-400">(opcional)</span></label>
+              <input
+                type="date"
+                value={form.dtPrimeiraFatura}
+                onChange={(e) => set('dtPrimeiraFatura', e.target.value)}
+                className={inputCls}
+                style={inputStyle}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Se preenchida, sobrepõe o cálculo automático. As próximas seguem o dia acima.
+              </p>
             </div>
           </div>
         </div>

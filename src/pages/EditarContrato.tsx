@@ -32,6 +32,7 @@ export default function EditarContrato() {
     // D_30/A_VISTA/PARCELADO geram UMA fatura só, ignorando diaVencFatura.
     condicaoPagamento: 'PERSONALIZADO',
     diaVencFatura: '5',
+    dtPrimeiraFatura: '', // opcional — cravado em calendário
     inadimpDias: '30',
     multaRescisaoPct: '',
     multaAtrasoPct: '',
@@ -111,6 +112,7 @@ export default function EditarContrato() {
           formaCobranca: c.formaCobranca || 'BOLETO',
           condicaoPagamento: c.condicaoPagamento || 'PERSONALIZADO',
           diaVencFatura: String(c.diaVencFatura ?? 5),
+          dtPrimeiraFatura: c.dtPrimeiraFatura ? String(c.dtPrimeiraFatura).slice(0, 10) : '',
           inadimpDias: String(c.inadimpDias ?? 30),
           multaRescisaoPct: c.multaRescisaoPct != null ? String(Number(c.multaRescisaoPct)) : '',
           multaAtrasoPct: c.multaAtrasoPct != null ? String(Number(c.multaAtrasoPct)) : '',
@@ -141,6 +143,7 @@ export default function EditarContrato() {
         ...form,
         valor: Number(form.valor),
         diaVencFatura: Number(form.diaVencFatura) || 5,
+        dtPrimeiraFatura: form.dtPrimeiraFatura || null,
         inadimpDias: Number(form.inadimpDias) || 30,
         avisoPrevioDias: Number(form.avisoPrevioDias) || 30,
         multaRescisaoPct: form.multaRescisaoPct ? Number(form.multaRescisaoPct) : null,
@@ -259,6 +262,17 @@ export default function EditarContrato() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Dia de vencimento</label>
               <input value={form.diaVencFatura} onChange={(e) => set('diaVencFatura', e.target.value)} type="number" min="1" max="31" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data da primeira fatura <span className="text-xs text-gray-400">(opcional)</span></label>
+              <input
+                type="date"
+                value={form.dtPrimeiraFatura}
+                onChange={(e) => set('dtPrimeiraFatura', e.target.value)}
+                className={inputCls}
+                style={inputStyle}
+              />
+              <p className="text-xs text-gray-500 mt-1">Sobrepõe o cálculo automático; as próximas seguem o "Dia de vencimento".</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Índice de reajuste</label>
