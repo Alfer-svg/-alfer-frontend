@@ -140,12 +140,27 @@ function RelatorioFluxo({ ano }: { ano: number }) {
 
 function RelatorioAging({ emissorId }: { emissorId?: string }) {
   const [data, setData] = useState<any | null>(null)
+  const [incluirFuturo, setIncluirFuturo] = useState(false)
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
+  const [clientes, setClientes] = useState<any[]>([])
+  const [clienteId, setClienteId] = useState('')
+
+  useEffect(() => {
+    api.get('/clientes').then((r) => setClientes(r.data || [])).catch(() => {})
+  }, [])
+
   useEffect(() => {
     setData(null)
-    api.get('/financeiro/relatorios/aging', { params: emissorId ? { emissorId } : {} }).then((r) => setData(r.data))
-  }, [emissorId])
+    const params: any = {}
+    if (emissorId) params.emissorId = emissorId
+    if (incluirFuturo) params.incluirFuturo = 'true'
+    if (clienteId) params.clienteId = clienteId
+    if (dataInicio) params.dataInicio = dataInicio
+    if (dataFim) params.dataFim = dataFim
+    api.get('/financeiro/relatorios/aging', { params }).then((r) => setData(r.data))
+  }, [emissorId, incluirFuturo, clienteId, dataInicio, dataFim])
 
-  if (!data) return <Loading />
   const cores: Record<string, string> = {
     a_vencer: '#1A5276',
     ate_30: '#FFAF06',
@@ -153,8 +168,61 @@ function RelatorioAging({ emissorId }: { emissorId?: string }) {
     de_61_90: '#E74C3C',
     mais_90: '#8B0000',
   }
+
   return (
     <div className="space-y-6">
+      {/* Filtros */}
+      <div className="bg-white rounded-2xl p-4 flex items-center gap-3 flex-wrap" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={incluirFuturo}
+            onChange={(e) => setIncluirFuturo(e.target.checked)}
+            style={{ accentColor: '#FFAF06' }}
+          />
+          Incluir FUTURO (faturas ainda não vencidas)
+        </label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500">De</label>
+          <input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            className="px-2 py-1.5 rounded-lg text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+          <label className="text-xs text-gray-500">até</label>
+          <input
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+            className="px-2 py-1.5 rounded-lg text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+        </div>
+        <select
+          value={clienteId}
+          onChange={(e) => setClienteId(e.target.value)}
+          className="px-3 py-1.5 rounded-lg text-sm outline-none flex-1 min-w-[180px]"
+          style={{ border: '1px solid #E0DDD8', ...(clienteId && { background: '#FEF3E2', color: '#633806', fontWeight: 500 }) }}
+        >
+          <option value="">Todos os clientes</option>
+          {clientes.map((c) => (
+            <option key={c.id} value={c.id}>{c.razaoSocial}</option>
+          ))}
+        </select>
+        {(incluirFuturo || dataInicio || dataFim || clienteId) && (
+          <button
+            type="button"
+            onClick={() => { setIncluirFuturo(false); setDataInicio(''); setDataFim(''); setClienteId('') }}
+            className="text-xs text-gray-500 hover:text-gray-700 underline"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+
+      {!data ? <Loading /> : <>
       <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="flex items-baseline justify-between mb-4">
           <h3 className="font-semibold text-gray-900">A receber consolidado</h3>
@@ -190,6 +258,7 @@ function RelatorioAging({ emissorId }: { emissorId?: string }) {
           </div>
         </div>
       ))}
+      </>}
     </div>
   )
 }
