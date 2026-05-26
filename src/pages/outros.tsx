@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2 } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const CATEGORIAS: { v: string; l: string }[] = [
@@ -208,6 +208,8 @@ export function Financeiro() {
   const [emissoresList, setEmissoresList] = useState<any[]>([])
   // Modal de alteração de data de vencimento
   const [vencModal, setVencModal] = useState<{ lanc: any; nova: string; escopo: 'so_essa' | 'futuras' } | null>(null)
+  // Modal de edição de observações da fatura
+  const [obsModal, setObsModal] = useState<{ lanc: any; texto: string } | null>(null)
 
   const carregar = () => {
     const params: any = {}
@@ -299,6 +301,22 @@ export function Financeiro() {
   const copiar = (texto: string, label: string) => {
     navigator.clipboard.writeText(texto)
     alert(`${label} copiado!`)
+  }
+
+  const editarObservacoes = (l: any) => {
+    setObsModal({ lanc: l, texto: l.observacoes || '' })
+  }
+
+  const salvarObservacoes = async () => {
+    if (!obsModal) return
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${obsModal.lanc.id}/observacoes`, { observacoes: obsModal.texto })
+      setObsModal(null)
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao salvar observações')
+    }
   }
 
   const reativar = async (l: any) => {
@@ -728,6 +746,16 @@ export function Financeiro() {
                         <Clock className="w-3 h-3" /> Alterar vencimento
                       </button>
                     )}
+                    {l.tipo === 'RECEITA' && l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
+                      <button
+                        onClick={() => editarObservacoes(l)}
+                        title="Adicionar/editar texto que aparece na fatura"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs hover:bg-gray-50"
+                        style={{ border: '1px solid #E0DDD8', color: l.observacoes ? '#633806' : '#555', background: l.observacoes ? '#FEF3E2' : undefined }}
+                      >
+                        <FileText className="w-3 h-3" /> {l.observacoes ? 'Info na fatura ✓' : 'Info na fatura'}
+                      </button>
+                    )}
                     {l.status === 'CANCELADO' && (
                       <button
                         onClick={() => reativar(l)}
@@ -784,6 +812,57 @@ export function Financeiro() {
       )}
 
       {/* Modal de troca de emissor (Multi-CNPJ) */}
+      {obsModal && (
+        <Modal onClose={() => setObsModal(null)} maxWidth="max-w-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+              <FileText className="w-5 h-5" style={{ color: '#FFAF06' }} />
+              Informações adicionais na fatura
+            </h2>
+            <button type="button" onClick={() => setObsModal(null)}>
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+          <div className="text-xs text-gray-500 mb-3">
+            {obsModal.lanc.numeroFatura ? `NF ${obsModal.lanc.numeroFatura}` : 'Fatura'} — {obsModal.lanc.cliente?.razaoSocial}
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Texto livre que aparece na fatura impressa, antes da forma de pagamento.
+            Útil pra: obra de destino, código do projeto, contato, instruções específicas, etc.
+          </p>
+          <textarea
+            value={obsModal.texto}
+            onChange={(e) => setObsModal({ ...obsModal, texto: e.target.value })}
+            rows={6}
+            placeholder="Ex: Obra Recife/PE — Centro de Distribuição&#10;Pedido interno: 4521&#10;Contato no local: João (81 99999-0000)"
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+            style={{ border: '1px solid #E0DDD8' }}
+            autoFocus
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            Deixe em branco pra remover as observações da fatura.
+          </p>
+          {erroAcao && (
+            <div className="p-3 mt-3 rounded-xl text-red-700 text-sm flex items-center gap-2"
+                 style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroAcao}
+            </div>
+          )}
+          <div className="flex gap-2 mt-4">
+            <button type="button" onClick={() => setObsModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}>
+              Cancelar
+            </button>
+            <button type="button" onClick={salvarObservacoes}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900"
+                    style={{ background: '#FFAF06' }}>
+              Salvar
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {vencModal && (
         <Modal onClose={() => setVencModal(null)} maxWidth="max-w-md">
           <div className="flex items-center justify-between mb-4">
