@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'react-leaflet-cluster/styles'
 import api from '../services/api'
 import { Map as MapIcon, AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 
@@ -265,58 +267,85 @@ export default function Mapa() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {equipamentosVisiveis.map((e) => (
-              <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip(e.tipo, e.vencendoHoje)}>
-                <Popup>
-                  <div className="text-sm">
-                    <div className="font-semibold">{e.codigo}</div>
-                    <div className="text-gray-600">{e.modelo}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {tipoEquipLabel[e.tipo] || e.tipo} • {e.status}
-                    </div>
-                    {e.vencendoHoje && (
-                      <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
-                        ⚠ Vence/desmobiliza hoje
+            {/* MarkerClusterGroup: marcadores próximos viram um círculo
+                com a contagem. Clique no círculo dá zoom até abrir; se
+                continuam no MESMO ponto, abre em "leque" (spiderfy).
+                Cor laranja Pantone Alfer no cluster. */}
+            <MarkerClusterGroup
+              chunkedLoading
+              showCoverageOnHover={false}
+              spiderfyOnMaxZoom
+              maxClusterRadius={50}
+              iconCreateFunction={(cluster: any) => {
+                const count = cluster.getChildCount()
+                const size = count < 10 ? 36 : count < 100 ? 44 : 52
+                return L.divIcon({
+                  html: `<div style="
+                    width:${size}px;height:${size}px;
+                    background:#FFAF06;border:3px solid #fff;
+                    border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    color:#1A1C1E;font-weight:700;font-size:13px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+                  ">${count}</div>`,
+                  className: 'custom-cluster-icon',
+                  iconSize: L.point(size, size),
+                })
+              }}
+            >
+              {equipamentosVisiveis.map((e) => (
+                <Marker key={`e-${e.id}`} position={[e.latitude, e.longitude]} icon={iconePorTipoEquip(e.tipo, e.vencendoHoje)}>
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="font-semibold">{e.codigo}</div>
+                      <div className="text-gray-600">{e.modelo}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {tipoEquipLabel[e.tipo] || e.tipo} • {e.status}
                       </div>
-                    )}
-                    {e.localizacao && <div className="text-xs text-gray-500 mt-1">{e.localizacao}</div>}
-                    <button
-                      onClick={() => navigate(`/equipamentos/${e.id}`)}
-                      className="mt-2 text-xs font-medium"
-                      style={{ color: '#FFAF06' }}
-                    >
-                      Ver detalhe →
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-            {caminhoesVisiveis.map((c) => (
-              <Marker key={`c-${c.id}`} position={[c.latitude, c.longitude]} icon={iconPorTipoCam[c.tipo] || iconCaminhaoDefault}>
-                <Popup>
-                  <div className="text-sm">
-                    <div className="font-semibold">{c.codigo} — {c.placa}</div>
-                    <div className="text-gray-600">{c.modelo}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {tipoCamLabel[c.tipo] || c.tipo} • {c.status}
+                      {e.vencendoHoje && (
+                        <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
+                          ⚠ Vence/desmobiliza hoje
+                        </div>
+                      )}
+                      {e.localizacao && <div className="text-xs text-gray-500 mt-1">{e.localizacao}</div>}
+                      <button
+                        onClick={() => navigate(`/equipamentos/${e.id}`)}
+                        className="mt-2 text-xs font-medium"
+                        style={{ color: '#FFAF06' }}
+                      >
+                        Ver detalhe →
+                      </button>
                     </div>
-                    {c.localizacao && <div className="text-xs text-gray-500 mt-1">{c.localizacao}</div>}
-                    {c.ultimaLocAt && (
-                      <div className="text-xs text-gray-400 mt-1">
-                        Atualizado: {new Date(c.ultimaLocAt).toLocaleString('pt-BR')}
+                  </Popup>
+                </Marker>
+              ))}
+              {caminhoesVisiveis.map((c) => (
+                <Marker key={`c-${c.id}`} position={[c.latitude, c.longitude]} icon={iconPorTipoCam[c.tipo] || iconCaminhaoDefault}>
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="font-semibold">{c.codigo} — {c.placa}</div>
+                      <div className="text-gray-600">{c.modelo}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {tipoCamLabel[c.tipo] || c.tipo} • {c.status}
                       </div>
-                    )}
-                    <button
-                      onClick={() => navigate(`/caminhoes/${c.id}`)}
-                      className="mt-2 text-xs font-medium"
-                      style={{ color: '#2D80D1' }}
-                    >
-                      Ver detalhe →
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                      {c.localizacao && <div className="text-xs text-gray-500 mt-1">{c.localizacao}</div>}
+                      {c.ultimaLocAt && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          Atualizado: {new Date(c.ultimaLocAt).toLocaleString('pt-BR')}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => navigate(`/caminhoes/${c.id}`)}
+                        className="mt-2 text-xs font-medium"
+                        style={{ color: '#2D80D1' }}
+                      >
+                        Ver detalhe →
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MarkerClusterGroup>
           </MapContainer>
         </div>
       )}
