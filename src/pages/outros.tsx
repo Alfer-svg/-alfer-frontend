@@ -289,6 +289,37 @@ export function Financeiro() {
     alert(`${label} copiado!`)
   }
 
+  const reativar = async (l: any) => {
+    if (!confirm(`Reativar a fatura ${l.numeroFatura ? `NF ${l.numeroFatura}` : ''}? Vai voltar pra PENDENTE.`)) return
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${l.id}/reativar`)
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao reativar')
+    }
+  }
+
+  const editarVencimento = async (l: any) => {
+    const atual = l.dtVencimento ? String(l.dtVencimento).slice(0, 10) : ''
+    const nova = prompt(
+      `Nova data de vencimento (formato AAAA-MM-DD):\n\nFatura: ${l.numeroFatura ? `NF ${l.numeroFatura}` : '—'}\nCliente: ${l.cliente?.razaoSocial || ''}\nVencimento atual: ${atual}`,
+      atual,
+    )
+    if (!nova || nova === atual) return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nova)) {
+      alert('Formato inválido. Use AAAA-MM-DD (ex: 2026-06-15).')
+      return
+    }
+    setErroAcao('')
+    try {
+      await api.put(`/financeiro/lancamentos/${l.id}/vencimento`, { dtVencimento: nova })
+      await carregar()
+    } catch (e: any) {
+      setErroAcao(e.response?.data?.message || 'Erro ao alterar vencimento')
+    }
+  }
+
   // Abre o modal pra trocar emissor de uma fatura. Só permitido se não PAGO.
   const abrirModalEmissor = async (l: any) => {
     if (l.status === 'PAGO') return
@@ -646,6 +677,26 @@ export function Financeiro() {
                         style={{ background: '#27AE60' }}
                       >
                         <CheckCircle2 className="w-3 h-3" /> {l.tipo === 'RECEITA' ? 'Receber' : 'Pagar'}
+                      </button>
+                    )}
+                    {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
+                      <button
+                        onClick={() => editarVencimento(l)}
+                        title="Alterar data de vencimento"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                        style={{ border: '1px solid #E0DDD8' }}
+                      >
+                        <Clock className="w-3 h-3" /> Alterar vencimento
+                      </button>
+                    )}
+                    {l.status === 'CANCELADO' && (
+                      <button
+                        onClick={() => reativar(l)}
+                        title="Reativar fatura (volta pra PENDENTE)"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-white hover:opacity-90"
+                        style={{ background: '#FFAF06', color: '#1A1C1E' }}
+                      >
+                        <RefreshCw className="w-3 h-3" /> Reativar
                       </button>
                     )}
                     {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (
