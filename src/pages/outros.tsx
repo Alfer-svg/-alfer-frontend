@@ -698,20 +698,37 @@ export function Financeiro() {
                         <Banknote className="w-3 h-3" /> Boleto Inter
                       </button>
                     )}
-                    {l.tipo === 'RECEITA' && (
-                      <button
-                        onClick={() => setEnviarEmailModal(l)}
-                        title={l.emailEnviadoEm ? `Já enviado em ${new Date(l.emailEnviadoEm).toLocaleString('pt-BR')}` : 'Enviar fatura + boleto por e-mail'}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium"
-                        style={{
-                          background: l.emailEnviadoEm ? '#EAF3DE' : '#E3EEFA',
-                          color: l.emailEnviadoEm ? '#27500A' : '#1A5276',
-                          border: `1px solid ${l.emailEnviadoEm ? '#C5DDA2' : '#B8D6EE'}`,
-                        }}
-                      >
-                        <Mail className="w-3 h-3" /> {l.emailEnviadoEm ? 'Reenviar e-mail' : 'Enviar por e-mail'}
-                      </button>
-                    )}
+                    {l.tipo === 'RECEITA' && (() => {
+                      const agendado = l.emailAgendadoPendente
+                      if (agendado) {
+                        const dt = new Date(agendado.dataAgendada)
+                        const fmtCurto = dt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        return (
+                          <button
+                            onClick={() => setEnviarEmailModal(l)}
+                            title={`Agendado pra ${dt.toLocaleString('pt-BR')} — destinatário: ${agendado.destinatario}. Clique pra ver/gerenciar.`}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium"
+                            style={{ background: '#FFF8E6', color: '#633806', border: '1px solid #FFD577' }}
+                          >
+                            <Clock className="w-3 h-3" /> E-mail agendado · {fmtCurto}
+                          </button>
+                        )
+                      }
+                      return (
+                        <button
+                          onClick={() => setEnviarEmailModal(l)}
+                          title={l.emailEnviadoEm ? `Já enviado em ${new Date(l.emailEnviadoEm).toLocaleString('pt-BR')}` : 'Enviar fatura + boleto por e-mail'}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium"
+                          style={{
+                            background: l.emailEnviadoEm ? '#EAF3DE' : '#E3EEFA',
+                            color: l.emailEnviadoEm ? '#27500A' : '#1A5276',
+                            border: `1px solid ${l.emailEnviadoEm ? '#C5DDA2' : '#B8D6EE'}`,
+                          }}
+                        >
+                          <Mail className="w-3 h-3" /> {l.emailEnviadoEm ? 'Reenviar e-mail' : 'Enviar por e-mail'}
+                        </button>
+                      )
+                    })()}
                     {l.tipo === 'RECEITA' && (
                       <button
                         onClick={() => enviarWhatsAppLancamento(l)}
