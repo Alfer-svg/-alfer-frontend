@@ -37,12 +37,15 @@ export default function ContratoDetalhe() {
   const [signStatus, setSignStatus] = useState<any>(null)
   const [showSignModal, setShowSignModal] = useState(false)
   const [erroSign, setErroSign] = useState('')
+  // Diagnóstico automático de faturas (banner amarelo se algo tá errado)
+  const [diagFaturas, setDiagFaturas] = useState<{ temFaturas: boolean; motivo: string | null; acao: string | null } | null>(null)
 
   const load = () => {
     if (!id) return
     setLoading(true)
     api.get(`/contratos/${id}`).then((r) => setC(r.data)).finally(() => setLoading(false))
     api.get(`/contratos/${id}/status-assinatura`).then((r) => setSignStatus(r.data)).catch(() => {})
+    api.get(`/contratos/${id}/diagnostico-faturas`).then((r) => setDiagFaturas(r.data)).catch(() => setDiagFaturas(null))
   }
   useEffect(load, [id])
 
@@ -211,6 +214,46 @@ export default function ContratoDetalhe() {
       {erroSign && (
         <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" /> {erroSign}
+        </div>
+      )}
+      {/* Banner amarelo: contrato sem faturas — mostra motivo + ação direto */}
+      {diagFaturas && !diagFaturas.temFaturas && diagFaturas.motivo && (
+        <div className="p-4 mb-4 rounded-xl flex items-start gap-3" style={{ background: '#FFF8E6', border: '1px solid #FFD577' }}>
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FFAF06' }} />
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm" style={{ color: '#633806' }}>Este contrato ainda não tem faturas</div>
+            <div className="text-sm mt-1" style={{ color: '#633806' }}>{diagFaturas.motivo}</div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            {diagFaturas.acao === 'ativar' && c.status !== 'ATIVO' && (
+              <button
+                onClick={() => mudarStatus('ATIVO')}
+                disabled={updatingStatus}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                style={{ background: '#27AE60', color: 'white' }}
+              >
+                Ativar agora
+              </button>
+            )}
+            {diagFaturas.acao === 'recalcular' && (
+              <button
+                onClick={recalcularFaturas}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900"
+                style={{ background: '#FFAF06' }}
+              >
+                Gerar faturas
+              </button>
+            )}
+            {diagFaturas.acao === 'corrigir' && (
+              <button
+                onClick={() => navigate(`/contratos/${id}/editar`)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900"
+                style={{ background: '#FFAF06' }}
+              >
+                Editar contrato
+              </button>
+            )}
+          </div>
         </div>
       )}
       {signStatus?.signStatus && (
