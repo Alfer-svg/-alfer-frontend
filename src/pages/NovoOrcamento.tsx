@@ -20,7 +20,7 @@ export default function NovoOrcamento() {
   // O campo `equipamentoId` do form continua existindo só pra compat.
   const [equipamentosForm, setEquipamentosForm] = useState<{ equipamentoId: string; valor: string }[]>([])
   // Equipamento selecionado no dropdown (pré-adição). Botão "+" adiciona à lista.
-  const [equipParaAdicionar, setEquipParaAdicionar] = useState('')
+  // (equipParaAdicionar removido — agora EquipamentoDropdown gerencia interno)
   const equipamentoIds = equipamentosForm.map((e) => e.equipamentoId) // helper
   const [form, setForm] = useState({
     clienteId: '',
@@ -334,60 +334,15 @@ export default function NovoOrcamento() {
                   )}
                 </div>
               )}
-              {/* Select + botão "+" pra adicionar à lista */}
-              <div className="flex gap-2">
-                <select
-                  value={equipParaAdicionar}
-                  onChange={(e) => setEquipParaAdicionar(e.target.value)}
-                  className={inputCls + ' flex-1'}
-                  style={inputStyle}
-                >
-                  <option value="">
-                    {equipamentosForm.length === 0
-                      ? '— Selecione um equipamento —'
-                      : '— Selecione outro pra adicionar —'}
-                  </option>
-                  {equipamentos
-                    .filter((e) => !equipamentoIds.includes(e.id))
-                    .map((e) => {
-                      const contratosVivos = (e.contratosEquip || []).filter((ce: any) =>
-                        ce.contrato && !['ENCERRADO', 'RESCINDIDO'].includes(ce.contrato.status)
-                      )
-                      const emContratoAtivo = contratosVivos.length > 0
-                      const efetivoStatus = e.status === 'LOCADO' || emContratoAtivo ? 'LOCADO' : e.status
-
-                      const prefixo = efetivoStatus === 'LOCADO' ? '🔴 LOCADO  ·  ' :
-                                       efetivoStatus === 'MANUTENCAO' ? '🟡 MANUTENÇÃO  ·  ' :
-                                       efetivoStatus === 'DESCARTADO' ? '⚫ DESCARTADO  ·  ' : ''
-                      const bg = efetivoStatus === 'LOCADO' ? '#FDEEEE' :
-                                  efetivoStatus === 'MANUTENCAO' ? '#FEF3E2' :
-                                  efetivoStatus === 'DESCARTADO' ? '#F1EFE8' : undefined
-                      const cor = efetivoStatus === 'LOCADO' ? '#8B0000' :
-                                   efetivoStatus === 'MANUTENCAO' ? '#633806' :
-                                   efetivoStatus === 'DESCARTADO' ? '#888' : undefined
-                      return (
-                        <option key={e.id} value={e.id} style={bg ? { background: bg, color: cor } : undefined}>
-                          {prefixo}{e.codigo} — {e.modelo}
-                        </option>
-                      )
-                    })}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (equipParaAdicionar && !equipamentoIds.includes(equipParaAdicionar)) {
-                      setEquipamentosForm((cur) => [...cur, { equipamentoId: equipParaAdicionar, valor: '' }])
-                      setEquipParaAdicionar('')
-                    }
-                  }}
-                  disabled={!equipParaAdicionar}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90 disabled:opacity-40 whitespace-nowrap"
-                  style={{ background: '#FFAF06' }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar
-                </button>
-              </div>
+              {/* Dropdown custom — funciona em todos os browsers com cor de fundo
+                  por item (o <select>/<option> nativo o Chrome ignora style). */}
+              <EquipamentoDropdown
+                equipamentos={equipamentos.filter((e) => !equipamentoIds.includes(e.id))}
+                placeholder={equipamentosForm.length === 0 ? 'Selecione um equipamento…' : 'Adicionar outro equipamento…'}
+                onSelect={(id) => {
+                  setEquipamentosForm((cur) => [...cur, { equipamentoId: id, valor: '' }])
+                }}
+              />
               <p className="text-xs text-gray-500 mt-1">
                 Preenchendo valor por equipamento, o valor do orçamento vira a soma automaticamente.
                 Deixe vazio pra usar o "Valor" único abaixo.
@@ -953,5 +908,114 @@ function PickerCondicoes({ condicoes, jaSelecionadas, onClose, onConfirm }: {
           </button>
         </div>
     </Modal>
+  )
+}
+
+/**
+ * Dropdown custom de equipamento — substitui o <select> nativo pra
+ * permitir cor de fundo por item (Chrome ignora style em <option>).
+ *
+ * Mostra cada equipamento com:
+ *   - 🔴 LOCADO em fundo vermelho se status=LOCADO ou tem contrato vivo
+ *   - 🟡 MANUTENÇÃO em fundo amber
+ *   - ⚫ DESCARTADO em cinza
+ *   - DISPONIVEL: limpo
+ */
+function EquipamentoDropdown({
+  equipamentos,
+  placeholder,
+  onSelect,
+}: {
+  equipamentos: any[]
+  placeholder: string
+  onSelect: (id: string) => void
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [busca, setBusca] = useState('')
+
+  const itens = equipamentos
+    .map((e) => {
+      const contratosVivos = (e.contratosEquip || []).filter((ce: any) =>
+        ce.contrato && !['ENCERRADO', 'RESCINDIDO'].includes(ce.contrato.status),
+      )
+      const ocupado = e.status === 'LOCADO' || contratosVivos.length > 0
+      const efetivoStatus = ocupado ? 'LOCADO' : e.status
+      let bg = '#fff', cor = '#1A1C1E', emoji = '', label = ''
+      if (efetivoStatus === 'LOCADO')      { bg = '#FDEEEE'; cor = '#8B0000'; emoji = '🔴'; label = 'LOCADO' }
+      else if (efetivoStatus === 'MANUTENCAO') { bg = '#FEF3E2'; cor = '#633806'; emoji = '🟡'; label = 'MANUTENÇÃO' }
+      else if (efetivoStatus === 'DESCARTADO') { bg = '#F1EFE8'; cor = '#888';    emoji = '⚫'; label = 'DESCARTADO' }
+      return { ...e, bg, cor, emoji, label }
+    })
+    .filter((e) => {
+      if (!busca.trim()) return true
+      const q = busca.toLowerCase()
+      return (e.codigo || '').toLowerCase().includes(q) || (e.modelo || '').toLowerCase().includes(q)
+    })
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm outline-none bg-white text-left"
+        style={{ border: '1px solid #E0DDD8' }}
+      >
+        <span className="text-gray-500">{placeholder}</span>
+        <span className="text-gray-400">▾</span>
+      </button>
+
+      {aberto && (
+        <>
+          {/* Overlay pra fechar ao clicar fora */}
+          <div className="fixed inset-0 z-10" onClick={() => { setAberto(false); setBusca('') }} />
+          <div
+            className="absolute z-20 mt-1 w-full bg-white rounded-xl overflow-hidden"
+            style={{ border: '1px solid #E0DDD8', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: 360 }}
+          >
+            {/* Campo de busca */}
+            <div className="p-2 border-b" style={{ borderColor: '#F1EFE8' }}>
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por código ou modelo…"
+                autoFocus
+                className="w-full px-3 py-1.5 rounded-lg text-sm outline-none bg-gray-50"
+                style={{ border: '1px solid #E0DDD8' }}
+              />
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 300 }}>
+              {itens.length === 0 ? (
+                <div className="px-3 py-6 text-sm text-gray-400 text-center">Nenhum equipamento</div>
+              ) : (
+                itens.map((e) => (
+                  <button
+                    type="button"
+                    key={e.id}
+                    onClick={() => {
+                      onSelect(e.id)
+                      setAberto(false)
+                      setBusca('')
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:brightness-95 transition"
+                    style={{ background: e.bg, color: e.cor, borderBottom: '1px solid #F1EFE8' }}
+                  >
+                    {e.emoji && <span className="text-base">{e.emoji}</span>}
+                    {e.label && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: 'rgba(0,0,0,0.08)' }}>
+                        {e.label}
+                      </span>
+                    )}
+                    <span className="font-medium">{e.codigo}</span>
+                    <span className="text-gray-600">— {e.modelo}</span>
+                    {e.capacidade && <span className="text-xs text-gray-500 ml-auto">{e.capacidade}</span>}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
