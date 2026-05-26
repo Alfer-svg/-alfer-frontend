@@ -140,7 +140,10 @@ function RelatorioFluxo({ ano }: { ano: number }) {
 
 function RelatorioAging({ emissorId }: { emissorId?: string }) {
   const [data, setData] = useState<any | null>(null)
-  const [incluirFuturo, setIncluirFuturo] = useState(false)
+  // Default: inclui FUTURO. Faturas mensais geradas automaticamente nascem
+  // como FUTURO até alguém pagar/cobrar — esconder elas dá falsa sensação
+  // de "carteira a receber" muito menor que a real.
+  const [ocultarFuturo, setOcultarFuturo] = useState(false)
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [clientes, setClientes] = useState<any[]>([])
@@ -154,12 +157,12 @@ function RelatorioAging({ emissorId }: { emissorId?: string }) {
     setData(null)
     const params: any = {}
     if (emissorId) params.emissorId = emissorId
-    if (incluirFuturo) params.incluirFuturo = 'true'
+    if (!ocultarFuturo) params.incluirFuturo = 'true'
     if (clienteId) params.clienteId = clienteId
     if (dataInicio) params.dataInicio = dataInicio
     if (dataFim) params.dataFim = dataFim
     api.get('/financeiro/relatorios/aging', { params }).then((r) => setData(r.data))
-  }, [emissorId, incluirFuturo, clienteId, dataInicio, dataFim])
+  }, [emissorId, ocultarFuturo, clienteId, dataInicio, dataFim])
 
   const cores: Record<string, string> = {
     a_vencer: '#1A5276',
@@ -176,11 +179,11 @@ function RelatorioAging({ emissorId }: { emissorId?: string }) {
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={incluirFuturo}
-            onChange={(e) => setIncluirFuturo(e.target.checked)}
+            checked={ocultarFuturo}
+            onChange={(e) => setOcultarFuturo(e.target.checked)}
             style={{ accentColor: '#FFAF06' }}
           />
-          Incluir FUTURO (faturas ainda não vencidas)
+          Só vencidas (ocultar futuras)
         </label>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-500">De</label>
@@ -211,10 +214,10 @@ function RelatorioAging({ emissorId }: { emissorId?: string }) {
             <option key={c.id} value={c.id}>{c.razaoSocial}</option>
           ))}
         </select>
-        {(incluirFuturo || dataInicio || dataFim || clienteId) && (
+        {(ocultarFuturo || dataInicio || dataFim || clienteId) && (
           <button
             type="button"
-            onClick={() => { setIncluirFuturo(false); setDataInicio(''); setDataFim(''); setClienteId('') }}
+            onClick={() => { setOcultarFuturo(false); setDataInicio(''); setDataFim(''); setClienteId('') }}
             className="text-xs text-gray-500 hover:text-gray-700 underline"
           >
             Limpar
