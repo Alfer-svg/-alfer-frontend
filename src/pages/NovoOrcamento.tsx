@@ -350,20 +350,12 @@ export default function NovoOrcamento() {
                   {equipamentos
                     .filter((e) => !equipamentoIds.includes(e.id))
                     .map((e) => {
-                      // Detecta "ocupado": status LOCADO no banco OU tem ContratoEquipamento
-                      // em contrato ATIVO/VENCENDO (status do equipamento só muda na
-                      // mobilização da logística, mas pra fins de orçamento o que importa
-                      // é se já tem contrato vivo cobrindo esse equipamento).
-                      // Considera "ocupado" qualquer contrato vivo — inclusive RASCUNHO
-                      // e AGUARDANDO_ASSINATURA (equipamento já comprometido mesmo que
-                      // contrato ainda não tenha sido ativado). Só ENCERRADO/RESCINDIDO
-                      // libera o equipamento.
-                      const emContratoAtivo = (e.contratosEquip || []).some((ce: any) =>
+                      const contratosVivos = (e.contratosEquip || []).filter((ce: any) =>
                         ce.contrato && !['ENCERRADO', 'RESCINDIDO'].includes(ce.contrato.status)
                       )
+                      const emContratoAtivo = contratosVivos.length > 0
                       const efetivoStatus = e.status === 'LOCADO' || emContratoAtivo ? 'LOCADO' : e.status
 
-                      // Visual: 🔴 LOCADO  ·  🟡 MANUTENÇÃO  ·  ⚫ DESCARTADO  ·  ✅ DISPONIVEL (sem prefixo)
                       const prefixo = efetivoStatus === 'LOCADO' ? '🔴 LOCADO  ·  ' :
                                        efetivoStatus === 'MANUTENCAO' ? '🟡 MANUTENÇÃO  ·  ' :
                                        efetivoStatus === 'DESCARTADO' ? '⚫ DESCARTADO  ·  ' : ''
@@ -373,9 +365,12 @@ export default function NovoOrcamento() {
                       const cor = efetivoStatus === 'LOCADO' ? '#8B0000' :
                                    efetivoStatus === 'MANUTENCAO' ? '#633806' :
                                    efetivoStatus === 'DESCARTADO' ? '#888' : undefined
+                      // Debug visual: [status banco · N contratos vivos] no final do label
+                      // (temporário até confirmar que detecção funciona; remover depois)
+                      const debug = ` · [${e.status}, ${contratosVivos.length} ctr]`
                       return (
                         <option key={e.id} value={e.id} style={bg ? { background: bg, color: cor } : undefined}>
-                          {prefixo}{e.codigo} — {e.modelo}
+                          {prefixo}{e.codigo} — {e.modelo}{debug}
                         </option>
                       )
                     })}
