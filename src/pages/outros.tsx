@@ -51,7 +51,17 @@ async function abrirFaturaPdf(id: string) {
     const r = await fetch(`${baseUrl}/financeiro/lancamentos/${id}/fatura-pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!r.ok) throw new Error('Erro ao gerar fatura')
+    if (!r.ok) {
+      // Lê mensagem detalhada do backend (NestJS retorna { message, statusCode })
+      let detalhe = `HTTP ${r.status}`
+      try {
+        const data = await r.json()
+        if (data?.message) detalhe = Array.isArray(data.message) ? data.message.join('; ') : String(data.message)
+      } catch {
+        try { detalhe = await r.text() } catch {}
+      }
+      throw new Error(detalhe)
+    }
     const filename = extrairFilename(r.headers.get('content-disposition'), `fatura-${id}.pdf`)
     const blob = await r.blob()
     const url = URL.createObjectURL(blob)
@@ -63,7 +73,7 @@ async function abrirFaturaPdf(id: string) {
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   } catch (err: any) {
-    alert(err.message || 'Erro ao baixar fatura.')
+    alert(`Erro ao gerar PDF da fatura:\n\n${err.message || 'erro desconhecido'}`)
   }
 }
 
