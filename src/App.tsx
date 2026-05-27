@@ -10,6 +10,7 @@ import { Financeiro } from './pages/outros'
 import Fornecedores from './pages/Fornecedores'
 import CRM from './pages/CRM'
 import Leads from './pages/Leads'
+import Campanhas from './pages/Campanhas'
 import Equipamentos from './pages/Equipamentos'
 import EquipamentoDetalhe from './pages/EquipamentoDetalhe'
 import Caminhoes from './pages/Caminhoes'
@@ -86,6 +87,7 @@ function AppRoutes() {
         <Route path="fornecedores" element={<Fornecedores />} />
         <Route path="crm" element={<CRM />} />
         <Route path="leads" element={<Leads />} />
+        <Route path="campanhas" element={<Campanhas />} />
         <Route path="equipamentos" element={<Equipamentos />} />
         <Route path="equipamentos/estoque" element={<EstoqueEquipamentos />} />
         <Route path="equipamentos/novo" element={<NovoEquipamento />} />
