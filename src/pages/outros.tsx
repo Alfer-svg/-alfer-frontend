@@ -194,10 +194,15 @@ async function enviarWhatsAppLancamento(l: any) {
 }
 
 async function enviarWhatsAppCloudLancamento(l: any) {
-  if (!confirm('Enviar fatura via WhatsApp Cloud API (Meta)?\n\nO PDF da fatura será anexado automaticamente.\nCliente recebe pelo número 0800 620 0050.')) return
+  const temBoleto = !!l.interCodigoSolicitacao
+  const aviso = temBoleto
+    ? 'Enviar fatura + boleto via WhatsApp Cloud API (Meta)?\n\n📎 PDF único com fatura e boleto colados.\nCliente recebe pelo 0800 620 0050.'
+    : 'Enviar fatura via WhatsApp Cloud API (Meta)?\n\n📎 Só o PDF da fatura (sem boleto Inter emitido).\nCliente recebe pelo 0800 620 0050.'
+  if (!confirm(aviso)) return
   try {
     const r = await api.post(`/financeiro/lancamentos/${l.id}/enviar-whatsapp`)
-    alert(`Fatura enviada pra ${r.data.telefone} ✅`)
+    const extra = r.data.incluiuBoleto ? ' (fatura + boleto)' : ' (só fatura)'
+    alert(`Enviado pra ${r.data.telefone}${extra} ✅`)
   } catch (e: any) {
     const msg = e.response?.data?.message || 'Erro ao enviar'
     alert(`Cloud API: ${msg}\n\nVerifique se o template "envio_fatura" está aprovado pela Meta.`)
