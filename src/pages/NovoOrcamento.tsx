@@ -592,8 +592,9 @@ export default function NovoOrcamento() {
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-4">Vigência e validade</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="font-semibold text-gray-900 mb-1">Período da locação</h2>
+          <p className="text-xs text-gray-500 mb-4">Quanto tempo o equipamento ficará com o cliente.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Data de início</label>
               <input value={form.dtInicio} onChange={(e) => set('dtInicio', e.target.value)} type="date" className={inputCls} style={inputStyle} />
@@ -602,9 +603,19 @@ export default function NovoOrcamento() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Data de fim</label>
               <input value={form.dtFim} onChange={(e) => set('dtFim', e.target.value)} type="date" className={inputCls} style={inputStyle} />
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-1">Validade da proposta</h2>
+          <p className="text-xs text-gray-500 mb-4">Por quantos dias esta proposta de orçamento é válida pro cliente aceitar.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Validade da proposta (dias)</label>
-              <input value={form.validade} onChange={(e) => set('validade', e.target.value)} type="number" min="1" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Validade (dias)</label>
+              <div className="flex items-center gap-2">
+                <input value={form.validade} onChange={(e) => set('validade', e.target.value)} type="number" min="1" className={`${inputCls} max-w-[120px]`} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                <span className="text-xs text-gray-500">dias a contar da emissão</span>
+              </div>
             </div>
           </div>
         </div>
