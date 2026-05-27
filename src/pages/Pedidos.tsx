@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { FileSignature, ChevronRight, Clock, FileText, CheckCircle2, XCircle } from 'lucide-react'
+import { FileSignature, ChevronRight, Clock, FileText, CheckCircle2, XCircle, Search } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
@@ -18,6 +18,7 @@ export default function Pedidos() {
   const [pedidos, setPedidos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [busca, setBusca] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -35,7 +36,18 @@ export default function Pedidos() {
         <p className="text-gray-500 text-sm mt-1">{pedidos.length} pedido(s) — gerados automaticamente ao aprovar um orçamento</p>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por número, cliente, orçamento, contrato..."
+            className="w-full pl-9 pr-3 py-3 bg-white rounded-xl text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+        </div>
         <select
           value={filtroStatus}
           onChange={(e) => setFiltroStatus(e.target.value)}
@@ -54,15 +66,24 @@ export default function Pedidos() {
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : pedidos.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <FileSignature className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Nenhum pedido encontrado</p>
-          <p className="text-xs mt-1">Pedidos são gerados ao aprovar um orçamento</p>
-        </div>
-      ) : (
+      ) : (() => {
+        const b = busca.trim().toLowerCase()
+        const filtrados = !b ? pedidos : pedidos.filter((p) =>
+          (p.numero || '').toLowerCase().includes(b)
+          || (p.cliente?.razaoSocial || '').toLowerCase().includes(b)
+          || (p.cliente?.cnpj || '').includes(b)
+          || (p.orcamento?.numero || '').toLowerCase().includes(b)
+          || (p.contrato?.numero || '').toLowerCase().includes(b)
+        )
+        return filtrados.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <FileSignature className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>{busca ? `Nenhum pedido bate com "${busca}"` : 'Nenhum pedido encontrado'}</p>
+            {!busca && <p className="text-xs mt-1">Pedidos são gerados ao aprovar um orçamento</p>}
+          </div>
+        ) : (
         <div className="space-y-3 stagger">
-          {pedidos.map((p) => {
+          {filtrados.map((p) => {
             const st = statusInfo[p.status] || statusInfo.PENDENTE
             const Icon = st.icon
             return (
@@ -97,7 +118,8 @@ export default function Pedidos() {
             )
           })}
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

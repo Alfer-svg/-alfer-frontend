@@ -3,7 +3,7 @@ import { useState, useEffect, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText, Search } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const CATEGORIAS: { v: string; l: string }[] = [
@@ -201,6 +201,7 @@ export function Financeiro() {
   const [filtroTipo, setFiltroTipo] = useState<'' | 'RECEITA' | 'DESPESA'>('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroEmissor, setFiltroEmissor] = useState('')
+  const [busca, setBusca] = useState('')
   const [novaDespesaModal, setNovaDespesaModal] = useState(false)
   const [enviarEmailModal, setEnviarEmailModal] = useState<any>(null)
   // Modal de troca de emissor da fatura
@@ -543,9 +544,40 @@ export function Financeiro() {
         <span className="text-xs text-gray-500 ml-auto">{lancamentos.length} lançamento(s)</span>
       </div>
 
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por número de fatura, cliente, descrição, contrato..."
+            className="w-full pl-9 pr-3 py-3 bg-white rounded-xl text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+        </div>
+      </div>
+
+      {(() => {
+        const b = busca.trim().toLowerCase()
+        const lancamentosFiltrados = !b ? lancamentos : lancamentos.filter((l: any) =>
+          (l.numeroFatura || '').toLowerCase().includes(b)
+          || String(l.numero || '').includes(b)
+          || (l.descricao || '').toLowerCase().includes(b)
+          || (l.cliente?.razaoSocial || '').toLowerCase().includes(b)
+          || (l.cliente?.cnpj || '').includes(b)
+          || (l.fornecedor?.razaoSocial || '').toLowerCase().includes(b)
+          || (l.contrato?.numero || '').toLowerCase().includes(b)
+        )
+        return (
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <div className="divide-y divide-gray-50">
-          {lancamentos.map((l, idx) => {
+          {lancamentosFiltrados.length === 0 && (
+            <div className="text-center py-12 text-gray-400 text-sm">
+              {busca ? `Nenhum lançamento bate com "${busca}"` : 'Nenhum lançamento'}
+            </div>
+          )}
+          {lancamentosFiltrados.map((l: any, idx: number) => {
             const catLabel = l.categoria ? CATEGORIAS.find((c) => c.v === l.categoria)?.l : null
             // Zebra discreta: alterna branco / creme muito sutil (#FBFAF7 — paleta
             // quente do sistema) só pra dar respiro visual entre lançamentos.
@@ -808,11 +840,10 @@ export function Financeiro() {
               </div>
             )
           })}
-          {lancamentos.length === 0 && (
-            <div className="text-center py-12 text-gray-400 text-sm">Nenhum lançamento encontrado</div>
-          )}
         </div>
       </div>
+        )
+      })()}
 
       {novaDespesaModal && (
         <NovaDespesaModal

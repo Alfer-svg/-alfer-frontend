@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle, X, Star } from 'lucide-react'
+import { FileText, Plus, ChevronRight, CheckCircle2, Send, XCircle, Clock, Archive, Loader2, AlertCircle, X, Star, Search } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string; icon: any }> = {
@@ -21,6 +21,7 @@ export default function Orcamentos() {
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroArquivado, setFiltroArquivado] = useState('false')
+  const [busca, setBusca] = useState('')
   const [aprovando, setAprovando] = useState<string | null>(null)
   const [erroAcao, setErroAcao] = useState('')
   // Modal de aprovação — escolha de emissor (Multi-CNPJ)
@@ -136,7 +137,18 @@ export default function Orcamentos() {
           )
         })}
       </div>
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por número, cliente, descrição..."
+            className="w-full pl-9 pr-3 py-3 bg-white rounded-xl text-sm outline-none"
+            style={{ border: '1px solid #E0DDD8' }}
+          />
+        </div>
         <select
           value={filtroArquivado}
           onChange={(e) => setFiltroArquivado(e.target.value)}
@@ -159,14 +171,23 @@ export default function Orcamentos() {
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : orcamentos.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Nenhum orçamento encontrado</p>
-        </div>
-      ) : (
+      ) : (() => {
+        const b = busca.trim().toLowerCase()
+        const filtrados = !b ? orcamentos : orcamentos.filter((o) =>
+          (o.numero || '').toLowerCase().includes(b)
+          || (o.cliente?.razaoSocial || '').toLowerCase().includes(b)
+          || (o.cliente?.cnpj || '').includes(b)
+          || (o.descricao || '').toLowerCase().includes(b)
+          || (o.pedido?.numero || '').toLowerCase().includes(b)
+        )
+        return filtrados.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>{busca ? `Nenhum orçamento bate com "${busca}"` : 'Nenhum orçamento encontrado'}</p>
+          </div>
+        ) : (
         <div className="space-y-3 stagger">
-          {orcamentos.map((o) => {
+          {filtrados.map((o) => {
             const st = statusInfo[o.status] || statusInfo.RASCUNHO
             const Icon = st.icon
             return (
@@ -225,7 +246,8 @@ export default function Orcamentos() {
             )
           })}
         </div>
-      )}
+        )
+      })()}
 
       {/* Modal de aprovação — escolha do emissor (Multi-CNPJ) */}
       {modalAprovar && (
