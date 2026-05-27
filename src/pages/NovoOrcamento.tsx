@@ -76,6 +76,21 @@ export default function NovoOrcamento() {
     if (str) setForm((f) => ({ ...f, localMobilizacao: str }))
   }, [endMob])
 
+  // Recalcula dtFim sempre que dtInicio ou quantidadeMeses mudar.
+  // O campo continua editável — se o user mexer no dtFim depois, o valor manual
+  // persiste até ele alterar dtInicio/meses novamente.
+  useEffect(() => {
+    if (!form.dtInicio) return
+    const meses = Math.max(1, Number(form.quantidadeMeses) || 1)
+    const [y, m, d] = form.dtInicio.split('-').map(Number)
+    if (!y || !m || !d) return
+    const dt = new Date(y, m - 1, d)
+    dt.setMonth(dt.getMonth() + meses)
+    dt.setDate(dt.getDate() - 1) // 12 meses começando 01/01 → termina 31/12 (não 01/01 do ano seguinte)
+    const ymd = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    setForm((f) => (f.dtFim === ymd ? f : { ...f, dtFim: ymd }))
+  }, [form.dtInicio, form.quantidadeMeses])
+
   const buscarEnderecoPorCep = async (v: string) => {
     setErroCep('')
     const cepFmt = formatarCep(v)
