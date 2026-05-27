@@ -22,6 +22,7 @@ const nav: NavItem[] = [
     basePath: '/orcamentos',
     children: [
       { to: '/crm', label: 'CRM (Pipeline)' },
+      { to: '/leads', label: 'Leads (Pré-venda)' },
       { to: '/orcamentos', label: 'Orçamentos' },
       { to: '/condicoes-orcamento', label: 'Condições padrão' },
       { to: '/pedidos', label: 'Pedidos' },
@@ -100,7 +101,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
       const extras =
         i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] :
         i.label === 'Locações' ? ['/contratos', '/cacambas', '/logistica'] :
-        i.label === 'Comercial' ? ['/crm', '/condicoes-orcamento', '/pedidos'] :
+        i.label === 'Comercial' ? ['/crm', '/leads', '/condicoes-orcamento', '/pedidos'] :
         []
       initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
         || location.pathname.startsWith(i.basePath)
