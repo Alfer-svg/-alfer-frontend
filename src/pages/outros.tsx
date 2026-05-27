@@ -193,6 +193,17 @@ async function enviarWhatsAppLancamento(l: any) {
   window.open(`https://wa.me/${tel}?text=${msg}`, '_blank')
 }
 
+async function enviarWhatsAppCloudLancamento(l: any) {
+  if (!confirm('Enviar fatura via WhatsApp Cloud API (Meta)?\n\nO PDF da fatura será anexado automaticamente.\nCliente recebe pelo número 0800 620 0050.')) return
+  try {
+    const r = await api.post(`/financeiro/lancamentos/${l.id}/enviar-whatsapp`)
+    alert(`Fatura enviada pra ${r.data.telefone} ✅`)
+  } catch (e: any) {
+    const msg = e.response?.data?.message || 'Erro ao enviar'
+    alert(`Cloud API: ${msg}\n\nVerifique se o template "envio_fatura" está aprovado pela Meta.`)
+  }
+}
+
 export function Financeiro() {
   const [dash, setDash] = useState<any>(null)
   const [lancamentos, setLancamentos] = useState<any[]>([])
@@ -772,7 +783,17 @@ export function Financeiro() {
                           border: '1px solid #B7E0AE',
                         }}
                       >
-                        <MessageCircle className="w-3 h-3" /> WhatsApp
+                        <MessageCircle className="w-3 h-3" /> WhatsApp (manual)
+                      </button>
+                    )}
+                    {l.tipo === 'RECEITA' && (
+                      <button
+                        onClick={() => enviarWhatsAppCloudLancamento(l)}
+                        title="Envio automático pelo SIAGO via Cloud API (Meta) — PDF anexado automaticamente"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-white"
+                        style={{ background: '#128C7E' }}
+                      >
+                        <MessageCircle className="w-3 h-3" /> WhatsApp (auto)
                       </button>
                     )}
                     {l.status !== 'PAGO' && l.status !== 'CANCELADO' && (

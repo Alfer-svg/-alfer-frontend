@@ -115,6 +115,20 @@ export default function OrcamentoDetalhe() {
     }
   }
 
+  const enviarWhatsAppCloud = async () => {
+    if (!confirm('Enviar orçamento via WhatsApp Cloud API (Meta)?\n\nO PDF será anexado automaticamente.\nO cliente recebe pelo número 0800 620 0050.')) return
+    try {
+      const r = await api.post(`/orcamentos/${id}/enviar-whatsapp`)
+      alert(`Enviado pra ${r.data.telefone} ✅`)
+      if (o.status === 'RASCUNHO') {
+        try { await api.post(`/orcamentos/${id}/enviar`); load() } catch {}
+      }
+    } catch (e: any) {
+      const msg = e.response?.data?.message || 'Erro ao enviar'
+      setErro(`Cloud API: ${msg}`)
+    }
+  }
+
   const abrirPdf = async () => {
     try {
       const token = localStorage.getItem('alfer_token')
@@ -342,11 +356,19 @@ export default function OrcamentoDetalhe() {
             <>
               <button
                 onClick={enviarWhatsApp}
-                title={contato?.telefone ? `Enviar via WhatsApp para ${contato.telefone}` : 'Cliente sem telefone cadastrado'}
+                title={contato?.telefone ? `Abrir WhatsApp Web — envio manual para ${contato.telefone}` : 'Cliente sem telefone cadastrado'}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90"
                 style={{ background: '#25D366' }}
               >
-                <MessageCircle className="w-4 h-4" /> WhatsApp
+                <MessageCircle className="w-4 h-4" /> WhatsApp (manual)
+              </button>
+              <button
+                onClick={enviarWhatsAppCloud}
+                title={contato?.telefone ? `Envio automático pelo SIAGO (Cloud API) para ${contato.telefone}` : 'Cliente sem telefone cadastrado'}
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90"
+                style={{ background: '#128C7E' }}
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp (auto)
               </button>
               <button
                 onClick={enviarEmail}
