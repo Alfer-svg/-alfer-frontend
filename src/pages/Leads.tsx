@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
-  UserPlus, Download, Search, Tag, Phone, Mail, Instagram, X,
-  Pencil, Trash2, AlertCircle, CheckCircle2, Filter, RefreshCcw, Loader2,
+  UserPlus, Search, Tag, Phone, Mail, Instagram, X,
+  Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2,
 } from 'lucide-react'
 
 type StatusLead = 'NOVO' | 'QUALIFICADO' | 'PROPOSTA' | 'CONVERTIDO' | 'PERDIDO'
@@ -53,9 +53,6 @@ export default function Leads() {
 
   const [editando, setEditando] = useState<Lead | null>(null)
   const [criando, setCriando] = useState(false)
-  const [importando, setImportando] = useState(false)
-  const [dryRunResult, setDryRunResult] = useState<any>(null)
-  const [executandoImport, setExecutandoImport] = useState(false)
 
   const carregar = async () => {
     setCarregando(true)
@@ -86,37 +83,6 @@ export default function Leads() {
     itens.forEach((l) => l.tags.forEach((t) => set.add(t)))
     return Array.from(set).sort()
   }, [itens])
-
-  // ─── Importação Brevo ───
-  const fazerDryRun = async () => {
-    setExecutandoImport(true)
-    setErro(null)
-    try {
-      const r = await api.post('/leads/importar-brevo', { dryRun: true })
-      setDryRunResult(r.data)
-    } catch (e: any) {
-      setErro(e.response?.data?.message || 'Erro no dry-run')
-    } finally {
-      setExecutandoImport(false)
-    }
-  }
-
-  const executarImport = async () => {
-    if (!confirm(`Importar ${dryRunResult?.paraCriar} leads do Brevo agora?`)) return
-    setExecutandoImport(true)
-    setErro(null)
-    try {
-      const r = await api.post('/leads/importar-brevo', { dryRun: false })
-      setSucesso(`${r.data.criados} leads importados!`)
-      setDryRunResult(null)
-      setImportando(false)
-      carregar()
-    } catch (e: any) {
-      setErro(e.response?.data?.message || 'Erro na importação')
-    } finally {
-      setExecutandoImport(false)
-    }
-  }
 
   const salvarEdicao = async (dto: Partial<Lead>) => {
     setErro(null)
@@ -153,23 +119,13 @@ export default function Leads() {
         <h1 className="font-display text-2xl font-bold text-gray-900">
           Leads <span className="text-gray-400 font-normal text-base">({resumo?.totalGeral || 0})</span>
         </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setImportando(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: '#FFAF06', color: '#7B5B0F' }}
-          >
-            <Download className="w-4 h-4" />
-            Importar Brevo
-          </button>
-          <button
-            onClick={() => setCriando(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white"
-          >
-            <UserPlus className="w-4 h-4" />
-            Novo Lead
-          </button>
-        </div>
+        <button
+          onClick={() => setCriando(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white"
+        >
+          <UserPlus className="w-4 h-4" />
+          Novo Lead
+        </button>
       </div>
 
       {/* Resumo */}
@@ -353,88 +309,6 @@ export default function Leads() {
         />
       )}
 
-      {/* Modal: importar Brevo */}
-      {importando && (
-        <Modal onClose={() => { setImportando(false); setDryRunResult(null) }}>
-          <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
-            <Download className="w-5 h-5" /> Importar contatos do Brevo
-          </h2>
-          {!dryRunResult ? (
-            <>
-              <p className="text-sm text-gray-600 mb-4">
-                Vai puxar todos os contatos do Brevo, ignorar os sujos (sem email/whatsapp),
-                e pular quem já existe como Lead ou Cliente. Roda um preview antes.
-              </p>
-              <button
-                onClick={fazerDryRun}
-                disabled={executandoImport}
-                className="w-full px-4 py-3 rounded-lg font-semibold disabled:opacity-50"
-                style={{ background: '#FFAF06', color: '#7B5B0F' }}
-              >
-                {executandoImport ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
-                Rodar preview (não importa nada)
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2 mb-4">
-                <Linha label="Total no Brevo" valor={dryRunResult.totalBrevo} />
-                <Linha label="Válidos (com email ou WhatsApp)" valor={dryRunResult.validos} cor="green" />
-                <Linha label="Duplicado com Cliente (vão pular)" valor={dryRunResult.duplicadosComCliente} cor="orange" />
-                <Linha label="Duplicado com Lead existente (vão pular)" valor={dryRunResult.duplicadosComLead} cor="orange" />
-                <div className="h-px bg-gray-200 my-2" />
-                <Linha label="✨ Vão ser criados como Lead" valor={dryRunResult.paraCriar} cor="green" bold />
-              </div>
-              {dryRunResult.amostra?.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-bold text-gray-600 uppercase mb-1">Amostra (5 primeiros)</h3>
-                  <div className="space-y-1">
-                    {dryRunResult.amostra.map((a: any, i: number) => (
-                      <div key={i} className="text-xs p-2 rounded bg-gray-50 border border-gray-200">
-                        <strong>{a.nome || '(sem nome)'}</strong> · {a.email || '—'} · {a.telefone || '—'}
-                        {a.tags?.length > 0 && <span className="text-gray-500"> · [{a.tags.join(', ')}]</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDryRunResult(null)}
-                  className="flex-1 px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-700"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={executarImport}
-                  disabled={executandoImport || dryRunResult.paraCriar === 0}
-                  className="flex-1 px-4 py-2 rounded-lg font-bold text-white disabled:opacity-50"
-                  style={{ background: '#10B981' }}
-                >
-                  {executandoImport ? <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> : null}
-                  Importar {dryRunResult.paraCriar} leads
-                </button>
-              </div>
-            </>
-          )}
-        </Modal>
-      )}
-    </div>
-  )
-}
-
-function Linha({ label, valor, cor, bold }: { label: string; valor: number; cor?: 'green' | 'orange' | 'red'; bold?: boolean }) {
-  const corMap: any = {
-    green: 'text-emerald-700 bg-emerald-50',
-    orange: 'text-amber-700 bg-amber-50',
-    red: 'text-red-700 bg-red-50',
-  }
-  return (
-    <div className="flex items-center justify-between">
-      <span className={`text-sm ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>{label}</span>
-      <span className={`px-2 py-1 rounded text-sm font-bold ${cor ? corMap[cor] : 'bg-gray-100 text-gray-700'}`}>
-        {valor}
-      </span>
     </div>
   )
 }
