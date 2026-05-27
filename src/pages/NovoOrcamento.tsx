@@ -375,12 +375,12 @@ export default function NovoOrcamento() {
               </label>
               {temValorPorEquipamento ? (
                 <div
-                  className="px-3 py-2.5 rounded-xl text-sm flex items-center justify-between"
+                  className="px-3 py-2.5 rounded-xl text-sm"
                   style={{ background: '#FEF3E2', border: '1px solid #FFD580', color: '#633806' }}
                   title="Calculado automaticamente pela soma dos valores dos equipamentos"
                 >
-                  <span className="font-semibold">{somaEquipamentos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                  <span className="text-[10px] opacity-70">soma dos equipamentos</span>
+                  <div className="font-semibold leading-tight">{somaEquipamentos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                  <div className="text-[10px] opacity-70 mt-0.5">soma automática dos equipamentos</div>
                 </div>
               ) : (
                 <input
