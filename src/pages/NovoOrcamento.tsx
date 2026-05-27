@@ -38,6 +38,9 @@ export default function NovoOrcamento() {
     formaPagamento: 'BOLETO',
     diaVencFatura: '5',
     dtPrimeiraFatura: '', // opcional — se preenchido, sobrepõe o cálculo automático
+    quantidadeMeses: '1',
+    mensalidadeCobranca: 'PRE',        // 'PRE' (início do mês) | 'POS' (fim do mês)
+    desmobilizacaoCobranca: 'FIM',     // 'INICIO' (com mobilização) | 'FIM' (no fim do contrato)
     localMobilizacao: '',
     dtInicio: '',
     dtFim: '',
@@ -146,6 +149,9 @@ export default function NovoOrcamento() {
           formaPagamento: o.formaPagamento || 'BOLETO',
           diaVencFatura: String(o.diaVencFatura ?? 5),
           dtPrimeiraFatura: o.dtPrimeiraFatura ? String(o.dtPrimeiraFatura).slice(0, 10) : '',
+          quantidadeMeses: String(o.quantidadeMeses ?? 1),
+          mensalidadeCobranca: o.mensalidadeCobranca || 'PRE',
+          desmobilizacaoCobranca: o.desmobilizacaoCobranca || 'FIM',
           localMobilizacao: o.localMobilizacao || '',
           // Pega só YYYY-MM-DD direto da string pra evitar shift de fuso (UTC -> BR vira -1 dia)
           dtInicio: o.dtInicio ? String(o.dtInicio).slice(0, 10) : '',
@@ -179,8 +185,10 @@ export default function NovoOrcamento() {
   const frete = Number(form.frete || 0)
   const valorMobilizacao = Number(form.valorMobilizacao || 0)
   const valorDesmobilizacao = Number(form.valorDesmobilizacao || 0)
+  const meses = Math.max(1, Number(form.quantidadeMeses) || 1)
   const comDesconto = Math.max(0, valor - (valor * desconto) / 100)
-  const valorFinal = comDesconto + frete + valorMobilizacao + valorDesmobilizacao
+  const totalLocacao = comDesconto * meses
+  const valorFinal = totalLocacao + frete + valorMobilizacao + valorDesmobilizacao
 
   const setCondicao = (i: number, v: string) => setCondicoes((cs) => cs.map((c, idx) => (idx === i ? v : c)))
   const addCondicao = () => setCondicoes((cs) => [...cs, ''])
@@ -213,6 +221,9 @@ export default function NovoOrcamento() {
         formaPagamento: form.formaPagamento,
         diaVencFatura: Math.max(1, Math.min(31, Number(form.diaVencFatura) || 5)),
         dtPrimeiraFatura: form.dtPrimeiraFatura || null,
+        quantidadeMeses: Math.max(1, Number(form.quantidadeMeses) || 1),
+        mensalidadeCobranca: form.mensalidadeCobranca,
+        desmobilizacaoCobranca: form.desmobilizacaoCobranca,
         localMobilizacao: form.localMobilizacao || null,
         dtInicio: form.dtInicio || null,
         dtFim: form.dtFim || null,
@@ -417,8 +428,8 @@ export default function NovoOrcamento() {
               <div>Valor final: <strong>R$ {valorFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               {(desconto > 0 || frete > 0 || valorMobilizacao > 0 || valorDesmobilizacao > 0) && (
                 <div className="text-xs text-gray-600 mt-1">
-                  Locação: R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  {desconto > 0 && ` − ${desconto}% desconto = R$ ${comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  Mensal: R$ {comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {meses > 1 && ` × ${meses} meses = R$ ${totalLocacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   {frete > 0 && ` + R$ ${frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} frete`}
                   {valorMobilizacao > 0 && ` + R$ ${valorMobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} mob.`}
                   {valorDesmobilizacao > 0 && ` + R$ ${valorDesmobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} desmob.`}
@@ -478,6 +489,37 @@ export default function NovoOrcamento() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Se preenchida, sobrepõe o cálculo automático. As próximas seguem o dia acima.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade de meses</label>
+              <input
+                type="number" min="1" max="120"
+                value={form.quantidadeMeses}
+                onChange={(e) => set('quantidadeMeses', e.target.value.replace(/\D/g, '').slice(0, 3) || '1')}
+                className={`${inputCls} max-w-[120px]`}
+                style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                placeholder="12"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Duração da locação. Valor total = mensal × meses.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cobrança da mensalidade</label>
+              <select value={form.mensalidadeCobranca} onChange={(e) => set('mensalidadeCobranca', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="PRE">Pré-paga (início do mês)</option>
+                <option value="POS">Pós-paga (final do mês)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cobrança da desmobilização</label>
+              <select value={form.desmobilizacaoCobranca} onChange={(e) => set('desmobilizacaoCobranca', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="FIM">No fim do contrato</option>
+                <option value="INICIO">No início (junto com mobilização)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Mobilização é sempre cobrada no início.
               </p>
             </div>
           </div>
