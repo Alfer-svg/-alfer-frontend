@@ -306,6 +306,7 @@ export default function Leads() {
           lead={editando}
           onClose={() => { setCriando(false); setEditando(null) }}
           onSave={salvarEdicao}
+          tagsExistentes={tagsUnicas}
         />
       )}
 
@@ -313,7 +314,18 @@ export default function Leads() {
   )
 }
 
-function FormModal({ lead, onClose, onSave }: { lead: Lead | null; onClose: () => void; onSave: (dto: any) => void }) {
+// Tags sugeridas pra Alfer — vendedor pode usar pra agrupar leads
+const TAGS_SUGERIDAS = [
+  // Segmento
+  'Construtora', 'Indústria', 'Saneamento', 'Energia', 'Agronegócio',
+  'Mineração', 'Eventos', 'Logística', 'Comércio',
+  // Interesse
+  'Caçamba', 'Container Seco', 'Container Reefer', 'Munck', 'Poliguindaste',
+  // Temperatura
+  '🔥 Quente', '🌤️ Morno', '❄️ Frio', '⭐ Cliente Ativo',
+]
+
+function FormModal({ lead, onClose, onSave, tagsExistentes }: { lead: Lead | null; onClose: () => void; onSave: (dto: any) => void; tagsExistentes: string[] }) {
   const [nome, setNome] = useState(lead?.nome || '')
   const [email, setEmail] = useState(lead?.email || '')
   const [telefone, setTelefone] = useState(lead?.telefone || '')
@@ -323,7 +335,7 @@ function FormModal({ lead, onClose, onSave }: { lead: Lead | null; onClose: () =
   const [status, setStatus] = useState<StatusLead>(lead?.status || 'NOVO')
   const [origem, setOrigem] = useState<OrigemLead>(lead?.origem || 'MANUAL')
   const [observacoes, setObservacoes] = useState(lead?.observacoes || '')
-  const [tagsStr, setTagsStr] = useState((lead?.tags || []).join(', '))
+  const [tags, setTags] = useState<string[]>(lead?.tags || [])
 
   const submit = (e: any) => {
     e.preventDefault()
@@ -337,7 +349,7 @@ function FormModal({ lead, onClose, onSave }: { lead: Lead | null; onClose: () =
       status,
       origem,
       observacoes: observacoes || null,
-      tags: tagsStr.split(',').map((t) => t.trim()).filter(Boolean),
+      tags,
     })
   }
 
@@ -367,7 +379,7 @@ function FormModal({ lead, onClose, onSave }: { lead: Lead | null; onClose: () =
             </select>
           </div>
         </div>
-        <Input label="Tags (separadas por vírgula)" value={tagsStr} onChange={setTagsStr} />
+        <TagsEditor value={tags} onChange={setTags} sugestoes={Array.from(new Set([...TAGS_SUGERIDAS, ...tagsExistentes]))} />
         <div>
           <label className="block text-xs font-bold text-gray-600 mb-1">Observações</label>
           <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none" style={{ border: '1px solid #E0DDD8' }} />
@@ -382,6 +394,87 @@ function FormModal({ lead, onClose, onSave }: { lead: Lead | null; onClose: () =
         </div>
       </form>
     </Modal>
+  )
+}
+
+function TagsEditor({ value, onChange, sugestoes }: { value: string[]; onChange: (v: string[]) => void; sugestoes: string[] }) {
+  const [input, setInput] = useState('')
+
+  const adicionar = (tag: string) => {
+    const t = tag.trim()
+    if (!t || value.includes(t)) return
+    onChange([...value, t])
+    setInput('')
+  }
+  const remover = (tag: string) => onChange(value.filter((x) => x !== tag))
+
+  const matchSugestoes = sugestoes.filter(
+    (s) => !value.includes(s) && s.toLowerCase().includes(input.toLowerCase()),
+  ).slice(0, 12)
+
+  return (
+    <div>
+      <label className="block text-xs font-bold text-gray-600 mb-1">Tags</label>
+
+      {/* Chips das tags já selecionadas */}
+      <div className="flex flex-wrap gap-1.5 mb-2 min-h-[28px]">
+        {value.length === 0 && (
+          <span className="text-xs text-gray-400 italic">Nenhuma tag · escolha abaixo ou digite</span>
+        )}
+        {value.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+            style={{ background: '#FFAF06', color: '#1F2937' }}
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => remover(tag)}
+              className="hover:bg-black/10 rounded-full p-0.5"
+              aria-label={`Remover ${tag}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {/* Input pra adicionar nova (Enter ou , confirma) */}
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault()
+            adicionar(input)
+          } else if (e.key === 'Backspace' && !input && value.length > 0) {
+            // backspace com input vazio remove a última tag
+            remover(value[value.length - 1])
+          }
+        }}
+        placeholder="Digite uma tag e Enter pra adicionar"
+        className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
+        style={{ border: '1px solid #E0DDD8' }}
+      />
+
+      {/* Sugestões clicáveis */}
+      {matchSugestoes.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {matchSugestoes.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => adicionar(s)}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
