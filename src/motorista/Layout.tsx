@@ -1,6 +1,7 @@
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { useAuthMotorista } from './AuthMotoristaContext'
 import { LogOut, Truck } from 'lucide-react'
+import { iconePorTipoCaminhao } from './iconesCaminhao'
 
 export default function MotoristaLayout() {
   const { motorista, caminhao, logout } = useAuthMotorista()
@@ -10,6 +11,8 @@ export default function MotoristaLayout() {
     logout()
     navigate('/m/login')
   }
+
+  const icone = caminhao ? iconePorTipoCaminhao[caminhao.tipo] : null
 
   return (
     <div className="min-h-screen bg-[#FAF9F6]">
@@ -21,9 +24,13 @@ export default function MotoristaLayout() {
         <Link to="/m/operacoes" className="flex items-center gap-2 flex-1 min-w-0">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: '#FFAF06' }}
+            style={{ background: icone ? '#FFFFFF' : '#FFAF06', border: icone ? '1px solid #E0DDD8' : 'none' }}
           >
-            <Truck className="w-5 h-5 text-gray-900" />
+            {icone ? (
+              <img src={`/icones/${icone}`} alt={caminhao!.tipo} className="w-7 h-7 object-contain" />
+            ) : (
+              <Truck className="w-5 h-5 text-gray-900" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm text-gray-900 truncate">{motorista?.nome || 'Motorista'}</div>

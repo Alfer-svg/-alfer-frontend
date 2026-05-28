@@ -22,7 +22,11 @@ const LADOS = [
   { id: 'fotoLatDir', label: 'Lateral direita' },
 ] as const
 
-type ItemStatus = 'OK' | 'AVARIADO' | null
+type ItemStatusValor = 'OK' | 'AVARIADO'
+interface ItemEstado {
+  status: ItemStatusValor
+  descricao?: string
+}
 
 async function comprimirImagem(file: File, maxLado = 1280, qualidade = 0.75): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -53,7 +57,7 @@ export default function MotoristaChecklist() {
   const navigate = useNavigate()
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [uploading, setUploading] = useState<string | null>(null)
-  const [itens, setItens] = useState<Record<string, ItemStatus>>({})
+  const [itens, setItens] = useState<Record<string, ItemEstado>>({})
   const [observacoes, setObservacoes] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -80,7 +84,7 @@ export default function MotoristaChecklist() {
     if (!caminhao) return
     setErro('')
     // Valida: precisa de pelo menos 1 foto e todos os itens marcados
-    const todosItensRespondidos = ITENS_CHECKLIST.every((i) => itens[i.id])
+    const todosItensRespondidos = ITENS_CHECKLIST.every((i) => itens[i.id]?.status)
     if (!todosItensRespondidos) {
       setErro('Marque todos os itens da lista')
       return
@@ -174,38 +178,57 @@ export default function MotoristaChecklist() {
         </div>
         <div className="space-y-2">
           {ITENS_CHECKLIST.map((item) => {
-            const status = itens[item.id]
+            const estado = itens[item.id]
+            const status = estado?.status
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-3 bg-white rounded-xl border p-3"
+                className="bg-white rounded-xl border p-3"
                 style={{ borderColor: '#E0DDD8' }}
               >
-                <div className="flex-1 text-sm text-gray-900">{item.label}</div>
-                <button
-                  type="button"
-                  onClick={() => setItens((p) => ({ ...p, [item.id]: 'OK' }))}
-                  className="w-10 h-10 rounded-lg flex items-center justify-center active:scale-95 transition"
-                  style={{
-                    background: status === 'OK' ? '#2D7D32' : '#F5F5F5',
-                    color: status === 'OK' ? '#FFFFFF' : '#999',
-                  }}
-                  aria-label="OK"
-                >
-                  <Check className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setItens((p) => ({ ...p, [item.id]: 'AVARIADO' }))}
-                  className="w-10 h-10 rounded-lg flex items-center justify-center active:scale-95 transition"
-                  style={{
-                    background: status === 'AVARIADO' ? '#C62828' : '#F5F5F5',
-                    color: status === 'AVARIADO' ? '#FFFFFF' : '#999',
-                  }}
-                  aria-label="Avariado"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 text-sm text-gray-900">{item.label}</div>
+                  <button
+                    type="button"
+                    onClick={() => setItens((p) => ({ ...p, [item.id]: { status: 'OK' } }))}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center active:scale-95 transition"
+                    style={{
+                      background: status === 'OK' ? '#2D7D32' : '#F5F5F5',
+                      color: status === 'OK' ? '#FFFFFF' : '#999',
+                    }}
+                    aria-label="OK"
+                  >
+                    <Check className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setItens((p) => ({
+                      ...p,
+                      [item.id]: { status: 'AVARIADO', descricao: p[item.id]?.descricao || '' },
+                    }))}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center active:scale-95 transition"
+                    style={{
+                      background: status === 'AVARIADO' ? '#C62828' : '#F5F5F5',
+                      color: status === 'AVARIADO' ? '#FFFFFF' : '#999',
+                    }}
+                    aria-label="Avariado"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                {status === 'AVARIADO' && (
+                  <input
+                    type="text"
+                    value={estado?.descricao || ''}
+                    onChange={(e) => setItens((p) => ({
+                      ...p,
+                      [item.id]: { status: 'AVARIADO', descricao: e.target.value },
+                    }))}
+                    placeholder="Descreva o problema (opcional)"
+                    className="w-full mt-2 px-3 py-2 bg-gray-50 rounded-lg text-sm outline-none"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  />
+                )}
               </div>
             )
           })}

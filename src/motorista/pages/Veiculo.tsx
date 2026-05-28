@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
 import { Truck, ChevronRight, AlertCircle } from 'lucide-react'
+import { iconePorTipoCaminhao } from '../iconesCaminhao'
 
 export default function MotoristaVeiculo() {
   const { caminhao } = useAuthMotorista()
@@ -43,10 +44,18 @@ export default function MotoristaVeiculo() {
       <div className="bg-white rounded-2xl border p-5" style={{ borderColor: '#E0DDD8' }}>
         <div className="flex items-center gap-4 mb-4">
           <div
-            className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: '#FEF3E2' }}
           >
-            <Truck className="w-7 h-7" style={{ color: '#FFAF06' }} />
+            {iconePorTipoCaminhao[caminhao.tipo] ? (
+              <img
+                src={`/icones/${iconePorTipoCaminhao[caminhao.tipo]}`}
+                alt={caminhao.tipo}
+                className="w-12 h-12 object-contain"
+              />
+            ) : (
+              <Truck className="w-8 h-8" style={{ color: '#FFAF06' }} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-lg text-gray-900 truncate">{caminhao.codigo}</div>

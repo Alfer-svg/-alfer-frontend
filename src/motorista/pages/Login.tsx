@@ -1,27 +1,43 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
-import { Truck } from 'lucide-react'
+import apiMotorista from '../api'
+import { Truck, ChevronDown } from 'lucide-react'
 import AlferLogo from '../../components/AlferLogo'
+
+interface MotoristaItem {
+  id: string
+  nome: string
+  matricula: string
+}
 
 export default function MotoristaLogin() {
   const { login } = useAuthMotorista()
   const navigate = useNavigate()
-  const [matricula, setMatricula] = useState('')
+  const [motoristas, setMotoristas] = useState<MotoristaItem[]>([])
+  const [matriculaSel, setMatriculaSel] = useState('')
   const [pin, setPin] = useState('')
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
+  const [carregandoLista, setCarregandoLista] = useState(true)
+
+  useEffect(() => {
+    apiMotorista.get('/auth/motorista/lista')
+      .then((r) => setMotoristas(r.data || []))
+      .catch(() => setErro('Falha ao carregar lista de motoristas'))
+      .finally(() => setCarregandoLista(false))
+  }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErro('')
-    if (!matricula || !pin) {
-      setErro('Informe matrícula e PIN')
+    if (!matriculaSel || !pin) {
+      setErro('Selecione um motorista e informe o PIN')
       return
     }
     setLoading(true)
     try {
-      await login(matricula.trim(), pin.trim())
+      await login(matriculaSel, pin.trim())
       navigate('/m/veiculo')
     } catch (e: any) {
       setErro(e?.response?.data?.message || 'Falha no login')
@@ -43,17 +59,26 @@ export default function MotoristaLogin() {
           </div>
         </div>
 
-        <label className="block text-xs font-medium text-gray-600 mb-1">Matrícula</label>
-        <input
-          type="text"
-          inputMode="text"
-          autoComplete="username"
-          value={matricula}
-          onChange={(e) => setMatricula(e.target.value)}
-          placeholder="Ex: M001"
-          className="w-full px-4 py-3 bg-white rounded-xl text-base outline-none mb-4"
-          style={{ border: '1px solid #E0DDD8' }}
-        />
+        <label className="block text-xs font-medium text-gray-600 mb-1">Motorista</label>
+        <div className="relative mb-4">
+          <select
+            value={matriculaSel}
+            onChange={(e) => setMatriculaSel(e.target.value)}
+            disabled={carregandoLista}
+            className="w-full px-4 py-3 pr-10 bg-white rounded-xl text-base outline-none appearance-none disabled:opacity-60"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <option value="">
+              {carregandoLista ? 'Carregando…' : 'Selecione seu nome'}
+            </option>
+            {motoristas.map((m) => (
+              <option key={m.id} value={m.matricula}>
+                {m.nome}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
 
         <label className="block text-xs font-medium text-gray-600 mb-1">PIN</label>
         <input
@@ -74,7 +99,7 @@ export default function MotoristaLogin() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !matriculaSel}
           className="w-full py-3.5 rounded-xl font-semibold text-gray-900 text-base disabled:opacity-50 active:opacity-80"
           style={{ background: '#FFAF06' }}
         >
