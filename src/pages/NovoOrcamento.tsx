@@ -204,6 +204,19 @@ export default function NovoOrcamento() {
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
+  // Detecta se o orçamento é de serviço de munck/poli (não tem mobilização —
+  // o caminhão vai ao local executar o serviço). Nesses casos o label
+  // muda pra "Local de execução".
+  const tiposCaminhao = ['CAMINHAO_MUNCK', 'CAMINHAO_POLIGUINDASTE', 'CAMINHAO_CAVALO_MECANICO']
+  const eServicoCaminhao = equipamentosForm.some((ef) => {
+    const eq = equipamentos.find((x) => x.id === ef.equipamentoId)
+    return eq && tiposCaminhao.includes(eq.tipo)
+  })
+  const labelLocal = eServicoCaminhao ? 'Local de execução' : 'Local de mobilização'
+  const helpLocal = eServicoCaminhao
+    ? 'Onde o serviço será executado. Digite o CEP que o resto preenche automaticamente.'
+    : 'Onde os equipamentos serão entregues. Digite o CEP que o resto preenche automaticamente.'
+
   // Se há equipamentos com valor preenchido, o "Valor" base do orçamento
   // vira a soma deles automaticamente (não precisa o usuário digitar).
   const somaEquipamentos = equipamentosForm.reduce((s, e) => s + (Number(e.valor) || 0), 0)
@@ -612,9 +625,9 @@ export default function NovoOrcamento() {
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
-            <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> Local de mobilização
+            <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> {labelLocal}
           </h2>
-          <p className="text-xs text-gray-500 mb-4">Onde os equipamentos serão entregues. Digite o CEP que o resto preenche automaticamente.</p>
+          <p className="text-xs text-gray-500 mb-4">{helpLocal}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
             <div className="md:col-span-1">

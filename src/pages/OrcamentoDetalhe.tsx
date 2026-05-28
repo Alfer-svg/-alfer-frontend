@@ -521,12 +521,18 @@ export default function OrcamentoDetalhe() {
         </div>
       )}
 
-      {o.localMobilizacao && (
-        <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-3">Local de mobilização</h2>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{o.localMobilizacao}</p>
-        </div>
-      )}
+      {o.localMobilizacao && (() => {
+        const tiposCaminhao = ['CAMINHAO_MUNCK', 'CAMINHAO_POLIGUINDASTE', 'CAMINHAO_CAVALO_MECANICO']
+        const eServicoCaminhao = (o.equipamentos || []).some((oe: any) => tiposCaminhao.includes(oe?.equipamento?.tipo))
+          || tiposCaminhao.includes(o.equipamento?.tipo)
+        const titulo = eServicoCaminhao ? 'Local de execução' : 'Local de mobilização'
+        return (
+          <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <h2 className="font-semibold text-gray-900 mb-3">{titulo}</h2>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{o.localMobilizacao}</p>
+          </div>
+        )
+      })()}
 
       {(o.dtInicio || o.dtFim) && (
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
