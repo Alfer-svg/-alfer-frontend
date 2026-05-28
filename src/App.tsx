@@ -54,6 +54,7 @@ import MotoristaVeiculo from './motorista/pages/Veiculo'
 import MotoristaChecklist from './motorista/pages/Checklist'
 import MotoristaOperacoes from './motorista/pages/Operacoes'
 import MotoristaOperacaoDetalhe from './motorista/pages/OperacaoDetalhe'
+import MotoristaOSDetalhe from './motorista/pages/OSDetalhe'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -88,6 +89,7 @@ function MotoristaRoutes() {
         <Route path="checklist" element={<MotoristaChecklist />} />
         <Route path="operacoes" element={<MotoristaOperacoes />} />
         <Route path="operacoes/:id" element={<MotoristaOperacaoDetalhe />} />
+        <Route path="os/:tipo/:id" element={<MotoristaOSDetalhe />} />
       </Route>
       <Route path="*" element={<Navigate to="/m/veiculo" replace />} />
     </Routes>
