@@ -182,10 +182,27 @@ export default function MotoristaOperacaoDetalhe() {
               <span>{op.endDestino}</span>
             </div>
           )}
-          {op.equipamento?.codigo && (
-            <div className="text-xs text-gray-500 mt-2">
-              Equipamento: <span className="font-medium text-gray-700">{op.equipamento.codigo}</span>
+          {op.tipo === 'TROCA' && op.equipamentoNovo?.codigo ? (
+            <div className="mt-3 p-3 rounded-xl space-y-2" style={{ background: '#FEF3E2', border: '1px solid #FFAF06' }}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">Troca de caçamba</div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">RETIRA</span>
+                  <span className="font-bold text-gray-900">{op.equipamento?.codigo}</span>
+                </div>
+                <span className="text-2xl text-gray-400">→</span>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-gray-500">DEIXA</span>
+                  <span className="font-bold text-gray-900">{op.equipamentoNovo.codigo}</span>
+                </div>
+              </div>
             </div>
+          ) : (
+            op.equipamento?.codigo && (
+              <div className="text-xs text-gray-500 mt-2">
+                Equipamento: <span className="font-medium text-gray-700">{op.equipamento.codigo}</span>
+              </div>
+            )
           )}
         </div>
         {op.observacoes && (

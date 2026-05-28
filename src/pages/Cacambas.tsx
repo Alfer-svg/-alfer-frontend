@@ -60,6 +60,7 @@ export default function Cacambas() {
   const [contagens, setContagens] = useState<Record<string, number>>({})
   const [kebabOpen, setKebabOpen] = useState<string | null>(null)
   const [renovarModal, setRenovarModal] = useState<any>(null) // { locacao, contrato, dtFim, valor, observacoes }
+  const [solicitarTrocaModal, setSolicitarTrocaModal] = useState<any>(null) // locação MOBILIZADA pra solicitar troca
   const [logisticaPendente, setLogisticaPendente] = useState<any[]>([])
 
   const loadParaMobilizar = async () => {
@@ -430,13 +431,27 @@ export default function Cacambas() {
                         {kebabOpen === l.id && (
                           <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-lg z-20 overflow-hidden" style={{ border: '1px solid #E0DDD8' }}>
                             <button
-                              onClick={() => abrirRenovacao(l)}
+                              onClick={() => {
+                                setKebabOpen(null)
+                                setSolicitarTrocaModal(l)
+                              }}
                               className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
                             >
                               <RefreshCw className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#FFAF06' }} />
                               <div>
-                                <div className="text-sm font-medium text-gray-900">Troca</div>
-                                <div className="text-xs text-gray-500">Renovar o contrato {l.contrato?.numero}</div>
+                                <div className="text-sm font-medium text-gray-900">Solicitar troca</div>
+                                <div className="text-xs text-gray-500">Retira esta e deixa outra no cliente</div>
+                              </div>
+                            </button>
+                            <div style={{ borderTop: '1px solid #F1EFE8' }} />
+                            <button
+                              onClick={() => abrirRenovacao(l)}
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                            >
+                              <RefreshCw className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#888' }} />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">Renovar contrato</div>
+                                <div className="text-xs text-gray-500">Novo período do contrato {l.contrato?.numero}</div>
                               </div>
                             </button>
                             <div style={{ borderTop: '1px solid #F1EFE8' }} />
@@ -508,6 +523,15 @@ export default function Cacambas() {
 
       {trocaModal && (
         <TrocaModal locacao={trocaModal} onClose={() => setTrocaModal(null)} onSuccess={() => { setTrocaModal(null); load() }} />
+      )}
+
+      {solicitarTrocaModal && (
+        <SolicitarTrocaModal
+          locacao={solicitarTrocaModal}
+          onClose={() => setSolicitarTrocaModal(null)}
+          onSuccess={() => { setSolicitarTrocaModal(null); load(); loadParaMobilizar() }}
+          onErro={setErroAcao}
+        />
       )}
 
       {renovarModal && (
@@ -865,6 +889,168 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
           Gerar fatura {preview && preview.total > 0 ? `(${fmtMoeda(preview.total)})` : ''}
         </button>
       </div>
+    </Modal>
+  )
+}
+
+// ── Modal: Solicitar troca de caçamba ───────────────────────────────────────
+// Cria 1 Operação TROCA (DESMOB da antiga + MOB da nova) e atribui ao motorista.
+function SolicitarTrocaModal({
+  locacao,
+  onClose,
+  onSuccess,
+  onErro,
+}: {
+  locacao: any
+  onClose: () => void
+  onSuccess: () => void
+  onErro: (m: string) => void
+}) {
+  const logisticaItemId = locacao._logisticaId || (typeof locacao.id === 'string' ? locacao.id.replace(/^log:/, '') : locacao.id)
+
+  const [motoristas, setMotoristas] = useState<any[]>([])
+  const [caminhoes, setCaminhoes] = useState<any[]>([])
+  const [cacambasDisponiveis, setCacambasDisponiveis] = useState<any[]>([])
+  const [form, setForm] = useState({
+    equipamentoNovoId: '',
+    motoristaId: '',
+    caminhaoId: '',
+    dtAgendada: new Date().toISOString().slice(0, 10),
+    horaAgendada: '08:00',
+    observacoes: '',
+  })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const tipo = locacao.cacamba?.tipo || 'CACAMBA'
+    Promise.all([
+      api.get('/motoristas', { params: { ativo: 'true' } }),
+      api.get('/caminhoes'),
+      api.get('/equipamentos', { params: { tipo, status: 'DISPONIVEL' } }),
+    ]).then(([m, c, eq]) => {
+      setMotoristas(m.data || [])
+      setCaminhoes(c.data || [])
+      setCacambasDisponiveis(eq.data || [])
+    })
+  }, [])
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!form.equipamentoNovoId) return onErro('Selecione a caçamba nova.')
+    if (!form.motoristaId) return onErro('Selecione o motorista.')
+    if (!form.dtAgendada) return onErro('Informe a data.')
+    setLoading(true)
+    try {
+      await api.post(`/logistica/${logisticaItemId}/solicitar-troca`, {
+        equipamentoNovoId: form.equipamentoNovoId,
+        motoristaId: form.motoristaId,
+        caminhaoId: form.caminhaoId || null,
+        dtAgendada: form.dtAgendada,
+        horaAgendada: form.horaAgendada || null,
+        observacoes: form.observacoes || null,
+      })
+      onSuccess()
+    } catch (err: any) {
+      onErro(err.response?.data?.message || 'Erro ao solicitar troca')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+  const inputStyle = { border: '1px solid #E0DDD8' }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">Solicitar troca de caçamba</h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <div className="text-xs text-gray-600 mb-4 p-3 rounded-lg space-y-1" style={{ background: '#FEF3E2' }}>
+        <div className="font-medium text-gray-900">{locacao.cacamba?.codigo} sai → caçamba nova entra</div>
+        <div>Contrato {locacao.contrato?.numero} · {locacao.cliente?.razaoSocial}</div>
+        {locacao.endEntrega && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {locacao.endEntrega}</div>}
+      </div>
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Caçamba nova (entra no cliente) *</label>
+          <select
+            value={form.equipamentoNovoId}
+            onChange={(e) => setForm({ ...form, equipamentoNovoId: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+            required
+          >
+            <option value="">Selecione…</option>
+            {cacambasDisponiveis.map((eq: any) => (
+              <option key={eq.id} value={eq.id}>{eq.codigo} · {eq.modelo} · {eq.capacidade}</option>
+            ))}
+          </select>
+          {cacambasDisponiveis.length === 0 && (
+            <div className="text-xs text-red-600 mt-1">Nenhuma caçamba do mesmo tipo disponível no pátio.</div>
+          )}
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Motorista *</label>
+          <select
+            value={form.motoristaId}
+            onChange={(e) => setForm({ ...form, motoristaId: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+            required
+          >
+            <option value="">Selecione…</option>
+            {motoristas.map((m: any) => (
+              <option key={m.id} value={m.id}>{m.nome}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Caminhão (opcional)</label>
+          <select
+            value={form.caminhaoId}
+            onChange={(e) => setForm({ ...form, caminhaoId: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+          >
+            <option value="">Sem caminhão definido</option>
+            {caminhoes.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.codigo} · {c.modelo}</option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Data *</label>
+            <input type="date" value={form.dtAgendada} onChange={(e) => setForm({ ...form, dtAgendada: e.target.value })} className={inputCls} style={inputStyle} required />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Hora</label>
+            <input type="time" value={form.horaAgendada} onChange={(e) => setForm({ ...form, horaAgendada: e.target.value })} className={inputCls} style={inputStyle} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Observações (opcional)</label>
+          <textarea
+            value={form.observacoes}
+            onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+            rows={2}
+            placeholder="Instruções específicas pro motorista"
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+            style={inputStyle}
+          />
+        </div>
+        <div className="text-xs text-gray-500 p-3 rounded-lg" style={{ background: '#F1F8E9', border: '1px solid #C8E6C9' }}>
+          O motorista vê 1 operação no app: retira a {locacao.cacamba?.codigo} e deixa a nova no mesmo endereço. Ao finalizar, o sistema fecha a antiga e ativa a nova no contrato automaticamente.
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button type="submit" disabled={loading || cacambasDisponiveis.length === 0} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Solicitar troca
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
