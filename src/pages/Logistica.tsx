@@ -7,10 +7,12 @@ import { Modal } from '../components/Modal'
 import { fmtDate } from '../utils/data'
 
 const statusInfo: Record<string, { bg: string; text: string; label: string }> = {
-  PARA_MOBILIZAR:     { bg: '#FEF3E2', text: '#633806', label: 'Para mobilizar' },
-  MOBILIZADO:         { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizado' },
-  PARA_DESMOBILIZAR:  { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
-  DESMOBILIZADO:      { bg: '#F1EFE8', text: '#888',    label: 'Desmobilizado' },
+  PARA_MOBILIZAR:       { bg: '#FEF3E2', text: '#633806', label: 'Para mobilizar' },
+  EM_ROTA:              { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota' },
+  MOBILIZADO:           { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizado' },
+  PARA_DESMOBILIZAR:    { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
+  EM_ROTA_DESMOBILIZAR: { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (desmob.)' },
+  DESMOBILIZADO:        { bg: '#F1EFE8', text: '#888',    label: 'Desmobilizado' },
 }
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -170,7 +172,23 @@ export default function Logistica() {
                     <AlertTriangle className="w-4 h-4 text-red-600" />
                   </span>
                 )}
-                {it.status === 'PARA_MOBILIZAR' && (
+                {it.status === 'PARA_MOBILIZAR' && !it.autorizadoEm && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      try {
+                        await api.post(`/logistica/${it.id}/autorizar`, {})
+                        load()
+                      } catch (err: any) { setErroAcao(err.response?.data?.message || 'Erro') }
+                    }}
+                    title="Autorizar — libera pra atribuir motorista"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
+                    style={{ background: '#2D7D32' }}
+                  >
+                    Autorizar
+                  </button>
+                )}
+                {it.status === 'PARA_MOBILIZAR' && it.autorizadoEm && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'MOB' }) }}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"

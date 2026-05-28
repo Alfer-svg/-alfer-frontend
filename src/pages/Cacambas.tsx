@@ -55,6 +55,25 @@ export default function Cacambas() {
   const [contagens, setContagens] = useState<Record<string, number>>({})
   const [kebabOpen, setKebabOpen] = useState<string | null>(null)
   const [renovarModal, setRenovarModal] = useState<any>(null) // { locacao, contrato, dtFim, valor, observacoes }
+  const [paraMobilizar, setParaMobilizar] = useState<any[]>([])
+
+  const loadParaMobilizar = () => {
+    api.get('/logistica', { params: { status: 'PARA_MOBILIZAR' } })
+      .then((r) => {
+        const todos: any[] = r.data || []
+        // Só caçambas e só os autorizados
+        const tiposCacamba = ['CACAMBA', 'CACAMBA_ESTACIONARIA']
+        const filtrados = todos.filter((it) => it.autorizadoEm && tiposCacamba.includes(it.equipamento?.tipo))
+        // Inclui também os EM_ROTA
+        api.get('/logistica', { params: { status: 'EM_ROTA' } })
+          .then((r2) => {
+            const emRota = (r2.data || []).filter((it: any) => tiposCacamba.includes(it.equipamento?.tipo))
+            setParaMobilizar([...filtrados, ...emRota])
+          })
+          .catch(() => setParaMobilizar(filtrados))
+      })
+      .catch(() => {})
+  }
 
   const load = () => {
     setLoading(true)
@@ -73,6 +92,7 @@ export default function Cacambas() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus])
+  useEffect(loadParaMobilizar, [])
 
   // Fecha o kebab ao clicar fora
   useEffect(() => {
@@ -221,6 +241,53 @@ export default function Cacambas() {
           </button>
         </div>
       </div>
+
+      {/* Caçambas aguardando motorista / em rota — vindas da Logística */}
+      {paraMobilizar.length > 0 && (
+        <div className="bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #FEF3E2' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="font-semibold text-gray-900 text-sm">Para mobilizar ({paraMobilizar.length})</h2>
+              <p className="text-xs text-gray-500">Caçambas autorizadas pela Logística — aguardando motorista ou em rota</p>
+            </div>
+            <button
+              onClick={() => navigate('/logistica')}
+              className="text-xs font-medium text-gray-600 hover:text-gray-900"
+            >
+              Ir pra Logística →
+            </button>
+          </div>
+          <div className="space-y-2">
+            {paraMobilizar.map((it) => (
+              <div
+                key={it.id}
+                onClick={() => navigate('/logistica')}
+                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50"
+                style={{ background: '#FAFAF8', border: '1px solid #F1EFE8' }}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ background: it.status === 'EM_ROTA' ? '#1A5276' : '#FFAF06' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {it.equipamento?.codigo} · {it.contrato?.cliente?.razaoSocial || it.contrato?.numero || '—'}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {it.enderecoEntrega || 'Sem endereço'}
+                  </div>
+                </div>
+                <span
+                  className="px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{
+                    background: it.status === 'EM_ROTA' ? '#E3EEFA' : '#FEF3E2',
+                    color: it.status === 'EM_ROTA' ? '#1A5276' : '#633806',
+                  }}
+                >
+                  {it.status === 'EM_ROTA' ? 'Em rota' : 'Aguardando motorista'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {[{ key: '', label: 'Todas', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
