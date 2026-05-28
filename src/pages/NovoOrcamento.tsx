@@ -37,6 +37,8 @@ export default function NovoOrcamento() {
     condicaoPagamento: 'PERSONALIZADO',
     formaPagamento: 'BOLETO',
     diaVencFatura: '5',
+    tipoVencimento: 'DIA_FIXO' as 'DIA_FIXO' | 'INTERVALO_DIAS',
+    intervaloVencimentoDias: '7', // sugestão default
     dtPrimeiraFatura: '', // opcional — se preenchido, sobrepõe o cálculo automático
     quantidadeMeses: '1',
     mensalidadeCobranca: 'PRE',        // 'PRE' (início do mês) | 'POS' (fim do mês)
@@ -172,6 +174,8 @@ export default function NovoOrcamento() {
           condicaoPagamento: o.condicaoPagamento || 'PERSONALIZADO',
           formaPagamento: o.formaPagamento || 'BOLETO',
           diaVencFatura: String(o.diaVencFatura ?? 5),
+          tipoVencimento: o.tipoVencimento === 'INTERVALO_DIAS' ? 'INTERVALO_DIAS' : 'DIA_FIXO',
+          intervaloVencimentoDias: o.intervaloVencimentoDias != null ? String(o.intervaloVencimentoDias) : '7',
           dtPrimeiraFatura: o.dtPrimeiraFatura ? String(o.dtPrimeiraFatura).slice(0, 10) : '',
           quantidadeMeses: String(o.quantidadeMeses ?? 1),
           mensalidadeCobranca: o.mensalidadeCobranca || 'PRE',
@@ -260,6 +264,10 @@ export default function NovoOrcamento() {
         condicaoPagamento: form.condicaoPagamento,
         formaPagamento: form.formaPagamento,
         diaVencFatura: Math.max(1, Math.min(31, Number(form.diaVencFatura) || 5)),
+        tipoVencimento: form.tipoVencimento,
+        intervaloVencimentoDias: form.tipoVencimento === 'INTERVALO_DIAS'
+          ? Math.max(1, Math.min(365, Number(form.intervaloVencimentoDias) || 7))
+          : null,
         dtPrimeiraFatura: form.dtPrimeiraFatura || null,
         quantidadeMeses: Math.max(1, Number(form.quantidadeMeses) || 1),
         mensalidadeCobranca: form.mensalidadeCobranca,
@@ -504,18 +512,54 @@ export default function NovoOrcamento() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dia de vencimento da fatura</label>
-              <div className="flex items-center gap-2">
-                <input
-                  value={form.diaVencFatura}
-                  onChange={(e) => set('diaVencFatura', e.target.value.replace(/\D/g, '').slice(0, 2))}
-                  type="number" min="1" max="31"
-                  className={`${inputCls} max-w-[120px]`}
-                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
-                  placeholder="5"
-                />
-                <span className="text-xs text-gray-500">de cada mês (1–31)</span>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vencimento da fatura</label>
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => set('tipoVencimento', 'DIA_FIXO')}
+                  className="flex-1 py-2 rounded-lg text-xs font-medium transition"
+                  style={form.tipoVencimento === 'DIA_FIXO'
+                    ? { background: '#FFAF06', color: '#1F2937' }
+                    : { background: '#F5F5F5', color: '#666', border: '1px solid #E0DDD8' }}
+                >
+                  Dia fixo do mês
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set('tipoVencimento', 'INTERVALO_DIAS')}
+                  className="flex-1 py-2 rounded-lg text-xs font-medium transition"
+                  style={form.tipoVencimento === 'INTERVALO_DIAS'
+                    ? { background: '#FFAF06', color: '#1F2937' }
+                    : { background: '#F5F5F5', color: '#666', border: '1px solid #E0DDD8' }}
+                >
+                  A cada N dias
+                </button>
               </div>
+              {form.tipoVencimento === 'DIA_FIXO' ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    value={form.diaVencFatura}
+                    onChange={(e) => set('diaVencFatura', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                    type="number" min="1" max="31"
+                    className={`${inputCls} max-w-[120px]`}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                    placeholder="5"
+                  />
+                  <span className="text-xs text-gray-500">dia de cada mês (1–31)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    value={form.intervaloVencimentoDias}
+                    onChange={(e) => set('intervaloVencimentoDias', e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    type="number" min="1" max="365"
+                    className={`${inputCls} max-w-[120px]`}
+                    style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                    placeholder="7"
+                  />
+                  <span className="text-xs text-gray-500">dias entre faturas (após o início)</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Data da primeira fatura <span className="text-xs text-gray-400">(opcional)</span></label>
