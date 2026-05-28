@@ -176,7 +176,7 @@ export default function Logistica() {
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"
                     style={{ background: '#FFAF06' }}
                   >
-                    {it.operacaoMobilizacaoId ? 'Atribuída' : 'Atribuir'}
+                    {it.operacaoMobilizacaoId ? 'Mob. atribuída' : 'Atribuir mob.'}
                   </button>
                 )}
                 {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
@@ -185,7 +185,7 @@ export default function Logistica() {
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
                     style={{ background: '#8B0000' }}
                   >
-                    {it.operacaoDesmobilizacaoId ? 'Atribuída' : 'Atribuir'}
+                    {it.operacaoDesmobilizacaoId ? 'Desmob. atribuída' : 'Atribuir desmob.'}
                   </button>
                 )}
               </div>
@@ -314,13 +314,13 @@ export default function Logistica() {
                         style={{ background: '#FFAF06' }}
                       >
                         <ArrowRight className="w-4 h-4" />
-                        {it.operacaoMobilizacaoId ? 'Atribuída ao motorista' : 'Atribuir a motorista'}
+                        {it.operacaoMobilizacaoId ? 'Mobilização atribuída' : 'Atribuir mobilização a motorista'}
                       </button>
                       <button
                         onClick={() => setMobModal(it)}
                         className="text-xs text-gray-500 hover:text-gray-900 underline"
                       >
-                        ou executar agora (sem app)
+                        ou registrar mobilização agora (sem app)
                       </button>
                     </>
                   )}
@@ -333,13 +333,13 @@ export default function Logistica() {
                         style={{ background: '#8B0000' }}
                       >
                         <ArrowRight className="w-4 h-4" />
-                        {it.operacaoDesmobilizacaoId ? 'Atribuída ao motorista' : 'Atribuir a motorista'}
+                        {it.operacaoDesmobilizacaoId ? 'Desmobilização atribuída' : 'Atribuir desmobilização a motorista'}
                       </button>
                       <button
                         onClick={() => setDesmobModal(it)}
                         className="text-xs text-gray-500 hover:text-gray-900 underline"
                       >
-                        ou executar agora (sem app)
+                        ou registrar desmobilização agora (sem app)
                       </button>
                     </>
                   )}
