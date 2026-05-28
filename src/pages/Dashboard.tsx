@@ -118,9 +118,9 @@ export default function Dashboard() {
     <div className="p-8 animate-fade-in">
       {/* Salmo do dia — discreto no topo */}
       <div className="text-center mb-6 -mt-2">
-        <p className="text-[11px] text-gray-400 italic font-light leading-relaxed">
+        <p className="text-sm text-gray-600 italic leading-relaxed">
           “{salmo.texto}”
-          <span className="ml-2 text-gray-300 not-italic">— {salmo.ref}</span>
+          <span className="ml-2 text-gray-400 not-italic font-medium">— {salmo.ref}</span>
         </p>
       </div>
 
