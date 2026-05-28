@@ -67,14 +67,12 @@ export default function Cacambas() {
 
   const loadParaMobilizar = async () => {
     const tiposCacamba = ['CACAMBA', 'CACAMBA_ESTACIONARIA']
-    const statusInteressantes = ['PARA_MOBILIZAR', 'EM_ROTA', 'PARA_DESMOBILIZAR', 'EM_ROTA_DESMOBILIZAR']
     try {
-      const respostas = await Promise.all(
-        statusInteressantes.map((s) => api.get('/logistica', { params: { status: s } }).catch(() => ({ data: [] })))
-      )
-      const todos: any[] = respostas.flatMap((r) => r.data || [])
-      // PARA_MOBILIZAR só conta se já autorizado; demais sempre entram
-      const filtrados = todos.filter((it) => {
+      // 1 chamada só com CSV (antes eram 4 paralelas)
+      const r = await api.get('/logistica', {
+        params: { status: 'PARA_MOBILIZAR,EM_ROTA,PARA_DESMOBILIZAR,EM_ROTA_DESMOBILIZAR' },
+      }).catch(() => ({ data: [] }))
+      const filtrados = (r.data || []).filter((it: any) => {
         if (!tiposCacamba.includes(it.equipamento?.tipo)) return false
         if (it.status === 'PARA_MOBILIZAR') return !!it.autorizadoEm
         return true
@@ -90,9 +88,10 @@ export default function Cacambas() {
     Promise.all([
       api.get('/cacambas/locacoes', { params }),
       api.get('/cacambas/locacoes/resumo'),
+      // Carrega "em movimentação" no mesmo Promise.all pra paralelizar
+      loadParaMobilizar(),
     ])
       .then(([list, res]) => {
-        // Filtra arquivadas (ENCERRADA/DESMOBILIZADO) do default; só aparece se verArquivadas
         const raw: any[] = list.data || []
         const filtradas = verArquivadas
           ? raw.filter((l) => STATUS_ARQUIVADOS.includes(l.status))
@@ -105,7 +104,6 @@ export default function Cacambas() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus, verArquivadas])
-  useEffect(() => { loadParaMobilizar() }, [])
 
   // Fecha o kebab ao clicar fora
   useEffect(() => {
