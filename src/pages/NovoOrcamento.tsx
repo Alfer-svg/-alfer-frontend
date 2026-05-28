@@ -76,20 +76,29 @@ export default function NovoOrcamento() {
     if (str) setForm((f) => ({ ...f, localMobilizacao: str }))
   }, [endMob])
 
-  // Recalcula dtFim sempre que dtInicio ou quantidadeMeses mudar.
+  // Recalcula dtFim sempre que dtInicio, quantidadeMeses ou periodicidade mudar.
+  // A "quantidadeMeses" no banco representa "quantas unidades da periodicidade".
   // O campo continua editável — se o user mexer no dtFim depois, o valor manual
-  // persiste até ele alterar dtInicio/meses novamente.
+  // persiste até ele alterar dtInicio/meses/periodicidade novamente.
   useEffect(() => {
     if (!form.dtInicio) return
-    const meses = Math.max(1, Number(form.quantidadeMeses) || 1)
+    const qtd = Math.max(1, Number(form.quantidadeMeses) || 1)
     const [y, m, d] = form.dtInicio.split('-').map(Number)
     if (!y || !m || !d) return
     const dt = new Date(y, m - 1, d)
-    dt.setMonth(dt.getMonth() + meses)
-    dt.setDate(dt.getDate() - 1) // 12 meses começando 01/01 → termina 31/12 (não 01/01 do ano seguinte)
+    if (form.periodicidade === 'Mensal' || form.periodicidade === 'Único') {
+      dt.setMonth(dt.getMonth() + qtd)
+      dt.setDate(dt.getDate() - 1)
+    } else if (form.periodicidade === 'Quinzenal') {
+      dt.setDate(dt.getDate() + qtd * 15 - 1)
+    } else if (form.periodicidade === 'Semanal') {
+      dt.setDate(dt.getDate() + qtd * 7 - 1)
+    } else if (form.periodicidade === 'Diária') {
+      dt.setDate(dt.getDate() + qtd - 1)
+    }
     const ymd = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
     setForm((f) => (f.dtFim === ymd ? f : { ...f, dtFim: ymd }))
-  }, [form.dtInicio, form.quantidadeMeses])
+  }, [form.dtInicio, form.quantidadeMeses, form.periodicidade])
 
   const buscarEnderecoPorCep = async (v: string) => {
     setErroCep('')
@@ -204,6 +213,22 @@ export default function NovoOrcamento() {
   const comDesconto = Math.max(0, valor - (valor * desconto) / 100)
   const totalLocacao = comDesconto * meses
   const valorFinal = totalLocacao + frete + valorMobilizacao + valorDesmobilizacao
+
+  // Mapeia periodicidade pra labels dinâmicos. quantidadeMeses no banco fica
+  // como "quantas unidades da periodicidade escolhida".
+  const periodInfo: Record<string, { label: string; unidade: string; unidadePlural: string }> = {
+    'Único':     { label: '',                       unidade: '',         unidadePlural: '' },
+    'Mensal':    { label: 'Quantidade de meses',    unidade: 'mês',      unidadePlural: 'meses' },
+    'Quinzenal': { label: 'Quantidade de quinzenas',unidade: 'quinzena', unidadePlural: 'quinzenas' },
+    'Semanal':   { label: 'Quantidade de semanas',  unidade: 'semana',   unidadePlural: 'semanas' },
+    'Diária':    { label: 'Quantidade de dias',     unidade: 'dia',      unidadePlural: 'dias' },
+  }
+  const periodAtual = periodInfo[form.periodicidade] || periodInfo['Mensal']
+  const valorPeriodoLabel = form.periodicidade === 'Único' ? 'Valor' :
+    form.periodicidade === 'Diária' ? 'Diária' :
+    form.periodicidade === 'Semanal' ? 'Semanal' :
+    form.periodicidade === 'Quinzenal' ? 'Quinzenal' :
+    'Mensal'
 
   const setCondicao = (i: number, v: string) => setCondicoes((cs) => cs.map((c, idx) => (idx === i ? v : c)))
   const addCondicao = () => setCondicoes((cs) => [...cs, ''])
@@ -442,8 +467,8 @@ export default function NovoOrcamento() {
               <div>Valor final: <strong>R$ {valorFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               {(desconto > 0 || frete > 0 || valorMobilizacao > 0 || valorDesmobilizacao > 0) && (
                 <div className="text-xs text-gray-600 mt-1">
-                  Mensal: R$ {comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  {meses > 1 && ` × ${meses} meses = R$ ${totalLocacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  {valorPeriodoLabel}: R$ {comDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {meses > 1 && form.periodicidade !== 'Único' && ` × ${meses} ${periodAtual.unidadePlural} = R$ ${totalLocacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   {frete > 0 && ` + R$ ${frete.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} frete`}
                   {valorMobilizacao > 0 && ` + R$ ${valorMobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} mob.`}
                   {valorDesmobilizacao > 0 && ` + R$ ${valorDesmobilizacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} desmob.`}
@@ -505,20 +530,22 @@ export default function NovoOrcamento() {
                 Se preenchida, sobrepõe o cálculo automático. As próximas seguem o dia acima.
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade de meses</label>
-              <input
-                type="number" min="1" max="120"
-                value={form.quantidadeMeses}
-                onChange={(e) => set('quantidadeMeses', e.target.value.replace(/\D/g, '').slice(0, 3) || '1')}
-                className={`${inputCls} max-w-[120px]`}
-                style={inputStyle} onFocus={onFocus} onBlur={onBlur}
-                placeholder="12"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Duração da locação. Valor total = mensal × meses.
-              </p>
-            </div>
+            {form.periodicidade !== 'Único' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{periodAtual.label}</label>
+                <input
+                  type="number" min="1" max="999"
+                  value={form.quantidadeMeses}
+                  onChange={(e) => set('quantidadeMeses', e.target.value.replace(/\D/g, '').slice(0, 3) || '1')}
+                  className={`${inputCls} max-w-[120px]`}
+                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                  placeholder={form.periodicidade === 'Diária' ? '30' : '12'}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Duração da locação. Valor total = {valorPeriodoLabel.toLowerCase()} × {periodAtual.unidadePlural}.
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cobrança da mensalidade</label>
               <select value={form.mensalidadeCobranca} onChange={(e) => set('mensalidadeCobranca', e.target.value)} className={inputCls} style={inputStyle}>
