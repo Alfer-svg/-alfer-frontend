@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
+import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus,
 } from 'lucide-react'
 
 type Mensagem = {
@@ -261,6 +262,23 @@ function ConversaModal({
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erroEnvio, setErroEnvio] = useState('')
+  const [enviandoCrm, setEnviandoCrm] = useState(false)
+  const navigate = useNavigate()
+
+  const enviarParaCrm = async () => {
+    if (enviandoCrm) return
+    setEnviandoCrm(true)
+    try {
+      const r = await api.post(`/whatsapp/inbox/${encodeURIComponent(conversa.telefone)}/criar-lead`, {})
+      const msg = r.data.criado ? 'Lead criado no CRM!' : 'Já estava no CRM — abrindo o lead'
+      const aceitouAbrir = confirm(`${msg}\n\nAbrir agora em /leads?`)
+      if (aceitouAbrir) navigate('/leads')
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Falha ao enviar pro CRM')
+    } finally {
+      setEnviandoCrm(false)
+    }
+  }
 
   const enviar = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -306,7 +324,19 @@ function ConversaModal({
               )}
             </p>
           </div>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={enviarParaCrm}
+              disabled={enviandoCrm}
+              title="Adicionar este contato como Lead no CRM"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+              style={{ background: '#FFAF06', color: '#1F2937' }}
+            >
+              {enviandoCrm ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+              Enviar pro CRM
+            </button>
+            <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ background: '#E5DDD5' }}>
           {ordenadas.map((m) => {
