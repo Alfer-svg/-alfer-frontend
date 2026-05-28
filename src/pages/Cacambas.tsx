@@ -8,12 +8,17 @@ import { fmtDate } from '../utils/data'
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   PARA_MOBILIZAR:         { bg: '#FFF3D6', text: '#A77400', label: 'Para mobilizar' },
   EM_ROTA_MOBILIZACAO:    { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (mobilização)' },
+  // Aliases de Logística (caso backend mande o raw em vez do mapeado)
+  EM_ROTA:                { bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (mobilização)' },
   ATIVA:                  { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizada' },
+  MOBILIZADO:             { bg: '#EAF3DE', text: '#27500A', label: 'Mobilizada' },
   // CHEIA foi unificado em PARA_DESMOBILIZAR — registros antigos seguem aparecendo até a migração rodar
   CHEIA:                  { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
   PARA_DESMOBILIZAR:      { bg: '#FDEEEE', text: '#8B0000', label: 'Para desmobilizar' },
   EM_ROTA_DESMOBILIZACAO: { bg: '#F4E3FA', text: '#5B1A76', label: 'Em rota (desmob/troca)' },
+  EM_ROTA_DESMOBILIZAR:   { bg: '#F4E3FA', text: '#5B1A76', label: 'Em rota (desmob/troca)' },
   ENCERRADA:              { bg: '#F1EFE8', text: '#888',    label: 'Encerrada' },
+  DESMOBILIZADO:          { bg: '#F1EFE8', text: '#888',    label: 'Encerrada' },
 }
 
 const STATUS_ORDEM = [
@@ -345,7 +350,7 @@ export default function Cacambas() {
       ) : (
         <div className="space-y-3 stagger">
           {locacoes.map((l) => {
-            const status = statusColor[l.status] || statusColor.ATIVA
+            const status = statusColor[l.status] || statusColor.PARA_MOBILIZAR
             const diasVenc = Math.ceil((new Date(l.dtVencimento).getTime() - Date.now()) / 86400000)
             const vencida = diasVenc < 0
             return (
