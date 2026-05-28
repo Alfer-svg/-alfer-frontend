@@ -4,7 +4,7 @@ import api from '../services/api'
 import SignaturePad from '../components/SignaturePad'
 import {
   ChevronLeft, ClipboardList, Save, CheckCircle2, Trash2, Loader2, AlertCircle,
-  Building2, MapPin, Wrench, Package, Truck, ListChecks, Clock, MessageSquare,
+  Building2, MapPin, Wrench, Package, Truck, ListChecks, Clock, MessageSquare, FileDown,
 } from 'lucide-react'
 
 const SERVICOS = [
@@ -407,6 +407,25 @@ export default function OrdemServicoMunckDetalhe() {
           {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Salvar rascunho
         </button>
+        <a
+          href={os?.id ? `${(import.meta as any).env?.VITE_API_URL || 'https://alfer-backend-production.up.railway.app/api/v1'}/ordens-servico/munck/${os.id}/pdf?token=${localStorage.getItem('alfer_token')}` : '#'}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => {
+            // Browser não envia Authorization em <a target=_blank>; chama via fetch + blob
+            e.preventDefault()
+            api.get(`/ordens-servico/munck/${os.id}/pdf`, { responseType: 'blob' })
+              .then((r) => {
+                const url = URL.createObjectURL(r.data)
+                window.open(url, '_blank')
+              })
+              .catch(() => alert('Falha ao gerar PDF'))
+          }}
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium text-white"
+          style={{ background: '#2D80D1' }}
+        >
+          <FileDown className="w-4 h-4" /> PDF
+        </a>
         {!concluida && (
           <button
             onClick={concluir}
