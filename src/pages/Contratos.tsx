@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { FileText, Search, Plus, ChevronRight, AlertCircle } from 'lucide-react'
+import { FileText, Search, Plus, ChevronRight, AlertCircle, Archive, ArchiveRestore } from 'lucide-react'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -32,10 +32,28 @@ export default function Contratos() {
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [filtroArquivado, setFiltroArquivado] = useState<'false' | 'true' | 'all'>('false')
 
-  useEffect(() => {
-    api.get('/contratos').then((r) => setContratos(r.data)).finally(() => setLoading(false))
-  }, [])
+  const carregar = () => {
+    setLoading(true)
+    api.get('/contratos', { params: { arquivado: filtroArquivado } })
+      .then((r) => setContratos(r.data))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { carregar() }, [filtroArquivado])
+
+  const arquivar = async (e: React.MouseEvent, c: any, arquivar = true) => {
+    e.stopPropagation()
+    const verbo = arquivar ? 'arquivar' : 'desarquivar'
+    if (!confirm(`${verbo[0].toUpperCase() + verbo.slice(1)} contrato ${c.numero}?`)) return
+    try {
+      await api.post(`/contratos/${c.id}/arquivar`, { arquivar })
+      carregar()
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro')
+    }
+  }
 
   const filtered = contratos.filter((c) => {
     const matchBusca = c.numero?.toLowerCase().includes(busca.toLowerCase()) ||
@@ -85,6 +103,17 @@ export default function Contratos() {
           <option value="VENCENDO">Vencendo</option>
           <option value="RASCUNHO">Rascunho</option>
           <option value="ENCERRADO">Encerrados</option>
+          <option value="RESCINDIDO">Rescindidos</option>
+        </select>
+        <select
+          value={filtroArquivado}
+          onChange={(e) => setFiltroArquivado(e.target.value as any)}
+          className="px-4 py-3 bg-white rounded-xl text-sm outline-none"
+          style={{ border: '1px solid #E0DDD8' }}
+        >
+          <option value="false">Ativos (não arquivados)</option>
+          <option value="true">Apenas arquivados</option>
+          <option value="all">Todos (com arquivados)</option>
         </select>
       </div>
 
@@ -113,11 +142,16 @@ export default function Contratos() {
                   <FileText className="w-5 h-5" style={{ color: '#FFAF06' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <span className="font-semibold text-gray-900 text-sm">{c.numero}</span>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: status.bg, color: status.text }}>
                       {status.label}
                     </span>
+                    {c.arquivado && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>
+                        <Archive className="w-3 h-3" /> Arquivado
+                      </span>
+                    )}
                     {diasVenc <= 30 && diasVenc > 0 && (
                       <span className="flex items-center gap-1 text-xs text-orange-600">
                         <AlertCircle className="w-3 h-3" />
@@ -135,6 +169,25 @@ export default function Contratos() {
                   <div className="font-semibold text-gray-900 text-sm">{fmt(c.valor)}</div>
                   <div className="text-gray-400 text-xs">{c.periodicidade}</div>
                 </div>
+                {['ENCERRADO', 'RESCINDIDO'].includes(c.status) && (
+                  c.arquivado ? (
+                    <button
+                      onClick={(e) => arquivar(e, c, false)}
+                      title="Desarquivar"
+                      className="p-2 rounded-lg hover:bg-amber-50 flex-shrink-0"
+                    >
+                      <ArchiveRestore className="w-4 h-4 text-amber-600" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => arquivar(e, c, true)}
+                      title="Arquivar (some da lista padrão)"
+                      className="p-2 rounded-lg hover:bg-gray-100 flex-shrink-0"
+                    >
+                      <Archive className="w-4 h-4 text-gray-500" />
+                    </button>
+                  )
+                )}
                 <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
               </div>
             )
