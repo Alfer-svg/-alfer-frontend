@@ -47,6 +47,13 @@ import EmailAgendados from './pages/EmailAgendados'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
 import RedefinirSenha from './pages/RedefinirSenha'
+import { AuthMotoristaProvider, useAuthMotorista } from './motorista/AuthMotoristaContext'
+import MotoristaLayout from './motorista/Layout'
+import MotoristaLogin from './motorista/pages/Login'
+import MotoristaVeiculo from './motorista/pages/Veiculo'
+import MotoristaChecklist from './motorista/pages/Checklist'
+import MotoristaOperacoes from './motorista/pages/Operacoes'
+import MotoristaOperacaoDetalhe from './motorista/pages/OperacaoDetalhe'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -59,10 +66,39 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function MotoristaPrivateRoute({ children }: { children: React.ReactNode }) {
+  const { motorista, loading } = useAuthMotorista()
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+  if (!motorista) return <Navigate to="/m/login" replace />
+  return <>{children}</>
+}
+
+function MotoristaRoutes() {
+  const { motorista } = useAuthMotorista()
+  return (
+    <Routes>
+      <Route path="login" element={motorista ? <Navigate to="/m/veiculo" replace /> : <MotoristaLogin />} />
+      <Route element={<MotoristaPrivateRoute><MotoristaLayout /></MotoristaPrivateRoute>}>
+        <Route index element={<Navigate to="/m/veiculo" replace />} />
+        <Route path="veiculo" element={<MotoristaVeiculo />} />
+        <Route path="checklist" element={<MotoristaChecklist />} />
+        <Route path="operacoes" element={<MotoristaOperacoes />} />
+        <Route path="operacoes/:id" element={<MotoristaOperacaoDetalhe />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/m/veiculo" replace />} />
+    </Routes>
+  )
+}
+
 function AppRoutes() {
   const { usuario } = useAuth()
   return (
     <Routes>
+      <Route path="/m/*" element={<AuthMotoristaProvider><MotoristaRoutes /></AuthMotoristaProvider>} />
       <Route path="/login" element={usuario ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/confirmar-recebimento" element={<ConfirmarRecebimento />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
