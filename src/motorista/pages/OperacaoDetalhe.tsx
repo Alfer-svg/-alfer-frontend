@@ -149,7 +149,9 @@ export default function MotoristaOperacaoDetalhe() {
     )
   }
 
-  const podeFinalizar = op.status !== 'CONCLUIDA' && op.status !== 'CANCELADA'
+  // Só permite finalizar se já estiver em rota — força o fluxo
+  // AGENDADA → EM_ROTA → CONCLUIDA pra sincronizar com a Logística
+  const podeFinalizar = op.status === 'EM_ROTA'
 
   return (
     <div className="space-y-5">
