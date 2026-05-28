@@ -44,14 +44,20 @@ export const SALMOS_DIARIOS: { texto: string; ref: string }[] = [
 ]
 
 /**
- * Retorna o salmo do dia (determinístico — todo mundo vê o mesmo
- * no mesmo dia, e muda à meia-noite local).
+ * Retorna o salmo do dia. Determinístico (todo mundo vê o mesmo no
+ * mesmo dia) mas com seleção "aleatória" — usa hash da data ISO em vez
+ * de dia-do-ano sequencial, então não dá pra prever o próximo só olhando
+ * o de hoje. Muda à meia-noite local.
  */
 export function salmoDoDia(): { texto: string; ref: string } {
   const hoje = new Date()
-  // Dia do ano (1..366) com fuso local
-  const inicioAno = new Date(hoje.getFullYear(), 0, 0)
-  const diff = hoje.getTime() - inicioAno.getTime() + ((inicioAno.getTimezoneOffset() - hoje.getTimezoneOffset()) * 60 * 1000)
-  const diaDoAno = Math.floor(diff / 86_400_000)
-  return SALMOS_DIARIOS[diaDoAno % SALMOS_DIARIOS.length]
+  const chaveData = `${hoje.getFullYear()}-${hoje.getMonth() + 1}-${hoje.getDate()}`
+  // Hash determinístico (FNV-1a 32-bit simplificado)
+  let h = 2166136261
+  for (let i = 0; i < chaveData.length; i++) {
+    h ^= chaveData.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  const idx = Math.abs(h) % SALMOS_DIARIOS.length
+  return SALMOS_DIARIOS[idx]
 }
