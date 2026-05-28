@@ -92,7 +92,7 @@ export default function Cacambas() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus])
-  useEffect(loadParaMobilizar, [])
+  useEffect(() => { loadParaMobilizar() }, [])
 
   // Fecha o kebab ao clicar fora
   useEffect(() => {
