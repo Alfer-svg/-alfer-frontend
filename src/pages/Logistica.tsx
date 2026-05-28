@@ -32,6 +32,7 @@ export default function Logistica() {
   const [mobModal, setMobModal] = useState<any>(null)
   const [desmobModal, setDesmobModal] = useState<any>(null)
   const [editarDataModal, setEditarDataModal] = useState<any>(null)
+  const [atribuirModal, setAtribuirModal] = useState<{ item: any; tipo: 'MOB' | 'DESMOB' } | null>(null)
   const [erroAcao, setErroAcao] = useState('')
   const [contagens, setContagens] = useState<Record<string, number>>({})
 
@@ -171,20 +172,20 @@ export default function Logistica() {
                 )}
                 {it.status === 'PARA_MOBILIZAR' && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setMobModal(it) }}
+                    onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'MOB' }) }}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"
                     style={{ background: '#FFAF06' }}
                   >
-                    Mobilizar
+                    {it.operacaoMobilizacaoId ? 'Atribuída' : 'Atribuir'}
                   </button>
                 )}
                 {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setDesmobModal(it) }}
+                    onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'DESMOB' }) }}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
                     style={{ background: '#8B0000' }}
                   >
-                    Desmobilizar
+                    {it.operacaoDesmobilizacaoId ? 'Atribuída' : 'Atribuir'}
                   </button>
                 )}
               </div>
@@ -303,16 +304,44 @@ export default function Logistica() {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-3 border-t" style={{ borderColor: '#F1EFE8' }}>
+                <div className="flex flex-col gap-2 pt-3 border-t" style={{ borderColor: '#F1EFE8' }}>
                   {it.status === 'PARA_MOBILIZAR' && (
-                    <button onClick={() => setMobModal(it)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-900" style={{ background: '#FFAF06' }}>
-                      <ArrowRight className="w-4 h-4" /> Mobilizar
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setAtribuirModal({ item: it, tipo: 'MOB' })}
+                        disabled={!!it.operacaoMobilizacaoId}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-900 disabled:opacity-60"
+                        style={{ background: '#FFAF06' }}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        {it.operacaoMobilizacaoId ? 'Atribuída ao motorista' : 'Atribuir a motorista'}
+                      </button>
+                      <button
+                        onClick={() => setMobModal(it)}
+                        className="text-xs text-gray-500 hover:text-gray-900 underline"
+                      >
+                        ou executar agora (sem app)
+                      </button>
+                    </>
                   )}
                   {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
-                    <button onClick={() => setDesmobModal(it)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#8B0000' }}>
-                      <ArrowRight className="w-4 h-4" /> Desmobilizar
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setAtribuirModal({ item: it, tipo: 'DESMOB' })}
+                        disabled={!!it.operacaoDesmobilizacaoId}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
+                        style={{ background: '#8B0000' }}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        {it.operacaoDesmobilizacaoId ? 'Atribuída ao motorista' : 'Atribuir a motorista'}
+                      </button>
+                      <button
+                        onClick={() => setDesmobModal(it)}
+                        className="text-xs text-gray-500 hover:text-gray-900 underline"
+                      >
+                        ou executar agora (sem app)
+                      </button>
+                    </>
                   )}
                   {it.status === 'DESMOBILIZADO' && (
                     <div className="text-xs text-gray-400 text-center w-full py-2">✓ Operação concluída</div>
@@ -329,6 +358,15 @@ export default function Logistica() {
       )}
       {desmobModal && (
         <DesmobilizarModal item={desmobModal} onClose={() => setDesmobModal(null)} onSuccess={() => { setDesmobModal(null); load() }} onErro={setErroAcao} />
+      )}
+      {atribuirModal && (
+        <AtribuirModal
+          item={atribuirModal.item}
+          tipo={atribuirModal.tipo}
+          onClose={() => setAtribuirModal(null)}
+          onSuccess={() => { setAtribuirModal(null); load() }}
+          onErro={setErroAcao}
+        />
       )}
       {editarDataModal && (
         <EditarDataModal item={editarDataModal} onClose={() => setEditarDataModal(null)} onSuccess={() => { setEditarDataModal(null); load() }} onErro={setErroAcao} />
@@ -597,6 +635,164 @@ function DesmobilizarModal({ item, onClose, onSuccess, onErro }: { item: any; on
             </button>
           </div>
         </form>
+    </Modal>
+  )
+}
+
+function AtribuirModal({
+  item, tipo, onClose, onSuccess, onErro,
+}: {
+  item: any
+  tipo: 'MOB' | 'DESMOB'
+  onClose: () => void
+  onSuccess: () => void
+  onErro: (m: string) => void
+}) {
+  const isMob = tipo === 'MOB'
+  const acaoLabel = isMob ? 'Mobilização' : 'Desmobilização'
+  const dataInicial = isMob
+    ? item.dtPrevistaMobilizacao
+    : item.dtPrevistaDesmobilizacao
+
+  const [motoristas, setMotoristas] = useState<any[]>([])
+  const [caminhoes, setCaminhoes] = useState<any[]>([])
+  const [form, setForm] = useState({
+    motoristaId: '',
+    caminhaoId: '',
+    dtAgendada: dataInicial ? new Date(dataInicial).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    horaAgendada: '08:00',
+    observacoes: '',
+  })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/motoristas', { params: { ativo: 'true' } }),
+      api.get('/caminhoes'),
+    ]).then(([m, c]) => {
+      setMotoristas(m.data || [])
+      setCaminhoes(c.data || [])
+    })
+  }, [])
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!form.motoristaId) return onErro('Selecione o motorista.')
+    if (!form.dtAgendada) return onErro('Informe a data.')
+    setLoading(true)
+    try {
+      const url = isMob
+        ? `/logistica/${item.id}/atribuir-mobilizacao`
+        : `/logistica/${item.id}/atribuir-desmobilizacao`
+      await api.post(url, {
+        motoristaId: form.motoristaId,
+        caminhaoId: form.caminhaoId || null,
+        dtAgendada: form.dtAgendada,
+        horaAgendada: form.horaAgendada || null,
+        observacoes: form.observacoes || null,
+      })
+      onSuccess()
+    } catch (err: any) {
+      onErro(err.response?.data?.message || `Erro ao atribuir ${acaoLabel.toLowerCase()}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+  const inputStyle = { border: '1px solid #E0DDD8' }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-lg font-bold text-gray-900">
+          Atribuir {acaoLabel.toLowerCase()}
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <div className="text-xs text-gray-500 mb-4 space-y-0.5">
+        <div>{item.equipamento?.codigo} • Contrato {item.contrato?.numero}</div>
+        <div>{item.contrato?.cliente?.razaoSocial}</div>
+        {item.enderecoEntrega && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {item.enderecoEntrega}</div>}
+      </div>
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Motorista *</label>
+          <select
+            value={form.motoristaId}
+            onChange={(e) => setForm({ ...form, motoristaId: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+            required
+          >
+            <option value="">Selecione…</option>
+            {motoristas.map((m: any) => (
+              <option key={m.id} value={m.id}>{m.nome}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Caminhão (opcional)</label>
+          <select
+            value={form.caminhaoId}
+            onChange={(e) => setForm({ ...form, caminhaoId: e.target.value })}
+            className={inputCls}
+            style={inputStyle}
+          >
+            <option value="">Sem caminhão definido</option>
+            {caminhoes.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.codigo} · {c.modelo}</option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Data *</label>
+            <input
+              type="date"
+              value={form.dtAgendada}
+              onChange={(e) => setForm({ ...form, dtAgendada: e.target.value })}
+              className={inputCls}
+              style={inputStyle}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Hora</label>
+            <input
+              type="time"
+              value={form.horaAgendada}
+              onChange={(e) => setForm({ ...form, horaAgendada: e.target.value })}
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Observações (opcional)</label>
+          <textarea
+            value={form.observacoes}
+            onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+            rows={2}
+            placeholder="Instruções específicas pro motorista"
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white resize-none"
+            style={inputStyle}
+          />
+        </div>
+        <div className="text-xs text-gray-500 p-3 rounded-lg" style={{ background: '#F1F8E9', border: '1px solid #C8E6C9' }}>
+          O motorista vai ver essa {acaoLabel.toLowerCase()} no app dele
+          (com endereço, cliente e equipamento já preenchidos). Quando ele
+          concluir, o item da logística é atualizado automaticamente com
+          as fotos e o responsável.
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar</button>
+          <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Atribuir
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
