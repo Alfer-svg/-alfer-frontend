@@ -40,6 +40,7 @@ export default function EditarContrato() {
     avisoPrevioDias: '30',
     mobilizacaoValor: '',
     desmobilizacaoValor: '',
+    valorTroca: '',
     localMobilizacao: '',
     manutRespLocador: true,
     foro: 'Recife/PE',
@@ -120,6 +121,7 @@ export default function EditarContrato() {
           avisoPrevioDias: String(c.avisoPrevioDias ?? 30),
           mobilizacaoValor: c.mobilizacaoValor != null ? String(Number(c.mobilizacaoValor)) : '',
           desmobilizacaoValor: c.desmobilizacaoValor != null ? String(Number(c.desmobilizacaoValor)) : '',
+          valorTroca: c.valorTroca != null ? String(Number(c.valorTroca)) : '',
           localMobilizacao: c.localMobilizacao || '',
           manutRespLocador: c.manutRespLocador !== false,
           foro: c.foro || 'Recife/PE',
@@ -151,6 +153,7 @@ export default function EditarContrato() {
         jurosMesPct: form.jurosMesPct ? Number(form.jurosMesPct) : null,
         mobilizacaoValor: form.mobilizacaoValor ? Number(form.mobilizacaoValor) : null,
         desmobilizacaoValor: form.desmobilizacaoValor ? Number(form.desmobilizacaoValor) : null,
+        valorTroca: form.valorTroca ? Number(form.valorTroca) : null,
         localMobilizacao: form.localMobilizacao || null,
         observacoes: form.observacoes || null,
       })
@@ -376,8 +379,8 @@ export default function EditarContrato() {
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          <h2 className="font-semibold text-gray-900 mb-4">Mobilização / Desmobilização (valores)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h2 className="font-semibold text-gray-900 mb-4">Mobilização / Desmobilização / Troca (valores)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Valor mobilização por equipamento (R$)</label>
               <input value={form.mobilizacaoValor} onChange={(e) => set('mobilizacaoValor', e.target.value)} type="number" step="0.01" min="0" placeholder="Ex: 1500,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -386,8 +389,12 @@ export default function EditarContrato() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Valor desmobilização por equipamento (R$)</label>
               <input value={form.desmobilizacaoValor} onChange={(e) => set('desmobilizacaoValor', e.target.value)} type="number" step="0.01" min="0" placeholder="Ex: 1500,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valor por troca de caçamba (R$)</label>
+              <input value={form.valorTroca} onChange={(e) => set('valorTroca', e.target.value)} type="number" step="0.01" min="0" placeholder="Ex: 350,00" className={inputCls} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">Aparece no PDF do contrato. Multiplicado pela quantidade de equipamentos vinculados.</p>
+          <p className="text-xs text-gray-500 mt-2">Mob/Desmob aparecem no PDF (multiplicados pela quantidade de equipamentos). Valor de troca gera uma fatura RECEITA toda vez que o gestor solicita uma troca.</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

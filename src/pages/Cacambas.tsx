@@ -957,6 +957,7 @@ function SolicitarTrocaModal({
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [caminhoes, setCaminhoes] = useState<any[]>([])
   const [cacambasDisponiveis, setCacambasDisponiveis] = useState<any[]>([])
+  const [valorTroca, setValorTroca] = useState<number | null>(null)
   const [form, setForm] = useState({
     equipamentoNovoId: '',
     motoristaId: '',
@@ -969,14 +970,17 @@ function SolicitarTrocaModal({
 
   useEffect(() => {
     const tipo = locacao.cacamba?.tipo || 'CACAMBA'
+    const contratoId = locacao.contrato?.id
     Promise.all([
       api.get('/motoristas', { params: { ativo: 'true' } }),
       api.get('/caminhoes'),
       api.get('/equipamentos', { params: { tipo, status: 'DISPONIVEL' } }),
-    ]).then(([m, c, eq]) => {
+      contratoId ? api.get(`/contratos/${contratoId}`).then((r) => r.data) : Promise.resolve(null),
+    ]).then(([m, c, eq, contrato]) => {
       setMotoristas(m.data || [])
       setCaminhoes(c.data || [])
       setCacambasDisponiveis(eq.data || [])
+      setValorTroca(contrato?.valorTroca != null ? Number(contrato.valorTroca) : null)
     })
   }, [])
 
@@ -1086,6 +1090,16 @@ function SolicitarTrocaModal({
             style={inputStyle}
           />
         </div>
+        {valorTroca && valorTroca > 0 ? (
+          <div className="text-xs p-3 rounded-lg flex items-center gap-2" style={{ background: '#FFF8E6', border: '1px solid #FFAF06', color: '#633806' }}>
+            <DollarSign className="w-4 h-4 flex-shrink-0" />
+            <span>Esta troca gera uma fatura de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTroca)}</strong> ao cliente (configurado no contrato).</span>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 p-3 rounded-lg" style={{ background: '#F1EFE8', border: '1px solid #E0DDD8' }}>
+            Sem cobrança por troca (configurável em Editar contrato → valor por troca).
+          </div>
+        )}
         <div className="text-xs text-gray-500 p-3 rounded-lg" style={{ background: '#F1F8E9', border: '1px solid #C8E6C9' }}>
           O motorista vê 1 operação no app: retira a {locacao.cacamba?.codigo} e deixa a nova no mesmo endereço. Ao finalizar, o sistema fecha a antiga e ativa a nova no contrato automaticamente.
         </div>
