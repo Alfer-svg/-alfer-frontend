@@ -76,6 +76,18 @@ export default function Logistica() {
 
   const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 
+  const cancelarAtribuicao = async (it: any, tipo: 'MOB' | 'DESMOB') => {
+    const label = tipo === 'MOB' ? 'mobilização' : 'desmobilização'
+    if (!confirm(`Cancelar a atribuição de ${label} desta caçamba?\n\nA operação agendada será removida e o motorista deixa de ter na fila.`)) return
+    try {
+      const endpoint = tipo === 'MOB' ? 'cancelar-atribuicao-mob' : 'cancelar-atribuicao-desmob'
+      await api.post(`/logistica/${it.id}/${endpoint}`)
+      load()
+    } catch (err: any) {
+      setErroAcao(err.response?.data?.message || 'Erro ao cancelar atribuição')
+    }
+  }
+
   return (
     <div className="p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-8">
@@ -191,21 +203,30 @@ export default function Logistica() {
                 )}
                 {it.status === 'PARA_MOBILIZAR' && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'MOB' }) }}
-                    disabled={!!it.operacaoMobilizacaoId}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0 disabled:opacity-60"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (it.operacaoMobilizacaoId) cancelarAtribuicao(it, 'MOB')
+                      else setAtribuirModal({ item: it, tipo: 'MOB' })
+                    }}
+                    title={it.operacaoMobilizacaoId ? 'Clique pra cancelar a atribuição' : ''}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"
                     style={{ background: '#FFAF06' }}
                   >
-                    {it.operacaoMobilizacaoId ? 'Mob. atribuída' : 'Autorizar e atribuir mob.'}
+                    {it.operacaoMobilizacaoId ? 'Mob. atribuída ✕' : 'Autorizar e atribuir mob.'}
                   </button>
                 )}
                 {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'DESMOB' }) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (it.operacaoDesmobilizacaoId) cancelarAtribuicao(it, 'DESMOB')
+                      else setAtribuirModal({ item: it, tipo: 'DESMOB' })
+                    }}
+                    title={it.operacaoDesmobilizacaoId ? 'Clique pra cancelar a atribuição' : ''}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
                     style={{ background: '#8B0000' }}
                   >
-                    {it.operacaoDesmobilizacaoId ? 'Desmob. atribuída' : 'Atribuir desmob.'}
+                    {it.operacaoDesmobilizacaoId ? 'Desmob. atribuída ✕' : 'Atribuir desmob.'}
                   </button>
                 )}
               </div>
@@ -328,14 +349,17 @@ export default function Logistica() {
                   {it.status === 'PARA_MOBILIZAR' && (
                     <>
                       <button
-                        onClick={() => setAtribuirModal({ item: it, tipo: 'MOB' })}
-                        disabled={!!it.operacaoMobilizacaoId}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-900 disabled:opacity-60"
+                        onClick={() => {
+                          if (it.operacaoMobilizacaoId) cancelarAtribuicao(it, 'MOB')
+                          else setAtribuirModal({ item: it, tipo: 'MOB' })
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-900"
                         style={{ background: '#FFAF06' }}
+                        title={it.operacaoMobilizacaoId ? 'Clique pra cancelar a atribuição' : ''}
                       >
                         <ArrowRight className="w-4 h-4" />
                         {it.operacaoMobilizacaoId
-                          ? 'Mobilização atribuída'
+                          ? 'Mobilização atribuída ✕'
                           : it.autorizadoEm
                             ? 'Atribuir mobilização a motorista'
                             : 'Autorizar e atribuir mobilização'}
@@ -351,13 +375,16 @@ export default function Logistica() {
                   {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
                     <>
                       <button
-                        onClick={() => setAtribuirModal({ item: it, tipo: 'DESMOB' })}
-                        disabled={!!it.operacaoDesmobilizacaoId}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
+                        onClick={() => {
+                          if (it.operacaoDesmobilizacaoId) cancelarAtribuicao(it, 'DESMOB')
+                          else setAtribuirModal({ item: it, tipo: 'DESMOB' })
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-white"
                         style={{ background: '#8B0000' }}
+                        title={it.operacaoDesmobilizacaoId ? 'Clique pra cancelar a atribuição' : ''}
                       >
                         <ArrowRight className="w-4 h-4" />
-                        {it.operacaoDesmobilizacaoId ? 'Desmobilização atribuída' : 'Atribuir desmobilização a motorista'}
+                        {it.operacaoDesmobilizacaoId ? 'Desmobilização atribuída ✕' : 'Atribuir desmobilização a motorista'}
                       </button>
                       <button
                         onClick={() => setDesmobModal(it)}
