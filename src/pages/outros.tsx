@@ -577,11 +577,11 @@ export function Financeiro() {
       {(() => {
         const b = busca.trim().toLowerCase()
         const lancamentosFiltrados = !b ? lancamentos : lancamentos.filter((l: any) =>
-          (l.numeroFatura || '').toLowerCase().includes(b)
-          || String(l.numero || '').includes(b)
+          String(l.numeroFatura ?? '').toLowerCase().includes(b)
+          || String(l.numero ?? '').toLowerCase().includes(b)
           || (l.descricao || '').toLowerCase().includes(b)
           || (l.cliente?.razaoSocial || '').toLowerCase().includes(b)
-          || (l.cliente?.cnpj || '').includes(b)
+          || (l.cliente?.cnpj || '').toLowerCase().includes(b)
           || (l.fornecedor?.razaoSocial || '').toLowerCase().includes(b)
           || (l.contrato?.numero || '').toLowerCase().includes(b)
         )
