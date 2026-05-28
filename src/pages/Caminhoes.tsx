@@ -112,14 +112,8 @@ export default function Caminhoes() {
             {sincronizando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Sincronizar Munck
           </button>
-          <button
-            onClick={() => navigate('/caminhoes/novo')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
-            style={{ background: '#FFAF06' }}
-          >
-            <Plus className="w-4 h-4" />
-            Novo caminhão
-          </button>
+          {/* Novo caminhão removido — frota é gerenciada apenas via "Sincronizar Munck"
+              ou cadastro de equipamento. Aqui só edição/complemento. */}
         </div>
       </div>
 

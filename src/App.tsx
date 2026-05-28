@@ -134,7 +134,7 @@ function AppRoutes() {
         <Route path="equipamentos/:id/editar" element={<NovoEquipamento />} />
         <Route path="equipamentos/:id" element={<EquipamentoDetalhe />} />
         <Route path="caminhoes" element={<Caminhoes />} />
-        <Route path="caminhoes/novo" element={<NovoCaminhao />} />
+        {/* "caminhoes/novo" removido — cadastro só via Sincronizar Munck ou Equipamento */}
         <Route path="caminhoes/:id/editar" element={<NovoCaminhao />} />
         <Route path="caminhoes/:id" element={<CaminhaoDetalhe />} />
         <Route path="cacambas" element={<Cacambas />} />
