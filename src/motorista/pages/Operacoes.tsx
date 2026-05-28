@@ -4,14 +4,13 @@ import apiMotorista from '../api'
 import { ClipboardList, ChevronRight, MapPin, Clock, CheckCircle2, Truck } from 'lucide-react'
 
 const TIPO_LABEL: Record<string, string> = {
-  ENTREGA_CONTAINER: 'Entrega de container',
-  COLETA_CONTAINER: 'Coleta de container',
-  TROCA_CONTAINER: 'Troca de container',
-  MOVIMENTACAO_CONTAINER: 'Movimentação de container',
-  ENTREGA_CACAMBA: 'Entrega de caçamba',
-  COLETA_CACAMBA: 'Coleta de caçamba',
-  TROCA_CACAMBA: 'Troca de caçamba',
+  ENTREGA: 'Entrega',
+  RETIRADA: 'Retirada',
+  TROCA: 'Troca',
   SERVICO_AVULSO: 'Serviço avulso',
+  MOBILIZACAO: 'Mobilização',
+  DESMOBILIZACAO: 'Desmobilização',
+  MANUTENCAO: 'Manutenção',
 }
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
