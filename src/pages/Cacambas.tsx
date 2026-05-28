@@ -21,14 +21,15 @@ const statusColor: Record<string, { bg: string; text: string; label: string }> =
   DESMOBILIZADO:          { bg: '#F1EFE8', text: '#888',    label: 'Encerrada' },
 }
 
+// Filtros visíveis na barra de status — ENCERRADA fica fora (vai pra "Arquivadas")
 const STATUS_ORDEM = [
   'PARA_MOBILIZAR',
   'EM_ROTA_MOBILIZACAO',
   'ATIVA',
   'PARA_DESMOBILIZAR',
   'EM_ROTA_DESMOBILIZACAO',
-  'ENCERRADA',
 ]
+const STATUS_ARQUIVADOS = ['ENCERRADA', 'DESMOBILIZADO']
 
 
 /** Cor de urgência baseada em dias até retirada */
@@ -54,7 +55,8 @@ export default function Cacambas() {
   const navigate = useNavigate()
   const [locacoes, setLocacoes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtroStatus, setFiltroStatus] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState('') // '' = ativas; 'ARQUIVADAS' = encerradas
+  const [verArquivadas, setVerArquivadas] = useState(false)
   const [trocaModal, setTrocaModal] = useState<any>(null)
   const [showFechamento, setShowFechamento] = useState(false)
   const [contagens, setContagens] = useState<Record<string, number>>({})
@@ -90,14 +92,19 @@ export default function Cacambas() {
       api.get('/cacambas/locacoes/resumo'),
     ])
       .then(([list, res]) => {
-        setLocacoes(list.data)
+        // Filtra arquivadas (ENCERRADA/DESMOBILIZADO) do default; só aparece se verArquivadas
+        const raw: any[] = list.data || []
+        const filtradas = verArquivadas
+          ? raw.filter((l) => STATUS_ARQUIVADOS.includes(l.status))
+          : (filtroStatus ? raw : raw.filter((l) => !STATUS_ARQUIVADOS.includes(l.status)))
+        setLocacoes(filtradas)
         const map: Record<string, number> = {}
         for (const r of res.data || []) map[r.status] = r._count?._all ?? 0
         setContagens(map)
       })
       .finally(() => setLoading(false))
   }
-  useEffect(load, [filtroStatus])
+  useEffect(load, [filtroStatus, verArquivadas])
   useEffect(() => { loadParaMobilizar() }, [])
 
   // Fecha o kebab ao clicar fora
@@ -323,17 +330,17 @@ export default function Cacambas() {
         )
       })()}
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[{ key: '', label: 'Todas', count: totalGeral, bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
+      <div className="flex gap-2 mb-6 flex-wrap items-center">
+        {[{ key: '', label: 'Todas', count: (totalGeral - STATUS_ARQUIVADOS.reduce((s, k) => s + (contagens[k] || 0), 0)), bg: '#F1EFE8', text: '#666', activeBg: '#1A1C1E' },
           ...STATUS_ORDEM.map((s) => {
             const info = statusColor[s]
             return { key: s, label: info.label, count: contagens[s] || 0, bg: info.bg, text: info.text, activeBg: info.text }
           })].map((t) => {
-          const ativo = filtroStatus === t.key
+          const ativo = filtroStatus === t.key && !verArquivadas
           return (
             <button
               key={t.key || 'all'}
-              onClick={() => setFiltroStatus(t.key)}
+              onClick={() => { setVerArquivadas(false); setFiltroStatus(t.key) }}
               className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
               style={{ background: ativo ? t.activeBg : t.bg, color: ativo ? 'white' : t.text }}
             >
@@ -351,6 +358,25 @@ export default function Cacambas() {
             </button>
           )
         })}
+        <div className="flex-1" />
+        <button
+          onClick={() => { setFiltroStatus(''); setVerArquivadas(!verArquivadas) }}
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+          style={{ background: verArquivadas ? '#1A1C1E' : 'transparent', color: verArquivadas ? 'white' : '#666', border: verArquivadas ? 'none' : '1px solid #E0DDD8' }}
+          title="Mostrar caçambas encerradas/desmobilizadas"
+        >
+          {verArquivadas ? '← Voltar pras ativas' : 'Histórico arquivado'}
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+            style={{
+              background: verArquivadas ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+              color: verArquivadas ? 'white' : '#666',
+              minWidth: 22, textAlign: 'center',
+            }}
+          >
+            {STATUS_ARQUIVADOS.reduce((s, k) => s + (contagens[k] || 0), 0)}
+          </span>
+        </button>
       </div>
 
       {erroAcao && (
