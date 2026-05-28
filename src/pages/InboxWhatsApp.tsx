@@ -219,26 +219,92 @@ export default function InboxWhatsApp() {
       )}
 
       {conversaSel && (
-        <ConversaModal conversa={conversaSel} onClose={() => setConversaSel(null)} />
+        <ConversaModal
+          conversa={conversaSel}
+          onClose={() => setConversaSel(null)}
+          onMensagemEnviada={(novaMsg) => {
+            // Atualiza a conversa local e a lista
+            setConversaSel((cur) => cur ? { ...cur, mensagens: [novaMsg, ...cur.mensagens], outbound: cur.outbound + 1, ultima: novaMsg.receivedAt } : cur)
+            setConversas((prev) => prev.map((x) => x.telefone === conversaSel.telefone
+              ? { ...x, mensagens: [novaMsg, ...x.mensagens], outbound: x.outbound + 1, ultima: novaMsg.receivedAt }
+              : x))
+          }}
+        />
       )}
     </div>
   )
 }
 
-function ConversaModal({ conversa, onClose }: { conversa: Conversa; onClose: () => void }) {
+function ConversaModal({
+  conversa, onClose, onMensagemEnviada,
+}: {
+  conversa: Conversa
+  onClose: () => void
+  onMensagemEnviada: (m: Mensagem) => void
+}) {
   // Ordena cronologicamente (mais antiga em cima)
   const ordenadas = [...conversa.mensagens].sort(
     (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
   )
+
+  // Janela 24h: só dá pra enviar texto livre se a última INBOUND foi há menos de 24h
+  const ultimaInbound = conversa.mensagens
+    .filter((m) => m.direcao === 'INBOUND')
+    .reduce((latest, m) => {
+      const t = new Date(m.receivedAt).getTime()
+      return t > latest ? t : latest
+    }, 0)
+  const horasDesdeUltimaInbound = ultimaInbound > 0 ? (Date.now() - ultimaInbound) / 3600000 : Infinity
+  const janelaAberta = horasDesdeUltimaInbound < 24
+  const horasRestantes = janelaAberta ? Math.max(0, 24 - horasDesdeUltimaInbound) : 0
+
+  const [texto, setTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [erroEnvio, setErroEnvio] = useState('')
+
+  const enviar = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!texto.trim() || enviando) return
+    setEnviando(true)
+    setErroEnvio('')
+    try {
+      const r = await api.post(`/whatsapp/inbox/${encodeURIComponent(conversa.telefone)}/responder`, { texto: texto.trim() })
+      const nova: Mensagem = {
+        id: r.data.messageId,
+        messageId: r.data.messageId,
+        direcao: 'OUTBOUND',
+        telefone: conversa.telefone,
+        tipo: 'text',
+        conteudo: texto.trim(),
+        optOutDetectado: false,
+        templateName: null,
+        receivedAt: new Date().toISOString(),
+      }
+      onMensagemEnviada(nova)
+      setTexto('')
+    } catch (err: any) {
+      setErroEnvio(err.response?.data?.message || 'Falha ao enviar')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#F1EFE8' }}>
           <div>
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Phone className="w-4 h-4" /> {conversa.telefone}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">{conversa.mensagens.length} mensagens · ↓ {conversa.inbound} recebidas · ↑ {conversa.outbound} enviadas</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {conversa.mensagens.length} mensagens · ↓ {conversa.inbound} recebidas · ↑ {conversa.outbound} enviadas
+              {janelaAberta && (
+                <span className="ml-2 text-green-700">
+                  · janela aberta ({horasRestantes < 1 ? `${Math.round(horasRestantes * 60)} min` : `${Math.round(horasRestantes)}h`} restantes)
+                </span>
+              )}
+            </p>
           </div>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
@@ -272,6 +338,52 @@ function ConversaModal({ conversa, onClose }: { conversa: Conversa; onClose: () 
             )
           })}
         </div>
+
+        {/* Composer */}
+        {janelaAberta ? (
+          <form onSubmit={enviar} className="p-3 border-t flex items-end gap-2" style={{ borderColor: '#F1EFE8' }}>
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  enviar()
+                }
+              }}
+              rows={1}
+              placeholder="Resposta…"
+              className="flex-1 px-3 py-2 rounded-xl text-sm outline-none bg-white resize-none max-h-24"
+              style={{ border: '1px solid #E0DDD8' }}
+              disabled={enviando}
+            />
+            <button
+              type="submit"
+              disabled={!texto.trim() || enviando}
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-50"
+              style={{ background: '#25D366' }}
+            >
+              {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Enviar
+            </button>
+            {erroEnvio && (
+              <div className="absolute left-4 right-4 bottom-16 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                {erroEnvio}
+              </div>
+            )}
+          </form>
+        ) : (
+          <div
+            className="p-3 border-t text-xs text-amber-900 flex items-start gap-2"
+            style={{ borderColor: '#F1EFE8', background: '#FEF8E1' }}
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div>
+              <strong>Janela de 24h fechada.</strong> Texto livre só funciona dentro de 24h após a última mensagem do cliente.
+              Pra retomar o contato, envie um template aprovado pelas Campanhas.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
