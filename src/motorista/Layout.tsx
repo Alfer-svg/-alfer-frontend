@@ -27,7 +27,12 @@ export default function MotoristaLayout() {
             style={{ background: icone ? '#FFFFFF' : '#FFAF06', border: icone ? '1px solid #E0DDD8' : 'none' }}
           >
             {icone ? (
-              <img src={`/icones/${icone}`} alt={caminhao!.tipo} className="w-7 h-7 object-contain" />
+              <img
+                src={`/icones/${icone}`}
+                alt={caminhao!.tipo}
+                className="w-7 h-7 object-contain"
+                style={{ mixBlendMode: 'multiply' }}
+              />
             ) : (
               <Truck className="w-5 h-5 text-gray-900" />
             )}

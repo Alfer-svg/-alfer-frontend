@@ -52,6 +52,7 @@ export default function MotoristaVeiculo() {
                 src={`/icones/${iconePorTipoCaminhao[caminhao.tipo]}`}
                 alt={caminhao.tipo}
                 className="w-12 h-12 object-contain"
+                style={{ mixBlendMode: 'multiply' }}
               />
             ) : (
               <Truck className="w-8 h-8" style={{ color: '#FFAF06' }} />
