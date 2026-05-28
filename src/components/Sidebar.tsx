@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -47,10 +47,17 @@ const nav: NavItem[] = [
     basePath: '/financeiro',
     children: [
       { to: '/financeiro', label: 'Lançamentos' },
-      { to: '/relatorios', label: 'Relatórios' },
       { to: '/emails-agendados', label: 'E-mails agendados' },
       { to: '/fornecedores', label: 'Fornecedores' },
       { to: '/emissores', label: 'Emissores (CNPJs)' },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    icon: BarChart3,
+    basePath: '/relatorios',
+    children: [
+      { to: '/relatorios', label: 'Relatório Financeiro' },
     ],
   },
   {
