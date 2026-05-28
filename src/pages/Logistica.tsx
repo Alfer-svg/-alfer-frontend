@@ -174,29 +174,14 @@ export default function Logistica() {
                     <AlertTriangle className="w-4 h-4 text-red-600" />
                   </span>
                 )}
-                {it.status === 'PARA_MOBILIZAR' && !it.autorizadoEm && (
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      try {
-                        await api.post(`/logistica/${it.id}/autorizar`, {})
-                        load()
-                      } catch (err: any) { setErroAcao(err.response?.data?.message || 'Erro') }
-                    }}
-                    title="Autorizar — libera pra atribuir motorista"
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex-shrink-0"
-                    style={{ background: '#2D7D32' }}
-                  >
-                    Autorizar
-                  </button>
-                )}
-                {it.status === 'PARA_MOBILIZAR' && it.autorizadoEm && (
+                {it.status === 'PARA_MOBILIZAR' && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setAtribuirModal({ item: it, tipo: 'MOB' }) }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0"
+                    disabled={!!it.operacaoMobilizacaoId}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-900 flex-shrink-0 disabled:opacity-60"
                     style={{ background: '#FFAF06' }}
                   >
-                    {it.operacaoMobilizacaoId ? 'Mob. atribuída' : 'Atribuir mob.'}
+                    {it.operacaoMobilizacaoId ? 'Mob. atribuída' : 'Autorizar e atribuir mob.'}
                   </button>
                 )}
                 {(it.status === 'PARA_DESMOBILIZAR' || it.status === 'MOBILIZADO') && (
@@ -325,27 +310,7 @@ export default function Logistica() {
                 )}
 
                 <div className="flex flex-col gap-2 pt-3 border-t" style={{ borderColor: '#F1EFE8' }}>
-                  {it.status === 'PARA_MOBILIZAR' && !it.autorizadoEm && (
-                    <>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api.post(`/logistica/${it.id}/autorizar`, {})
-                            load()
-                          } catch (err: any) { setErroAcao(err.response?.data?.message || 'Erro') }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-white"
-                        style={{ background: '#2D7D32' }}
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                        Autorizar mobilização
-                      </button>
-                      <p className="text-xs text-gray-500 text-center">
-                        Após autorizar, libera atribuição de motorista e aparece em Caçambas.
-                      </p>
-                    </>
-                  )}
-                  {it.status === 'PARA_MOBILIZAR' && it.autorizadoEm && (
+                  {it.status === 'PARA_MOBILIZAR' && (
                     <>
                       <button
                         onClick={() => setAtribuirModal({ item: it, tipo: 'MOB' })}
@@ -354,7 +319,11 @@ export default function Logistica() {
                         style={{ background: '#FFAF06' }}
                       >
                         <ArrowRight className="w-4 h-4" />
-                        {it.operacaoMobilizacaoId ? 'Mobilização atribuída' : 'Atribuir mobilização a motorista'}
+                        {it.operacaoMobilizacaoId
+                          ? 'Mobilização atribuída'
+                          : it.autorizadoEm
+                            ? 'Atribuir mobilização a motorista'
+                            : 'Autorizar e atribuir mobilização'}
                       </button>
                       <button
                         onClick={() => setMobModal(it)}
