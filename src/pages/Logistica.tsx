@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
 import { Truck, Package, Loader2, AlertCircle, X, MapPin, Calendar, User, ImagePlus, Camera, AlertTriangle, CheckCircle2, ArrowRight, FileText, Pencil } from 'lucide-react'
 import { comprimirImagem } from '../utils/imagem'
@@ -28,9 +28,10 @@ function statusData(dt?: string | null): { bg: string; text: string; label: stri
 
 export default function Logistica() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [itens, setItens] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtroStatus, setFiltroStatus] = useState('PARA_MOBILIZAR')
+  const [filtroStatus, setFiltroStatus] = useState(searchParams.get('focusDesmob') ? 'MOBILIZADO' : 'PARA_MOBILIZAR')
   const [mobModal, setMobModal] = useState<any>(null)
   const [desmobModal, setDesmobModal] = useState<any>(null)
   const [editarDataModal, setEditarDataModal] = useState<any>(null)
@@ -58,6 +59,20 @@ export default function Logistica() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroStatus])
+
+  // Quando chega de /cacambas com ?focusDesmob=<itemId>, abre modal de
+  // atribuir desmob automaticamente assim que os itens carregarem.
+  useEffect(() => {
+    const focus = searchParams.get('focusDesmob')
+    if (!focus || loading || itens.length === 0) return
+    const item = itens.find((it) => it.id === focus)
+    if (item) {
+      setAtribuirModal({ item, tipo: 'DESMOB' })
+      // Limpa o param pra não reabrir em refresh
+      searchParams.delete('focusDesmob')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [loading, itens])
 
   const totalGeral = Object.values(contagens).reduce((a, b) => a + b, 0)
 

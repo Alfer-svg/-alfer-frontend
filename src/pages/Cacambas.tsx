@@ -441,13 +441,28 @@ export default function Cacambas() {
                             </button>
                             <div style={{ borderTop: '1px solid #F1EFE8' }} />
                             <button
+                              onClick={() => {
+                                setKebabOpen(null)
+                                // Vai pra Logística focado no item, abrindo o modal de atribuir desmob
+                                navigate(`/logistica?focusDesmob=${l._logisticaId || l.id.replace(/^log:/, '')}`)
+                              }}
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-amber-50 transition-colors"
+                            >
+                              <ArrowDownLeft className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#FFAF06' }} />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">Solicitar desmobilização</div>
+                                <div className="text-xs text-gray-500">Atribuir motorista pra retirar a caçamba</div>
+                              </div>
+                            </button>
+                            <div style={{ borderTop: '1px solid #F1EFE8' }} />
+                            <button
                               onClick={() => encerrarContrato(l)}
                               className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors"
                             >
-                              <ArrowDownLeft className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+                              <X className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
                               <div>
-                                <div className="text-sm font-medium text-gray-900">Retirada</div>
-                                <div className="text-xs text-gray-500">Encerrar o contrato {l.contrato?.numero}</div>
+                                <div className="text-sm font-medium text-gray-900">Encerrar contrato</div>
+                                <div className="text-xs text-gray-500">Finaliza o contrato {l.contrato?.numero}</div>
                               </div>
                             </button>
                           </div>
