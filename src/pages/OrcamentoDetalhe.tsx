@@ -138,8 +138,21 @@ export default function OrcamentoDetalhe() {
       })
       if (!r.ok) throw new Error('Erro ao gerar PDF')
       const blob = await r.blob()
+      // Extrai nome do arquivo do header Content-Disposition (RFC 5987)
+      const cd = r.headers.get('Content-Disposition') || ''
+      let filename = `Orcamento ${o?.numero || ''} ${(o?.cliente?.razaoSocial || '').replace(/[\\/:*?"<>|]/g, '')}.pdf`.trim()
+      const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="([^"]+)"/i)
+      if (m && m[1]) filename = decodeURIComponent(m[1]).replace(/^"|"$/g, '')
+
       const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      // Cria link de download com nome certo (evita o blob:xxx aleatório do Safari)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(url), 30000)
     } catch (err: any) {
       setErro(err.message || 'Erro ao baixar PDF.')
