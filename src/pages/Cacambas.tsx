@@ -248,56 +248,76 @@ export default function Cacambas() {
         </div>
       </div>
 
-      {/* Caçambas em movimentação — vindas da Logística (mob/desmob) */}
-      {logisticaPendente.length > 0 && (() => {
+      {/* Caçambas em movimentação — duas colunas sempre visíveis: Para mobilizar | Para desmobilizar */}
+      {(() => {
         const statusVisual: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-          PARA_MOBILIZAR:       { dot: '#FFAF06', bg: '#FEF3E2', text: '#633806', label: 'Aguardando motorista (mob.)' },
-          EM_ROTA:              { dot: '#1A5276', bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (mob.)' },
-          PARA_DESMOBILIZAR:    { dot: '#8B0000', bg: '#FDEEEE', text: '#8B0000', label: 'Aguardando motorista (desmob.)' },
-          EM_ROTA_DESMOBILIZAR: { dot: '#1A5276', bg: '#E3EEFA', text: '#1A5276', label: 'Em rota (desmob.)' },
+          PARA_MOBILIZAR:       { dot: '#FFAF06', bg: '#FEF3E2', text: '#633806', label: 'Aguardando motorista' },
+          EM_ROTA:              { dot: '#1A5276', bg: '#E3EEFA', text: '#1A5276', label: 'Em rota' },
+          PARA_DESMOBILIZAR:    { dot: '#8B0000', bg: '#FDEEEE', text: '#8B0000', label: 'Aguardando motorista' },
+          EM_ROTA_DESMOBILIZAR: { dot: '#1A5276', bg: '#E3EEFA', text: '#1A5276', label: 'Em rota' },
         }
-        return (
-          <div className="bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #FEF3E2' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="font-semibold text-gray-900 text-sm">Em movimentação ({logisticaPendente.length})</h2>
-                <p className="text-xs text-gray-500">Caçambas em mobilização ou desmobilização — gerenciadas na Logística</p>
+        const mobilizando = logisticaPendente.filter((it) => it.status === 'PARA_MOBILIZAR' || it.status === 'EM_ROTA')
+        const desmobilizando = logisticaPendente.filter((it) => it.status === 'PARA_DESMOBILIZAR' || it.status === 'EM_ROTA_DESMOBILIZAR')
+
+        const renderCard = (it: any) => {
+          const sv = statusVisual[it.status] || statusVisual.PARA_MOBILIZAR
+          return (
+            <div
+              key={it.id}
+              onClick={() => navigate('/logistica')}
+              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50"
+              style={{ background: '#FAFAF8', border: '1px solid #F1EFE8' }}
+            >
+              <div className="w-2 h-2 rounded-full" style={{ background: sv.dot }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {it.equipamento?.codigo} · {it.contrato?.cliente?.razaoSocial || it.contrato?.numero || '—'}
+                </div>
+                <div className="text-xs text-gray-500 truncate">{it.enderecoEntrega || 'Sem endereço'}</div>
               </div>
-              <button
-                onClick={() => navigate('/logistica')}
-                className="text-xs font-medium text-gray-600 hover:text-gray-900"
-              >
-                Ir pra Logística →
-              </button>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: sv.bg, color: sv.text }}>
+                {sv.label}
+              </span>
             </div>
-            <div className="space-y-2">
-              {logisticaPendente.map((it) => {
-                const sv = statusVisual[it.status] || statusVisual.PARA_MOBILIZAR
-                return (
-                  <div
-                    key={it.id}
-                    onClick={() => navigate('/logistica')}
-                    className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50"
-                    style={{ background: '#FAFAF8', border: '1px solid #F1EFE8' }}
-                  >
-                    <div className="w-2 h-2 rounded-full" style={{ background: sv.dot }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {it.equipamento?.codigo} · {it.contrato?.cliente?.razaoSocial || it.contrato?.numero || '—'}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {it.enderecoEntrega || 'Sem endereço'}
-                      </div>
-                    </div>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style={{ background: sv.bg, color: sv.text }}
-                    >
-                      {sv.label}
-                    </span>
-                  </div>
-                )
-              })}
+          )
+        }
+
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* Coluna Para mobilizar */}
+            <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #FEF3E2' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#FFAF06' }} />
+                  <h2 className="font-semibold text-gray-900 text-sm">Para mobilizar ({mobilizando.length})</h2>
+                </div>
+                <button onClick={() => navigate('/logistica')} className="text-xs font-medium text-gray-600 hover:text-gray-900">
+                  Logística →
+                </button>
+              </div>
+              {mobilizando.length === 0 ? (
+                <div className="text-xs text-gray-400 text-center py-6">Nenhuma caçamba pra mobilizar</div>
+              ) : (
+                <div className="space-y-2">{mobilizando.map(renderCard)}</div>
+              )}
+            </div>
+
+            {/* Coluna Para desmobilizar */}
+            <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #FDEEEE' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#8B0000' }} />
+                  <h2 className="font-semibold text-gray-900 text-sm">Para desmobilizar ({desmobilizando.length})</h2>
+                </div>
+                <button onClick={() => navigate('/logistica')} className="text-xs font-medium text-gray-600 hover:text-gray-900">
+                  Logística →
+                </button>
+              </div>
+              {desmobilizando.length === 0 ? (
+                <div className="text-xs text-gray-400 text-center py-6">Nenhuma caçamba pra desmobilizar</div>
+              ) : (
+                <div className="space-y-2">{desmobilizando.map(renderCard)}</div>
+              )}
             </div>
           </div>
         )
