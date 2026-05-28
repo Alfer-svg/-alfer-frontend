@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
   Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3
@@ -119,6 +120,23 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
   })
   const [open, setOpen] = useState(initialOpen)
 
+  // Polling de mensagens WhatsApp não lidas pra mostrar badge
+  const [waNaoLidas, setWaNaoLidas] = useState(0)
+  useEffect(() => {
+    let stop = false
+    const fetchCount = () => {
+      api.get('/whatsapp/inbox/nao-lidas-count')
+        .then((r) => { if (!stop) setWaNaoLidas(r.data?.count || 0) })
+        .catch(() => {})
+    }
+    fetchCount()
+    const tick = setInterval(fetchCount, 30000) // 30s
+    // Recarrega quando a aba volta a ficar visível (mais responsivo)
+    const onVis = () => { if (document.visibilityState === 'visible') fetchCount() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { stop = true; clearInterval(tick); document.removeEventListener('visibilitychange', onVis) }
+  }, [])
+
   const handleLogout = () => {
     logout()
     navigate('/login')
@@ -159,25 +177,45 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <span className="flex-1 text-left">{item.label}</span>
+                    {item.label === 'Comercial' && waNaoLidas > 0 && !isOpen && (
+                      <span
+                        className="px-1.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                        style={{ background: '#25D366', color: '#FFFFFF' }}
+                      >
+                        {waNaoLidas > 99 ? '99+' : waNaoLidas}
+                      </span>
+                    )}
                     {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                   </button>
                   {isOpen && (
                     <div className="mt-0.5 ml-2 pl-3 space-y-0.5" style={{ borderLeft: '1px solid #E0DDD8' }}>
-                      {item.children.map((c) => (
-                        <NavLink
-                          key={c.to}
-                          to={c.to}
-                          end
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                              isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                            }`
-                          }
-                          style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
-                        >
-                          {c.label}
-                        </NavLink>
-                      ))}
+                      {item.children.map((c) => {
+                        const isInbox = c.to === '/inbox-whatsapp'
+                        return (
+                          <NavLink
+                            key={c.to}
+                            to={c.to}
+                            end
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                                isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              }`
+                            }
+                            style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
+                          >
+                            <span className="flex-1 truncate">{c.label}</span>
+                            {isInbox && waNaoLidas > 0 && (
+                              <span
+                                className="px-1.5 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                                style={{ background: '#25D366', color: '#FFFFFF' }}
+                                aria-label={`${waNaoLidas} não lidas`}
+                              >
+                                {waNaoLidas > 99 ? '99+' : waNaoLidas}
+                              </span>
+                            )}
+                          </NavLink>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

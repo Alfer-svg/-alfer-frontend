@@ -23,6 +23,7 @@ type Conversa = {
   ultima: string
   inbound: number
   outbound: number
+  naoLidas: number
 }
 
 type Envio = {
@@ -133,9 +134,18 @@ export default function InboxWhatsApp() {
             {conversas.map((c) => (
               <div
                 key={c.telefone}
-                onClick={() => setConversaSel(c)}
+                onClick={() => {
+                  setConversaSel(c)
+                  if ((c.naoLidas || 0) > 0) {
+                    api.post(`/whatsapp/inbox/${encodeURIComponent(c.telefone)}/marcar-lidas`)
+                      .then(() => {
+                        setConversas((prev) => prev.map((x) => x.telefone === c.telefone ? { ...x, naoLidas: 0 } : x))
+                      })
+                      .catch(() => {})
+                  }
+                }}
                 className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition-all"
-                style={{ border: '1px solid #F1EFE8' }}
+                style={{ border: (c.naoLidas || 0) > 0 ? '1px solid #25D366' : '1px solid #F1EFE8' }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#FEF3E2' }}>
@@ -143,16 +153,24 @@ export default function InboxWhatsApp() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 text-sm">{c.telefone}</span>
+                      <span className={`text-sm ${(c.naoLidas || 0) > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{c.telefone}</span>
                       <span className="text-[10px] text-gray-500">
                         {new Date(c.ultima).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-600 truncate mt-0.5">
+                    <div className={`text-xs truncate mt-0.5 ${(c.naoLidas || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
                       {c.mensagens[0]?.conteudo || `[${c.mensagens[0]?.tipo}]`}
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
+                    {(c.naoLidas || 0) > 0 && (
+                      <span
+                        className="px-1.5 min-w-[20px] h-[20px] rounded-full text-[10px] font-bold flex items-center justify-center"
+                        style={{ background: '#25D366', color: '#FFFFFF' }}
+                      >
+                        {c.naoLidas > 99 ? '99+' : c.naoLidas}
+                      </span>
+                    )}
                     <span className="text-[10px] text-gray-500">
                       ↓ {c.inbound} · ↑ {c.outbound}
                     </span>
