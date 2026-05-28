@@ -25,7 +25,7 @@ const SERVICO_MUNCK_LABEL: Record<string, string> = {
   OUTROS: 'Outros',
 }
 
-async function comprimirImagem(file: File, maxLado = 1280, qualidade = 0.75): Promise<Blob> {
+async function comprimirImagem(file: File, maxLado = 1024, qualidade = 0.7): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const r = new FileReader()
     r.onload = () => resolve(r.result as string)

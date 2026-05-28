@@ -5,8 +5,8 @@ export async function comprimirImagem(
   file: File,
   opts: { maxLargura?: number; qualidade?: number; maxBytes?: number } = {},
 ): Promise<string> {
-  const maxLargura = opts.maxLargura ?? 1600
-  const qualidade = opts.qualidade ?? 0.85
+  const maxLargura = opts.maxLargura ?? 1280
+  const qualidade = opts.qualidade ?? 0.7
   const maxBytes = opts.maxBytes ?? 10 * 1024 * 1024 // 10MB original
 
   if (!file.type.startsWith('image/')) {
