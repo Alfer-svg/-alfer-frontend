@@ -1,0 +1,260 @@
+import { useEffect, useState } from 'react'
+import api from '../services/api'
+import {
+  MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw,
+} from 'lucide-react'
+
+type Mensagem = {
+  id: string
+  messageId: string
+  direcao: 'INBOUND' | 'OUTBOUND'
+  telefone: string
+  tipo: string
+  conteudo: string | null
+  optOutDetectado: boolean
+  templateName: string | null
+  receivedAt: string
+}
+
+type Conversa = {
+  telefone: string
+  mensagens: Mensagem[]
+  ultima: string
+  inbound: number
+  outbound: number
+}
+
+type Envio = {
+  id: string
+  nome: string | null
+  telefone: string
+  status: 'PENDENTE' | 'ENVIADO' | 'ENTREGUE' | 'LIDO' | 'RESPONDEU' | 'FALHOU' | 'PULADO'
+  sentAt: string | null
+  deliveredAt: string | null
+  readAt: string | null
+  respondedAt: string | null
+  erro: string | null
+  campanha: { nome: string; templateName: string }
+  createdAt: string
+}
+
+const STATUS_INFO: Record<string, { label: string; color: string; icon: any }> = {
+  PENDENTE:  { label: 'Pendente', color: '#888', icon: Clock },
+  ENVIADO:   { label: 'Enviado', color: '#1E40AF', icon: Check },
+  ENTREGUE:  { label: 'Entregue', color: '#0EA5E9', icon: CheckCheck },
+  LIDO:      { label: 'Lido', color: '#10B981', icon: Eye },
+  RESPONDEU: { label: 'Respondeu', color: '#FFAF06', icon: MessageCircle },
+  FALHOU:    { label: 'Falhou', color: '#DC2626', icon: AlertCircle },
+  PULADO:    { label: 'Pulado', color: '#888', icon: X },
+}
+
+export default function InboxWhatsApp() {
+  const [aba, setAba] = useState<'inbox' | 'envios'>('inbox')
+  const [conversas, setConversas] = useState<Conversa[]>([])
+  const [envios, setEnvios] = useState<Envio[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [conversaSel, setConversaSel] = useState<Conversa | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+
+  const carregar = async () => {
+    setCarregando(true)
+    setErro(null)
+    try {
+      if (aba === 'inbox') {
+        const r = await api.get('/whatsapp/inbox')
+        setConversas(r.data.conversas || [])
+      } else {
+        const r = await api.get('/whatsapp/campanhas-envios')
+        setEnvios(r.data || [])
+      }
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao carregar')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => { carregar() }, [aba])
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="font-display text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <MessageCircle className="w-6 h-6" /> WhatsApp 0800
+        </h1>
+        <button
+          onClick={carregar}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-white"
+          style={{ border: '1px solid #E0DDD8' }}
+        >
+          <RefreshCcw className="w-4 h-4" /> Atualizar
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        {[
+          { key: 'inbox', label: 'Caixa de entrada', icon: ArrowDownLeft },
+          { key: 'envios', label: 'Envios de campanhas', icon: Send },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setAba(t.key as any)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+            style={{
+              background: aba === t.key ? '#1A1C1E' : 'transparent',
+              color: aba === t.key ? 'white' : '#555',
+            }}
+          >
+            <t.icon className="w-3.5 h-3.5" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {erro && (
+        <div className="p-3 mb-3 rounded-lg flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {erro}
+        </div>
+      )}
+
+      {carregando ? (
+        <div className="text-center py-10 text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Carregando...
+        </div>
+      ) : aba === 'inbox' ? (
+        conversas.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>Nenhuma mensagem recebida ainda</p>
+            <p className="text-xs mt-1">As mensagens enviadas e recebidas pelo WhatsApp 0800 (Cloud API) aparecem aqui</p>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {conversas.map((c) => (
+              <div
+                key={c.telefone}
+                onClick={() => setConversaSel(c)}
+                className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition-all"
+                style={{ border: '1px solid #F1EFE8' }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#FEF3E2' }}>
+                    <Phone className="w-4 h-4" style={{ color: '#FFAF06' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm">{c.telefone}</span>
+                      <span className="text-[10px] text-gray-500">
+                        {new Date(c.ultima).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 truncate mt-0.5">
+                      {c.mensagens[0]?.conteudo || `[${c.mensagens[0]?.tipo}]`}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-[10px] text-gray-500">
+                      ↓ {c.inbound} · ↑ {c.outbound}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : envios.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Send className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Nenhum envio de campanha ainda</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #F1EFE8' }}>
+          {envios.map((e, idx) => {
+            const info = STATUS_INFO[e.status] || STATUS_INFO.PENDENTE
+            const Icon = info.icon
+            return (
+              <div
+                key={e.id}
+                className="p-3 flex items-center gap-3 text-sm"
+                style={{ background: idx % 2 === 1 ? '#FBFAF7' : '#fff', borderBottom: '1px solid #F1EFE8' }}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: info.color }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-gray-900">{e.nome || '(sem nome)'}</span>
+                    <span className="text-gray-500">{e.telefone}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: info.color + '20', color: info.color }}>
+                      {info.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    <strong>{e.campanha?.nome}</strong> · template <code>{e.campanha?.templateName}</code>
+                    {e.sentAt && <span> · enviado {new Date(e.sentAt).toLocaleString('pt-BR')}</span>}
+                    {e.respondedAt && <span> · respondeu {new Date(e.respondedAt).toLocaleString('pt-BR')}</span>}
+                  </div>
+                  {e.erro && <div className="text-xs text-red-600 mt-0.5">⚠ {e.erro}</div>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {conversaSel && (
+        <ConversaModal conversa={conversaSel} onClose={() => setConversaSel(null)} />
+      )}
+    </div>
+  )
+}
+
+function ConversaModal({ conversa, onClose }: { conversa: Conversa; onClose: () => void }) {
+  // Ordena cronologicamente (mais antiga em cima)
+  const ordenadas = [...conversa.mensagens].sort(
+    (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
+  )
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#F1EFE8' }}>
+          <div>
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <Phone className="w-4 h-4" /> {conversa.telefone}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">{conversa.mensagens.length} mensagens · ↓ {conversa.inbound} recebidas · ↑ {conversa.outbound} enviadas</p>
+          </div>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ background: '#E5DDD5' }}>
+          {ordenadas.map((m) => {
+            const ehMinha = m.direcao === 'OUTBOUND'
+            return (
+              <div key={m.id} className={`flex ${ehMinha ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className="rounded-lg p-2 max-w-[75%] shadow-sm"
+                  style={{ background: ehMinha ? '#DCF8C6' : 'white' }}
+                >
+                  {m.templateName && (
+                    <div className="text-[10px] font-semibold text-blue-600 mb-1">
+                      📋 Template: {m.templateName}
+                    </div>
+                  )}
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                    {m.conteudo || `[${m.tipo}]`}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1 text-right">
+                    {new Date(m.receivedAt).toLocaleString('pt-BR')}
+                  </div>
+                  {m.optOutDetectado && (
+                    <div className="text-[10px] text-red-600 font-semibold mt-1">
+                      ⚠ Opt-out detectado
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
