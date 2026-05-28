@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import MapaEquipamentos from '../components/MapaEquipamentos'
+import { salmoDoDia } from '../data/salmos'
 
 interface DashData {
   frota: { total: number; locados: number; manutencao: number; livres: number }
@@ -111,8 +112,18 @@ export default function Dashboard() {
     ? (alertas.contratosUrgentes?.length || 0) + (alertas.inadimplentes?.length || 0) + (alertas.cacambasChecas?.length || 0) + (alertas.faturasNaoConfirmadas?.length || 0)
     : 0
 
+  const salmo = salmoDoDia()
+
   return (
     <div className="p-8 animate-fade-in">
+      {/* Salmo do dia — discreto no topo */}
+      <div className="text-center mb-6 -mt-2">
+        <p className="text-[11px] text-gray-400 italic font-light leading-relaxed">
+          “{salmo.texto}”
+          <span className="ml-2 text-gray-300 not-italic">— {salmo.ref}</span>
+        </p>
+      </div>
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold text-gray-900">
