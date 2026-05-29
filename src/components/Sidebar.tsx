@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import api from '../services/api'
+import { useInboxAlert } from '../context/InboxAlertContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
   Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3
@@ -120,22 +120,8 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
   })
   const [open, setOpen] = useState(initialOpen)
 
-  // Polling de mensagens WhatsApp não lidas pra mostrar badge
-  const [waNaoLidas, setWaNaoLidas] = useState(0)
-  useEffect(() => {
-    let stop = false
-    const fetchCount = () => {
-      api.get('/whatsapp/inbox/nao-lidas-count')
-        .then((r) => { if (!stop) setWaNaoLidas(r.data?.count || 0) })
-        .catch(() => {})
-    }
-    fetchCount()
-    const tick = setInterval(fetchCount, 30000) // 30s
-    // Recarrega quando a aba volta a ficar visível (mais responsivo)
-    const onVis = () => { if (document.visibilityState === 'visible') fetchCount() }
-    document.addEventListener('visibilitychange', onVis)
-    return () => { stop = true; clearInterval(tick); document.removeEventListener('visibilitychange', onVis) }
-  }, [])
+  // Badge de mensagens WhatsApp não lidas (contador centralizado no InboxAlertContext)
+  const { naoLidas: waNaoLidas } = useInboxAlert()
 
   const handleLogout = () => {
     logout()
