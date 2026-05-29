@@ -65,8 +65,9 @@ export default function Dashboard() {
       setData(dashRes.data)
       setAlertas(alertRes.data)
       setEquipamentosLoc(equipRes.data.filter((e: any) => e.latitude != null && e.longitude != null))
-      // Conta equipamentos mobilizados (locados) por tipo
+      // Conta equipamentos mobilizados (locados) por tipo — inclui todos os tipos, mesmo com 0
       const cont: Record<string, number> = {}
+      for (const tipo of Object.keys(ICONE_TIPO)) cont[tipo] = 0
       for (const e of equipRes.data as any[]) cont[e.tipo] = (cont[e.tipo] || 0) + 1
       setContagemTipos(
         Object.entries(cont)
@@ -260,7 +261,7 @@ export default function Dashboard() {
                   key={tipo}
                   title={`${qtd} ${LABEL_TIPO[tipo] || tipo} mobilizado(s)`}
                   className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full"
-                  style={{ background: '#FAF6EF', border: '1px solid #E0DDD8' }}
+                  style={{ background: '#FAF6EF', border: '1px solid #E0DDD8', opacity: qtd === 0 ? 0.45 : 1 }}
                 >
                   <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden" style={{ border: '1px solid #E0DDD8' }}>
                     <img
