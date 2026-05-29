@@ -275,6 +275,7 @@ function ConversaModal({
   const [erroEnvio, setErroEnvio] = useState('')
   const [enviandoCrm, setEnviandoCrm] = useState(false)
   const [rascunho, setRascunho] = useState<Rascunho | null>(null)
+  const [rascunhoTexto, setRascunhoTexto] = useState('')
   const [aprovandoRascunho, setAprovandoRascunho] = useState(false)
   const navigate = useNavigate()
 
@@ -282,18 +283,24 @@ function ConversaModal({
   useEffect(() => {
     let vivo = true
     api.get('/agente/rascunhos', { params: { telefone: conversa.telefone } })
-      .then((r) => { if (vivo) setRascunho((r.data || [])[0] || null) })
+      .then((r) => {
+        if (!vivo) return
+        const rasc = (r.data || [])[0] || null
+        setRascunho(rasc)
+        setRascunhoTexto(rasc?.rascunho || '')
+      })
       .catch(() => {})
     return () => { vivo = false }
   }, [conversa.telefone])
 
-  // Aprova o rascunho da IA (texto possivelmente já editado no composer) e envia
+  // Aprova o rascunho da IA (texto editável direto no card) e envia
   const aprovarRascunho = async () => {
     if (!rascunho || aprovandoRascunho) return
+    const textoFinal = rascunhoTexto.trim()
+    if (!textoFinal) return
     setAprovandoRascunho(true)
     setErroEnvio('')
     try {
-      const textoFinal = texto.trim() || rascunho.rascunho
       const r = await api.post(`/agente/rascunhos/${rascunho.id}/aprovar`, { texto: textoFinal })
       onMensagemEnviada({
         id: r.data.messageId, messageId: r.data.messageId, direcao: 'OUTBOUND',
@@ -301,7 +308,7 @@ function ConversaModal({
         optOutDetectado: false, templateName: null, receivedAt: new Date().toISOString(),
       })
       setRascunho(null)
-      setTexto('')
+      setRascunhoTexto('')
     } catch (err: any) {
       setErroEnvio(err.response?.data?.message || 'Falha ao enviar rascunho')
     } finally {
@@ -309,16 +316,11 @@ function ConversaModal({
     }
   }
 
-  const editarRascunho = () => {
-    if (!rascunho) return
-    setTexto(rascunho.rascunho)
-    setRascunho(null)
-  }
-
   const descartarRascunho = async () => {
     if (!rascunho) return
     const id = rascunho.id
     setRascunho(null)
+    setRascunhoTexto('')
     api.post(`/agente/rascunhos/${id}/descartar`).catch(() => {})
   }
 
@@ -426,41 +428,44 @@ function ConversaModal({
           })}
         </div>
 
-        {/* Rascunho sugerido pelo agente de IA */}
+        {/* Rascunho sugerido pelo agente de IA — editável direto no card */}
         {rascunho && janelaAberta && (
           <div className="px-3 pt-3" style={{ background: '#FEF3E2' }}>
             <div className="rounded-xl p-3" style={{ border: '1px solid #FFAF06', background: '#fff' }}>
-              <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles className="w-3.5 h-3.5" style={{ color: '#FFAF06' }} />
                 <span className="text-xs font-semibold text-gray-800">
-                  {rascunho.personaNome} sugere uma resposta
+                  {rascunho.personaNome} sugere — revise e edite à vontade
                 </span>
-                <span className="text-[10px] text-gray-400 ml-auto">rascunho · revise antes de enviar</span>
+                <Pencil className="w-3 h-3 text-gray-400 ml-auto" />
               </div>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{rascunho.rascunho}</p>
-              <div className="flex items-center gap-2">
+              <textarea
+                value={rascunhoTexto}
+                onChange={(e) => setRascunhoTexto(e.target.value)}
+                rows={Math.min(12, Math.max(4, rascunhoTexto.split('\n').length + 1))}
+                placeholder="Resposta sugerida…"
+                className="w-full px-3 py-2 rounded-lg text-sm text-gray-800 outline-none resize-y leading-relaxed"
+                style={{ border: '1px solid #E0DDD8', background: '#FFFDF8', minHeight: '96px' }}
+                disabled={aprovandoRascunho}
+              />
+              <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={aprovarRascunho}
-                  disabled={aprovandoRascunho}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                  disabled={aprovandoRascunho || !rascunhoTexto.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
                   style={{ background: '#25D366' }}
                 >
-                  {aprovandoRascunho ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Aprovar e enviar
-                </button>
-                <button
-                  onClick={editarRascunho}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700"
-                  style={{ background: '#F1EFE8' }}
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Editar
+                  {aprovandoRascunho ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Enviar resposta
                 </button>
                 <button
                   onClick={descartarRascunho}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500"
+                  disabled={aprovandoRascunho}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Descartar
+                  <Trash2 className="w-4 h-4" /> Descartar
                 </button>
+                <span className="text-[11px] text-gray-400 ml-auto">{rascunhoTexto.length} caracteres</span>
               </div>
             </div>
           </div>
