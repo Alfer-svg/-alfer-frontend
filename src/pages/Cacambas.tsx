@@ -806,12 +806,17 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 }).format(v)
 
   const fechar = async () => {
-    if (!preview || preview.trocas.length === 0) return
+    const totalItens = (preview?.trocas.length || 0) + (preview?.locacoes?.length || 0)
+    if (!preview || totalItens === 0) return
     if (preview.totalSemValor > 0) {
       setErro(`${preview.totalSemValor} troca(s) sem valor cobrado. Edite o valorTroca na locação e tente de novo.`)
       return
     }
-    if (!confirm(`Gerar 1 fatura única de ${fmtMoeda(preview.total)} (${preview.trocas.length} trocas) pra ${preview.cliente}?`)) return
+    const resumo = [
+      preview.locacoes?.length ? `${preview.locacoes.length} locação(ões)` : '',
+      preview.trocas.length ? `${preview.trocas.length} troca(s)` : '',
+    ].filter(Boolean).join(' + ')
+    if (!confirm(`Gerar 1 fatura única de ${fmtMoeda(preview.total)} (${resumo}) pra ${preview.cliente}?`)) return
     setSalvando(true); setErro('')
     try {
       const r = await api.post('/cacambas/fechamento', { clienteId, dtInicio, dtFim, descricao: descricao || undefined, dtVencimento })
@@ -832,7 +837,7 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
         </h2>
         <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Soma todas as trocas não-faturadas do cliente no período num único lançamento.</p>
+      <p className="text-xs text-gray-500 mb-4">Soma a locação e todas as trocas não-faturadas do cliente no período num único lançamento.</p>
 
       <div className="space-y-3 mb-4">
         <div>
@@ -868,12 +873,15 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
         <div className="bg-gray-50 rounded-xl p-4 mb-4" style={{ border: '1px solid #E0DDD8' }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-900">
-              {preview.trocas.length} troca(s) no período
+              {[
+                (preview.locacoes?.length || 0) > 0 ? `${preview.locacoes.length} locação(ões)` : '',
+                `${preview.trocas.length} troca(s)`,
+              ].filter(Boolean).join(' + ')} no período
             </span>
             <span className="text-lg font-bold text-green-700">{fmtMoeda(preview.total)}</span>
           </div>
-          {preview.trocas.length === 0 ? (
-            <p className="text-sm text-gray-500">Nenhuma troca não-faturada encontrada nesse período pra esse cliente.</p>
+          {preview.trocas.length === 0 && (preview.locacoes?.length || 0) === 0 ? (
+            <p className="text-sm text-gray-500">Nenhuma locação ou troca não-faturada encontrada nesse período pra esse cliente.</p>
           ) : (
             <>
               {preview.totalSemValor > 0 && (
@@ -882,6 +890,16 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
                 </p>
               )}
               <div className="max-h-48 overflow-y-auto space-y-1">
+                {(preview.locacoes || []).map((l: any) => (
+                  <div key={l.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-white">
+                    <span className="text-gray-700">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold mr-1" style={{ background: '#FEF3E2', color: '#CC8C00' }}>LOCAÇÃO</span>
+                      {l.cacambaCodigo}
+                      <span className="text-gray-400 ml-2">{new Date(l.dtEntrega).toLocaleDateString('pt-BR')}</span>
+                    </span>
+                    <span className="font-medium text-gray-900">{fmtMoeda(l.valorLocacao)}</span>
+                  </div>
+                ))}
                 {preview.trocas.map((t: any) => (
                   <div key={t.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-white">
                     <span className="text-gray-700">
@@ -900,7 +918,7 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
         </div>
       )}
 
-      {preview && preview.trocas.length > 0 && (
+      {preview && (preview.trocas.length > 0 || (preview.locacoes?.length || 0) > 0) && (
         <div className="space-y-3 mb-4">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Descrição da fatura (opcional)</label>
@@ -925,7 +943,7 @@ function FechamentoModal({ onClose, onSuccess }: { onClose: () => void; onSucces
         </button>
         <button
           onClick={fechar}
-          disabled={salvando || !preview || preview.trocas.length === 0 || preview.totalSemValor > 0}
+          disabled={salvando || !preview || (preview.trocas.length === 0 && (preview.locacoes?.length || 0) === 0) || preview.totalSemValor > 0}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50"
           style={{ background: salvando ? '#1E7B40' : '#27AE60' }}
         >

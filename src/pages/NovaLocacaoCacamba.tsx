@@ -16,6 +16,7 @@ export default function NovaLocacaoCacamba() {
     dtEntrega: new Date().toISOString().slice(0, 10),
     prazoDias: '7',
     residuoAutorizado: 'CLASSE_A',
+    valorLocacao: '',
     valorTroca: '',
     observacoes: '',
   })
@@ -43,6 +44,7 @@ export default function NovaLocacaoCacamba() {
       await api.post('/cacambas/locacoes', {
         ...form,
         prazoDias: Number(form.prazoDias),
+        valorLocacao: form.valorLocacao ? Number(form.valorLocacao) : null,
         valorTroca: form.valorTroca ? Number(form.valorTroca) : null,
         observacoes: form.observacoes || null,
       })
@@ -130,21 +132,39 @@ export default function NovaLocacaoCacamba() {
 
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-4">Valor cobrado</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Valor por troca (R$)</label>
-            <input
-              value={form.valorTroca}
-              onChange={(e) => set('valorTroca', e.target.value)}
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Ex: 150,00 — usado pra calcular o total no fechamento da conta"
-              className={inputCls}
-              style={inputStyle}
-              onFocus={onFocus}
-              onBlur={onBlur}
-            />
-            <p className="text-xs text-gray-500 mt-1">Cada troca registrada usa esse valor. No "Fechar conta", o total é a soma das trocas no período.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valor da locação (R$)</label>
+              <input
+                value={form.valorLocacao}
+                onChange={(e) => set('valorLocacao', e.target.value)}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 300,00 — cobrado uma vez na entrega"
+                className={inputCls}
+                style={inputStyle}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              />
+              <p className="text-xs text-gray-500 mt-1">Cobrado uma única vez. Entra no fechamento junto com as trocas.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Valor por troca (R$)</label>
+              <input
+                value={form.valorTroca}
+                onChange={(e) => set('valorTroca', e.target.value)}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 150,00 — por troca"
+                className={inputCls}
+                style={inputStyle}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              />
+              <p className="text-xs text-gray-500 mt-1">Cada troca registrada usa esse valor.</p>
+            </div>
           </div>
         </div>
 
