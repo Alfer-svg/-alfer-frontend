@@ -3,8 +3,17 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
   UserPlus, Search, Tag, Phone, Mail, Instagram, X,
-  Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2,
+  Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2, Upload,
 } from 'lucide-react'
+
+// Leva inicial de construtoras mapeadas (RMR + Suape) — formato: Empresa | Telefone | Observação
+const CONSTRUTORAS_MAPEADAS = `Moura Dubeux | (81) 3087-8000 | Pina/Boa Viagem — maior do NE, alto volume de obras
+Pernambuco Construtora | (81) 3125-6464 | Pina — incorporação + obras industriais
+Construtora Carajás | (81) 3228-5555 | Cordeiro — obras na RMR
+HBR Engenharia | (81) 3229-1788 | Prado — construção civil
+Construtora Santo Antônio | (81) 3466-1485 | Boa Viagem — predial
+Boa Vista Construtora e Incorporadora | (81) 3366-1438 | Ilha do Leite — incorporação
+Construtora Sam | (81) 3224-2136 | Recife centro — construção civil`
 
 type StatusLead = 'NOVO' | 'QUALIFICADO' | 'PROPOSTA' | 'CONVERTIDO' | 'PERDIDO'
 type OrigemLead = 'BREVO' | 'MANUAL' | 'SITE' | 'WHATSAPP' | 'INDICACAO' | 'INSTAGRAM' | 'FACEBOOK' | 'GOOGLE' | 'TELEFONE' | 'EMAIL' | 'EVENTO' | 'PASSANTE' | 'OUTRO'
@@ -53,6 +62,7 @@ export default function Leads() {
 
   const [editando, setEditando] = useState<Lead | null>(null)
   const [criando, setCriando] = useState(false)
+  const [importando, setImportando] = useState(false)
 
   const carregar = async () => {
     setCarregando(true)
@@ -119,13 +129,23 @@ export default function Leads() {
         <h1 className="font-display text-2xl font-bold text-gray-900">
           Leads <span className="text-gray-400 font-normal text-base">({resumo?.totalGeral || 0})</span>
         </h1>
-        <button
-          onClick={() => setCriando(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white"
-        >
-          <UserPlus className="w-4 h-4" />
-          Novo Lead
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setImportando(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-900"
+            style={{ background: '#FFAF06' }}
+          >
+            <Upload className="w-4 h-4" />
+            Importar lista
+          </button>
+          <button
+            onClick={() => setCriando(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white"
+          >
+            <UserPlus className="w-4 h-4" />
+            Novo Lead
+          </button>
+        </div>
       </div>
 
       {/* Resumo */}
@@ -310,7 +330,119 @@ export default function Leads() {
         />
       )}
 
+      {/* Modal: importar lista */}
+      {importando && (
+        <ImportarModal
+          onClose={() => setImportando(false)}
+          onDone={(msg) => { setImportando(false); setSucesso(msg); carregar() }}
+        />
+      )}
+
     </div>
+  )
+}
+
+function ImportarModal({ onClose, onDone }: { onClose: () => void; onDone: (msg: string) => void }) {
+  const [texto, setTexto] = useState('')
+  const [tags, setTags] = useState('CONSTRUTORA, CAÇAMBA')
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
+
+  const parsear = () => {
+    const tagsArr = tags.split(',').map((t) => t.trim()).filter(Boolean)
+    return texto
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((linha) => {
+        const [empresa, telefone, observacoes] = linha.split('|').map((p) => p.trim())
+        return {
+          nome: empresa || null,
+          empresa: empresa || null,
+          telefone: telefone || null,
+          observacoes: observacoes || null,
+          tags: tagsArr,
+          origem: 'TELEFONE',
+          status: 'NOVO',
+        }
+      })
+      .filter((l) => l.empresa)
+  }
+
+  const importar = async () => {
+    const leads = parsear()
+    if (leads.length === 0) return setErro('Cole pelo menos uma linha (Empresa | Telefone | Observação).')
+    setLoading(true)
+    setErro('')
+    try {
+      const r = await api.post('/leads/importar', { leads })
+      const { criados, ignorados, erros } = r.data
+      let msg = `${criados} lead(s) importado(s)`
+      if (ignorados) msg += `, ${ignorados} já existia(m)`
+      if (erros?.length) msg += `, ${erros.length} com erro`
+      onDone(msg)
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao importar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <h2 className="font-display text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+        <Upload className="w-5 h-5" /> Importar lista de leads
+      </h2>
+      <p className="text-xs text-gray-500 mb-3">
+        Uma por linha no formato <code className="bg-gray-100 px-1 rounded">Empresa | Telefone | Observação</code>.
+        Quem já existe (lead ou cliente) é ignorado automaticamente.
+      </p>
+
+      <div className="mb-3">
+        <button
+          type="button"
+          onClick={() => setTexto(CONSTRUTORAS_MAPEADAS)}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+          style={{ background: '#FEF3E2', color: '#7B5B0F' }}
+        >
+          Carregar construtoras mapeadas (RMR + Suape)
+        </button>
+      </div>
+
+      <textarea
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        rows={10}
+        placeholder={'Construtora X | (81) 99999-9999 | Boa Viagem\nConstrutora Y | (81) 3333-3333 | Suape'}
+        className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none font-mono"
+        style={{ border: '1px solid #E0DDD8' }}
+      />
+
+      <div className="mt-3">
+        <label className="block text-xs font-bold text-gray-600 mb-1">Tags (aplicadas a todos)</label>
+        <input
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
+          style={{ border: '1px solid #E0DDD8' }}
+        />
+      </div>
+
+      {erro && <div className="mt-3 p-2 rounded-lg text-xs text-red-700 bg-red-50 border border-red-200">{erro}</div>}
+
+      <div className="flex gap-2 pt-4">
+        <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg font-medium bg-gray-100 text-gray-700">Cancelar</button>
+        <button
+          onClick={importar}
+          disabled={loading}
+          className="flex-1 px-4 py-2 rounded-lg font-bold text-gray-900 disabled:opacity-50"
+          style={{ background: '#FFAF06' }}
+        >
+          {loading && <Loader2 className="w-4 h-4 animate-spin inline mr-2" />}
+          Importar
+        </button>
+      </div>
+    </Modal>
   )
 }
 

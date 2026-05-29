@@ -4,7 +4,7 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
   Megaphone, Plus, Play, Pause, X, AlertCircle, CheckCircle2, RefreshCcw,
-  Send, Clock, Users, Trash2, Loader2, MessageSquare,
+  Send, Clock, Users, Trash2, Loader2, MessageSquare, Mail,
 } from 'lucide-react'
 
 type StatusCampanha = 'RASCUNHO' | 'AGENDADA' | 'ENVIANDO' | 'CONCLUIDA' | 'PAUSADA' | 'CANCELADA'
@@ -86,13 +86,22 @@ export default function Campanhas() {
         <h1 className="font-display text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Megaphone className="w-6 h-6" /> Campanhas WhatsApp
         </h1>
-        <button
-          onClick={() => setCriando(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-          style={{ background: '#FFAF06', color: '#7B5B0F' }}
-        >
-          <Plus className="w-4 h-4" /> Nova Campanha
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/campanhas/email')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-700"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <Mail className="w-4 h-4" /> Campanha de E-mail
+          </button>
+          <button
+            onClick={() => setCriando(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+            style={{ background: '#FFAF06', color: '#7B5B0F' }}
+          >
+            <Plus className="w-4 h-4" /> Nova Campanha
+          </button>
+        </div>
       </div>
 
       {erro && (
