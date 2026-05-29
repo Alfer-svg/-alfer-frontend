@@ -12,6 +12,11 @@ const tiposEquipamento = [
   { v: 'CAMINHAO_CAVALO_MECANICO', l: 'Caminhão Cavalo Mecânico' },
 ]
 
+// Lista fixa de tipos de resíduo + "Outro" (texto livre) — caçambas.
+const TIPOS_RESIDUO = ['Metralha / RCC', 'Poda / vegetação', 'Escavação / terra', 'Concreto', 'Misto', 'Volumoso', 'Outro']
+
+type CacambaDetalhe = { tipoResiduo?: string; valorPorTonelada?: string; quantidadeToneladas?: string }
+
 export default function NovoContrato() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -20,6 +25,8 @@ export default function NovoContrato() {
   const [carregandoClientes, setCarregandoClientes] = useState(true)
   const [equipamentosDisp, setEquipamentosDisp] = useState<any[]>([])
   const [equipamentosSel, setEquipamentosSel] = useState<string[]>([])
+  // Detalhes de caçamba por equipamento (resíduo + cobrança por tonelada).
+  const [cacambaDet, setCacambaDet] = useState<Record<string, CacambaDetalhe>>({})
   const [form, setForm] = useState({
     clienteId: '',
     tipoModelo: 'CONTAINER_SECO',
@@ -59,6 +66,9 @@ export default function NovoContrato() {
   }
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }))
+  const ehCacamba = form.tipoModelo === 'CACAMBA_ESTACIONARIA' || form.tipoModelo === 'CACAMBA'
+  const setCacamba = (id: string, campo: keyof CacambaDetalhe, v: string) =>
+    setCacambaDet((cur) => ({ ...cur, [id]: { ...cur[id], [campo]: v } }))
 
   const calcDuracao = () => {
     if (!form.dtInicio || !form.dtFim) return null
@@ -101,7 +111,22 @@ export default function NovoContrato() {
       }
       if (form.segundoAlertaDias) payload.segundoAlertaDias = Number(form.segundoAlertaDias)
       if (form.multaRescisaoPct) payload.multaRescisaoPct = Number(form.multaRescisaoPct)
-      if (equipamentosSel.length) payload.equipamentosIds = equipamentosSel
+      if (equipamentosSel.length) {
+        if (ehCacamba) {
+          // Caçamba: envia detalhes (resíduo + cobrança por tonelada) por equipamento.
+          payload.equipamentos = equipamentosSel.map((eid) => {
+            const d = cacambaDet[eid] || {}
+            return {
+              equipamentoId: eid,
+              tipoResiduo: d.tipoResiduo?.trim() || null,
+              valorPorTonelada: d.valorPorTonelada && Number(d.valorPorTonelada) > 0 ? Number(d.valorPorTonelada) : null,
+              quantidadeToneladas: d.quantidadeToneladas && Number(d.quantidadeToneladas) > 0 ? Number(d.quantidadeToneladas) : null,
+            }
+          })
+        } else {
+          payload.equipamentosIds = equipamentosSel
+        }
+      }
 
       const r = await api.post('/contratos', payload)
       navigate('/contratos', { state: { novoId: r.data?.id } })
@@ -211,24 +236,83 @@ export default function NovoContrato() {
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {equipamentosDisp.map((eq) => {
                 const sel = equipamentosSel.includes(eq.id)
+                const d = cacambaDet[eq.id] || {}
+                const ehListaResiduo = TIPOS_RESIDUO.includes(d.tipoResiduo || '')
+                const ehOutroResiduo = !!d.tipoResiduo && !ehListaResiduo
+                const subtotalTon = (Number(d.valorPorTonelada) || 0) * (Number(d.quantidadeToneladas) || 0)
                 return (
-                  <button
-                    key={eq.id}
-                    type="button"
-                    onClick={() => toggleEquip(eq.id)}
-                    className="w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all"
-                    style={{
-                      background: sel ? '#FFF8E6' : '#F9F7F4',
-                      border: sel ? '2px solid #FFAF06' : '2px solid transparent',
-                    }}
-                  >
-                    <Package className="w-4 h-4" style={{ color: sel ? '#FFAF06' : '#888' }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">{eq.codigo} — {eq.modelo}</div>
-                      <div className="text-xs text-gray-500">{eq.capacidade} • Ano {eq.ano}</div>
-                    </div>
-                    <input type="checkbox" checked={sel} readOnly className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
-                  </button>
+                  <div key={eq.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleEquip(eq.id)}
+                      className="w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all"
+                      style={{
+                        background: sel ? '#FFF8E6' : '#F9F7F4',
+                        border: sel ? '2px solid #FFAF06' : '2px solid transparent',
+                      }}
+                    >
+                      <Package className="w-4 h-4" style={{ color: sel ? '#FFAF06' : '#888' }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">{eq.codigo} — {eq.modelo}</div>
+                        <div className="text-xs text-gray-500">{eq.capacidade} • Ano {eq.ano}</div>
+                      </div>
+                      <input type="checkbox" checked={sel} readOnly className="w-4 h-4" style={{ accentColor: '#FFAF06' }} />
+                    </button>
+                    {/* Detalhes de caçamba — só quando selecionado e tipo é caçamba */}
+                    {sel && ehCacamba && (
+                      <div className="mt-1 mb-1 ml-7 p-3 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-2" style={{ background: '#FEF3E2', border: '1px solid #FFD580' }}>
+                        <div>
+                          <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Tipo de resíduo</label>
+                          <select
+                            value={ehOutroResiduo ? 'Outro' : (d.tipoResiduo || '')}
+                            onChange={(ev) => setCacamba(eq.id, 'tipoResiduo', ev.target.value === 'Outro' ? '' : ev.target.value)}
+                            className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white"
+                            style={{ border: '1px solid #FFD580' }}
+                          >
+                            <option value="">Selecione</option>
+                            {TIPOS_RESIDUO.map((t) => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          {ehOutroResiduo && (
+                            <input
+                              type="text"
+                              value={d.tipoResiduo || ''}
+                              onChange={(ev) => setCacamba(eq.id, 'tipoResiduo', ev.target.value)}
+                              placeholder="Descreva o resíduo"
+                              className="w-full mt-1 px-2 py-1.5 rounded-lg text-sm outline-none bg-white"
+                              style={{ border: '1px solid #FFD580' }}
+                            />
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Valor por tonelada (R$)</label>
+                          <input
+                            type="number" step="0.01" min="0"
+                            value={d.valorPorTonelada || ''}
+                            onChange={(ev) => setCacamba(eq.id, 'valorPorTonelada', ev.target.value)}
+                            placeholder="0,00"
+                            className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white text-right"
+                            style={{ border: '1px solid #FFD580' }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Quantidade (toneladas)</label>
+                          <input
+                            type="number" step="0.01" min="0"
+                            value={d.quantidadeToneladas || ''}
+                            onChange={(ev) => setCacamba(eq.id, 'quantidadeToneladas', ev.target.value)}
+                            placeholder="0,00"
+                            className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white text-right"
+                            style={{ border: '1px solid #FFD580' }}
+                          />
+                        </div>
+                        {subtotalTon > 0 && (
+                          <div className="sm:col-span-3 text-xs text-right" style={{ color: '#633806' }}>
+                            Subtotal por tonelada: <strong>R$ {subtotalTon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

@@ -6,6 +6,11 @@ import { ArrowLeft, Loader2, AlertCircle, Plus, Trash2, FileCheck, X, MapPin, Se
 import { buscarCep, formatarCep, limparCep } from '../utils/cep'
 import { buscarCnpj, limparCnpj, formatarCnpj } from '../utils/cnpj'
 
+// Tipos de equipamento que cobram por resíduo/tonelada (caçambas).
+const TIPOS_CACAMBA = ['CACAMBA', 'CACAMBA_ESTACIONARIA']
+// Lista fixa de tipos de resíduo + "Outro" (texto livre).
+const TIPOS_RESIDUO = ['Metralha / RCC', 'Poda / vegetação', 'Escavação / terra', 'Concreto', 'Misto', 'Volumoso', 'Outro']
+
 export default function NovoOrcamento() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -18,7 +23,7 @@ export default function NovoOrcamento() {
   const [novoClienteModal, setNovoClienteModal] = useState(false)
   // Lista de equipamentos vinculados ao orçamento (M2M, com valor por item).
   // O campo `equipamentoId` do form continua existindo só pra compat.
-  const [equipamentosForm, setEquipamentosForm] = useState<{ equipamentoId: string; valor: string }[]>([])
+  const [equipamentosForm, setEquipamentosForm] = useState<{ equipamentoId: string; valor: string; tipoResiduo?: string; valorPorTonelada?: string; quantidadeToneladas?: string }[]>([])
   // Equipamento selecionado no dropdown (pré-adição). Botão "+" adiciona à lista.
   // (equipParaAdicionar removido — agora EquipamentoDropdown gerencia interno)
   const equipamentoIds = equipamentosForm.map((e) => e.equipamentoId) // helper
@@ -190,11 +195,14 @@ export default function NovoOrcamento() {
         setCondicoes(Array.isArray(o.condicoes) && o.condicoes.length ? o.condicoes : [''])
         // Carrega equipamentos vinculados (M2M) com valor por item — fallback pro
         // equipamentoId legado se a M2M estiver vazia.
-        const itens: { equipamentoId: string; valor: string }[] =
+        const itens: { equipamentoId: string; valor: string; tipoResiduo?: string; valorPorTonelada?: string; quantidadeToneladas?: string }[] =
           Array.isArray(o.equipamentos) && o.equipamentos.length
             ? o.equipamentos.map((oe: any) => ({
                 equipamentoId: oe.equipamentoId || oe.equipamento?.id,
                 valor: oe.valor != null ? String(Number(oe.valor)) : '',
+                tipoResiduo: oe.tipoResiduo || '',
+                valorPorTonelada: oe.valorPorTonelada != null ? String(Number(oe.valorPorTonelada)) : '',
+                quantidadeToneladas: oe.quantidadeToneladas != null ? String(Number(oe.quantidadeToneladas)) : '',
               })).filter((x: any) => x.equipamentoId)
             : (o.equipamentoId ? [{ equipamentoId: o.equipamentoId, valor: '' }] : [])
         setEquipamentosForm(itens)
@@ -219,8 +227,15 @@ export default function NovoOrcamento() {
 
   // Se há equipamentos com valor preenchido, o "Valor" base do orçamento
   // vira a soma deles automaticamente (não precisa o usuário digitar).
-  const somaEquipamentos = equipamentosForm.reduce((s, e) => s + (Number(e.valor) || 0), 0)
-  const temValorPorEquipamento = equipamentosForm.some((e) => e.valor && Number(e.valor) > 0)
+  // Total de um equipamento = valor fixo + (valor/ton × qtd toneladas) — o
+  // segundo termo cobre caçambas cobradas por peso de resíduo.
+  const totalEquipForm = (e: { valor?: string; valorPorTonelada?: string; quantidadeToneladas?: string }) => {
+    const fixo = Number(e.valor) || 0
+    const porTon = (Number(e.valorPorTonelada) || 0) * (Number(e.quantidadeToneladas) || 0)
+    return fixo + porTon
+  }
+  const somaEquipamentos = equipamentosForm.reduce((s, e) => s + totalEquipForm(e), 0)
+  const temValorPorEquipamento = equipamentosForm.some((e) => (e.valor && Number(e.valor) > 0) || (e.valorPorTonelada && Number(e.valorPorTonelada) > 0))
   const valor = temValorPorEquipamento ? somaEquipamentos : Number(form.valor || 0)
   const desconto = Number(form.desconto || 0)
   const frete = Number(form.frete || 0)
@@ -265,6 +280,9 @@ export default function NovoOrcamento() {
         equipamentos: equipamentosForm.map((e) => ({
           equipamentoId: e.equipamentoId,
           valor: e.valor && Number(e.valor) > 0 ? Number(e.valor) : null,
+          tipoResiduo: e.tipoResiduo?.trim() || null,
+          valorPorTonelada: e.valorPorTonelada && Number(e.valorPorTonelada) > 0 ? Number(e.valorPorTonelada) : null,
+          quantidadeToneladas: e.quantidadeToneladas && Number(e.quantidadeToneladas) > 0 ? Number(e.quantidadeToneladas) : null,
         })),
         equipamentoId: equipamentosForm[0]?.equipamentoId || null,
         descricao: form.descricao || null,
@@ -356,51 +374,132 @@ export default function NovoOrcamento() {
                     return (
                       <div
                         key={item.equipamentoId}
-                        className="flex items-center gap-2 p-3 rounded-xl"
+                        className="p-3 rounded-xl"
                         style={{ background: '#FEF3E2', border: '1px solid #FFD580' }}
                       >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium" style={{ color: '#633806' }}>
-                            {e ? `${e.codigo} — ${e.modelo}` : item.equipamentoId}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium" style={{ color: '#633806' }}>
+                              {e ? `${e.codigo} — ${e.modelo}` : item.equipamentoId}
+                            </div>
+                            {e?.capacidade && (
+                              <div className="text-xs" style={{ color: '#8B5A1F' }}>{e.capacidade}</div>
+                            )}
                           </div>
-                          {e?.capacidade && (
-                            <div className="text-xs" style={{ color: '#8B5A1F' }}>{e.capacidade}</div>
-                          )}
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium" style={{ color: '#633806' }}>R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.valor}
+                              onChange={(ev) => {
+                                const v = ev.target.value
+                                setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, valor: v } : it))
+                              }}
+                              placeholder="0,00"
+                              className="w-28 px-2 py-1.5 rounded-lg text-sm outline-none focus:ring-2 text-right"
+                              style={{ border: '1px solid #FFD580', background: '#fff', ['--tw-ring-color' as any]: '#FFAF06' }}
+                            />
+                            <span className="text-xs" style={{ color: '#633806' }}>/{form.periodicidade.toLowerCase()}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEquipamentosForm((cur) => cur.filter((_, i) => i !== idx))}
+                            className="ml-2 p-1 hover:opacity-70"
+                            title="Remover"
+                            style={{ color: '#633806' }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-medium" style={{ color: '#633806' }}>R$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={item.valor}
-                            onChange={(ev) => {
-                              const v = ev.target.value
-                              setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, valor: v } : it))
-                            }}
-                            placeholder="0,00"
-                            className="w-28 px-2 py-1.5 rounded-lg text-sm outline-none focus:ring-2 text-right"
-                            style={{ border: '1px solid #FFD580', background: '#fff', ['--tw-ring-color' as any]: '#FFAF06' }}
-                          />
-                          <span className="text-xs" style={{ color: '#633806' }}>/{form.periodicidade.toLowerCase()}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setEquipamentosForm((cur) => cur.filter((_, i) => i !== idx))}
-                          className="ml-2 p-1 hover:opacity-70"
-                          title="Remover"
-                          style={{ color: '#633806' }}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        {/* Campos de caçamba: resíduo + cobrança por tonelada */}
+                        {e && TIPOS_CACAMBA.includes(e.tipo) && (
+                          <div className="mt-3 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2" style={{ borderTop: '1px dashed #FFD580' }}>
+                            <div>
+                              <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Tipo de resíduo</label>
+                              {(() => {
+                                const ehLista = TIPOS_RESIDUO.includes(item.tipoResiduo || '')
+                                const ehOutro = !!item.tipoResiduo && !ehLista
+                                return (
+                                  <>
+                                    <select
+                                      value={ehOutro ? 'Outro' : (item.tipoResiduo || '')}
+                                      onChange={(ev) => {
+                                        const v = ev.target.value
+                                        setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, tipoResiduo: v === 'Outro' ? '' : v } : it))
+                                      }}
+                                      className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white"
+                                      style={{ border: '1px solid #FFD580' }}
+                                    >
+                                      <option value="">Selecione</option>
+                                      {TIPOS_RESIDUO.map((t) => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                    {(ehOutro || (item.tipoResiduo === '' && false)) && (
+                                      <input
+                                        type="text"
+                                        value={item.tipoResiduo || ''}
+                                        onChange={(ev) => {
+                                          const v = ev.target.value
+                                          setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, tipoResiduo: v } : it))
+                                        }}
+                                        placeholder="Descreva o resíduo"
+                                        className="w-full mt-1 px-2 py-1.5 rounded-lg text-sm outline-none bg-white"
+                                        style={{ border: '1px solid #FFD580' }}
+                                      />
+                                    )}
+                                  </>
+                                )
+                              })()}
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Valor por tonelada (R$)</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={item.valorPorTonelada || ''}
+                                onChange={(ev) => {
+                                  const v = ev.target.value
+                                  setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, valorPorTonelada: v } : it))
+                                }}
+                                placeholder="0,00"
+                                className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white text-right"
+                                style={{ border: '1px solid #FFD580' }}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-medium mb-1" style={{ color: '#633806' }}>Quantidade (toneladas)</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={item.quantidadeToneladas || ''}
+                                onChange={(ev) => {
+                                  const v = ev.target.value
+                                  setEquipamentosForm((cur) => cur.map((it, i) => i === idx ? { ...it, quantidadeToneladas: v } : it))
+                                }}
+                                placeholder="0,00"
+                                className="w-full px-2 py-1.5 rounded-lg text-sm outline-none bg-white text-right"
+                                style={{ border: '1px solid #FFD580' }}
+                              />
+                            </div>
+                            {(Number(item.valorPorTonelada) > 0 && Number(item.quantidadeToneladas) > 0) && (
+                              <div className="sm:col-span-3 text-xs text-right" style={{ color: '#633806' }}>
+                                Subtotal por tonelada: <strong>R$ {((Number(item.valorPorTonelada) || 0) * (Number(item.quantidadeToneladas) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                {Number(item.valor) > 0 && <> + fixo R$ {(Number(item.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} = <strong>R$ {totalEquipForm(item).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></>}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
-                  {equipamentosForm.some((e) => e.valor && Number(e.valor) > 0) && (
+                  {temValorPorEquipamento && (
                     <div className="flex justify-end items-baseline gap-2 px-3 text-sm">
                       <span className="text-gray-500">Total dos equipamentos:</span>
                       <span className="font-bold text-gray-900">
-                        R$ {equipamentosForm.reduce((s, e) => s + (Number(e.valor) || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {somaEquipamentos.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
