@@ -90,6 +90,18 @@ export default function InboxWhatsApp() {
 
   useEffect(() => { carregar() }, [aba])
 
+  // Exclui a conversa inteira de um telefone (só do nosso banco).
+  const excluirConversa = async (telefone: string) => {
+    if (!confirm(`Excluir toda a conversa com ${telefone}?\n\nIsso remove as mensagens só daqui do sistema — não apaga no WhatsApp do cliente.`)) return
+    try {
+      await api.delete(`/whatsapp/inbox/${encodeURIComponent(telefone)}`)
+      setConversas((prev) => prev.filter((x) => x.telefone !== telefone))
+      if (conversaSel?.telefone === telefone) setConversaSel(null)
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Falha ao excluir conversa')
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -187,6 +199,13 @@ export default function InboxWhatsApp() {
                       ↓ {c.inbound} · ↑ {c.outbound}
                     </span>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); excluirConversa(c.telefone) }}
+                    title="Excluir conversa"
+                    className="flex-shrink-0 p-2 rounded-lg text-gray-300 hover:text-red-600 hover:bg-red-50 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -234,6 +253,21 @@ export default function InboxWhatsApp() {
         <ConversaModal
           conversa={conversaSel}
           onClose={() => setConversaSel(null)}
+          onExcluirConversa={() => excluirConversa(conversaSel.telefone)}
+          onMensagemExcluida={(id) => {
+            // Remove a mensagem da conversa aberta e da lista; se zerar, fecha o modal.
+            setConversaSel((cur) => {
+              if (!cur) return cur
+              const restantes = cur.mensagens.filter((m) => m.id !== id)
+              if (restantes.length === 0) return null
+              return { ...cur, mensagens: restantes }
+            })
+            setConversas((prev) => prev
+              .map((x) => x.telefone === conversaSel.telefone
+                ? { ...x, mensagens: x.mensagens.filter((m) => m.id !== id) }
+                : x)
+              .filter((x) => x.mensagens.length > 0))
+          }}
           onMensagemEnviada={(novaMsg) => {
             // Atualiza a conversa local e a lista
             setConversaSel((cur) => cur ? { ...cur, mensagens: [novaMsg, ...cur.mensagens], outbound: cur.outbound + 1, ultima: novaMsg.receivedAt } : cur)
@@ -248,12 +282,30 @@ export default function InboxWhatsApp() {
 }
 
 function ConversaModal({
-  conversa, onClose, onMensagemEnviada,
+  conversa, onClose, onMensagemEnviada, onMensagemExcluida, onExcluirConversa,
 }: {
   conversa: Conversa
   onClose: () => void
   onMensagemEnviada: (m: Mensagem) => void
+  onMensagemExcluida: (id: string) => void
+  onExcluirConversa: () => void
 }) {
+  const [excluindoId, setExcluindoId] = useState<string | null>(null)
+
+  // Exclui UMA mensagem (só do nosso banco).
+  const excluirMensagem = async (id: string) => {
+    if (excluindoId) return
+    if (!confirm('Excluir esta mensagem?\n\nRemove só daqui do sistema — não apaga no WhatsApp do cliente.')) return
+    setExcluindoId(id)
+    try {
+      await api.delete(`/whatsapp/inbox/mensagem/${id}`)
+      onMensagemExcluida(id)
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Falha ao excluir mensagem')
+    } finally {
+      setExcluindoId(null)
+    }
+  }
   // Ordena cronologicamente (mais antiga em cima)
   const ordenadas = [...conversa.mensagens].sort(
     (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
@@ -394,6 +446,13 @@ function ConversaModal({
               {enviandoCrm ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
               Enviar pro CRM
             </button>
+            <button
+              onClick={onExcluirConversa}
+              title="Excluir conversa inteira"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
             <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
           </div>
         </div>
@@ -401,7 +460,17 @@ function ConversaModal({
           {ordenadas.map((m) => {
             const ehMinha = m.direcao === 'OUTBOUND'
             return (
-              <div key={m.id} className={`flex ${ehMinha ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} className={`group flex items-center gap-1.5 ${ehMinha ? 'justify-end' : 'justify-start'}`}>
+                {ehMinha && (
+                  <button
+                    onClick={() => excluirMensagem(m.id)}
+                    disabled={excluindoId === m.id}
+                    title="Excluir mensagem"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-red-600 transition-all disabled:opacity-50"
+                  >
+                    {excluindoId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 <div
                   className="rounded-lg p-2 max-w-[75%] shadow-sm"
                   style={{ background: ehMinha ? '#DCF8C6' : 'white' }}
@@ -423,6 +492,16 @@ function ConversaModal({
                     </div>
                   )}
                 </div>
+                {!ehMinha && (
+                  <button
+                    onClick={() => excluirMensagem(m.id)}
+                    disabled={excluindoId === m.id}
+                    title="Excluir mensagem"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-red-600 transition-all disabled:opacity-50"
+                  >
+                    {excluindoId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
               </div>
             )
           })}
