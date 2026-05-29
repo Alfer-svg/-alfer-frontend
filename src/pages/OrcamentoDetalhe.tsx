@@ -68,14 +68,45 @@ export default function OrcamentoDetalhe() {
   const gerarMensagem = (linkPdf?: string) => {
     if (!o) return ''
     const nomeContato = o.cliente?.contatos?.[0]?.nome
+
+    // Desdobramento de valores (igual ao PDF): mensal × meses + taxas únicas.
+    const mensal = Number(o.valor || 0)
+    const desconto = Number(o.desconto || 0)
+    const mensalComDesc = desconto > 0 ? mensal - (mensal * desconto) / 100 : mensal
+    const meses = Math.max(1, Number(o.quantidadeMeses || 1))
+    const frete = Number(o.frete || 0)
+    const mob = Number(o.valorMobilizacao || 0)
+    const desmob = Number(o.valorDesmobilizacao || 0)
+    const totalLocacao = mensalComDesc * meses
+    const total = totalLocacao + frete + mob + desmob
+
+    const unidades: Record<string, [string, string]> = {
+      Mensal: ['mês', 'meses'], Semanal: ['semana', 'semanas'],
+      Quinzenal: ['quinzena', 'quinzenas'], Diário: ['dia', 'dias'],
+      Anual: ['ano', 'anos'],
+    }
+    const ehUnico = o.periodicidade === 'Único'
+    const [uni, uniPlural] = unidades[o.periodicidade] || ['mês', 'meses']
+
+    const linhasValor: (string | false)[] = ehUnico
+      ? [`💰 Valor: *${fmt(total)}*`]
+      : [
+          `💰 Locação: *${fmt(mensalComDesc)}* / ${uni}`,
+          desconto > 0 && `   (com desconto de ${desconto}%)`,
+          meses > 1 && `   × ${meses} ${uniPlural} = ${fmt(totalLocacao)}`,
+          frete > 0 && `🚚 Frete: ${fmt(frete)} (única)`,
+          mob > 0 && `🚚 Mobilização: ${fmt(mob)} (única)`,
+          desmob > 0 && `🔙 Desmobilização: ${fmt(desmob)} (única)`,
+          (meses > 1 || frete > 0 || mob > 0 || desmob > 0) && `💵 *Total do contrato: ${fmt(total)}*`,
+        ]
+
     const linhas = [
       `Olá${nomeContato ? `, ${nomeContato.split(' ')[0]}` : ''}!`,
       '',
       `Segue o orçamento *${o.numero}* da Alfer Equipamentos:`,
       '',
       o.descricao && `📋 ${o.descricao}`,
-      `💰 Valor: *${fmt(Number(o.valorFinal))}* / ${o.periodicidade.toLowerCase()}`,
-      o.desconto && `   (com desconto de ${Number(o.desconto)}%)`,
+      ...linhasValor,
       `💳 Condição: ${condicaoPagamentoLabel(o.condicaoPagamento)}`,
       `🏦 Forma: ${formaPagamentoLabel(o.formaPagamento)}`,
       o.diaVencFatura != null && `📅 Vencimento da fatura: dia ${o.diaVencFatura} de cada mês`,
@@ -350,7 +381,13 @@ export default function OrcamentoDetalhe() {
                 <span className="ml-1 text-green-700">-{Number(o.desconto)}%</span>
               </div>
             )}
-            <div className="text-xs text-gray-500 mt-1">{o.periodicidade}</div>
+            {o.periodicidade === 'Único' ? (
+              <div className="text-xs text-gray-500 mt-1">Valor total</div>
+            ) : (
+              <div className="text-xs text-gray-500 mt-1">
+                Total {Math.max(1, Number(o.quantidadeMeses || 1)) > 1 ? `(${o.quantidadeMeses}× ${o.periodicidade.toLowerCase()})` : ''} · {fmt(Number(o.valor))}/{o.periodicidade.toLowerCase()}
+              </div>
+            )}
           </div>
         </div>
 
