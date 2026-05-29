@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { Search, Plus, Building2, Phone, Mail, Pencil, Trash2, AlertCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const statusColor: Record<string, { bg: string; text: string; label: string }> = {
   ATIVO: { bg: '#EAF3DE', text: '#27500A', label: 'Ativo' },
@@ -20,6 +20,8 @@ const segLabel: Record<string, string> = {
 
 export default function Clientes() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const novoId = (location.state as any)?.novoId as string | undefined
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -44,7 +46,16 @@ export default function Clientes() {
   }
 
   useEffect(() => {
-    api.get('/clientes').then((r) => setClientes(r.data)).finally(() => setLoading(false))
+    api.get('/clientes').then((r) => {
+      let data = r.data
+      // Cliente recém-cadastrado fica no topo só nesta volta; depois volta à ordem normal
+      if (novoId) {
+        const novo = data.find((c: any) => c.id === novoId)
+        if (novo) data = [novo, ...data.filter((c: any) => c.id !== novoId)]
+        navigate('.', { replace: true, state: null })
+      }
+      setClientes(data)
+    }).finally(() => setLoading(false))
   }, [])
 
   const filtered = clientes.filter((c) =>

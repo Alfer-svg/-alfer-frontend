@@ -239,6 +239,7 @@ export default function NovoCliente() {
             await api.post(`/clientes/${id}/enderecos`, e).catch(() => {})
           }
         }
+        navigate('/clientes')
       } else {
         const cliente = await api.post('/clientes', payload)
         const newId = cliente.data.id
@@ -248,8 +249,8 @@ export default function NovoCliente() {
         for (const e of enderecos.filter(e => e.logradouro)) {
           await api.post(`/clientes/${newId}/enderecos`, e).catch(() => {})
         }
+        navigate('/clientes', { state: { novoId: newId } })
       }
-      navigate('/clientes')
     } catch (err: any) {
       setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} cliente.`)
     } finally {
