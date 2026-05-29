@@ -3,8 +3,19 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2,
 } from 'lucide-react'
+
+type Rascunho = {
+  id: string
+  telefone: string
+  personaId: string
+  personaNome: string
+  textoCliente: string | null
+  rascunho: string
+  modelo: string | null
+  createdAt: string
+}
 
 type Mensagem = {
   id: string
@@ -263,7 +274,53 @@ function ConversaModal({
   const [enviando, setEnviando] = useState(false)
   const [erroEnvio, setErroEnvio] = useState('')
   const [enviandoCrm, setEnviandoCrm] = useState(false)
+  const [rascunho, setRascunho] = useState<Rascunho | null>(null)
+  const [aprovandoRascunho, setAprovandoRascunho] = useState(false)
   const navigate = useNavigate()
+
+  // Busca rascunho pendente do agente de IA pra esta conversa
+  useEffect(() => {
+    let vivo = true
+    api.get('/agente/rascunhos', { params: { telefone: conversa.telefone } })
+      .then((r) => { if (vivo) setRascunho((r.data || [])[0] || null) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [conversa.telefone])
+
+  // Aprova o rascunho da IA (texto possivelmente já editado no composer) e envia
+  const aprovarRascunho = async () => {
+    if (!rascunho || aprovandoRascunho) return
+    setAprovandoRascunho(true)
+    setErroEnvio('')
+    try {
+      const textoFinal = texto.trim() || rascunho.rascunho
+      const r = await api.post(`/agente/rascunhos/${rascunho.id}/aprovar`, { texto: textoFinal })
+      onMensagemEnviada({
+        id: r.data.messageId, messageId: r.data.messageId, direcao: 'OUTBOUND',
+        telefone: conversa.telefone, tipo: 'text', conteudo: textoFinal,
+        optOutDetectado: false, templateName: null, receivedAt: new Date().toISOString(),
+      })
+      setRascunho(null)
+      setTexto('')
+    } catch (err: any) {
+      setErroEnvio(err.response?.data?.message || 'Falha ao enviar rascunho')
+    } finally {
+      setAprovandoRascunho(false)
+    }
+  }
+
+  const editarRascunho = () => {
+    if (!rascunho) return
+    setTexto(rascunho.rascunho)
+    setRascunho(null)
+  }
+
+  const descartarRascunho = async () => {
+    if (!rascunho) return
+    const id = rascunho.id
+    setRascunho(null)
+    api.post(`/agente/rascunhos/${id}/descartar`).catch(() => {})
+  }
 
   const enviarParaCrm = async () => {
     if (enviandoCrm) return
@@ -368,6 +425,46 @@ function ConversaModal({
             )
           })}
         </div>
+
+        {/* Rascunho sugerido pelo agente de IA */}
+        {rascunho && janelaAberta && (
+          <div className="px-3 pt-3" style={{ background: '#FEF3E2' }}>
+            <div className="rounded-xl p-3" style={{ border: '1px solid #FFAF06', background: '#fff' }}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Sparkles className="w-3.5 h-3.5" style={{ color: '#FFAF06' }} />
+                <span className="text-xs font-semibold text-gray-800">
+                  {rascunho.personaNome} sugere uma resposta
+                </span>
+                <span className="text-[10px] text-gray-400 ml-auto">rascunho · revise antes de enviar</span>
+              </div>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{rascunho.rascunho}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={aprovarRascunho}
+                  disabled={aprovandoRascunho}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                  style={{ background: '#25D366' }}
+                >
+                  {aprovandoRascunho ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Aprovar e enviar
+                </button>
+                <button
+                  onClick={editarRascunho}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700"
+                  style={{ background: '#F1EFE8' }}
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </button>
+                <button
+                  onClick={descartarRascunho}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Descartar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Composer */}
         {janelaAberta ? (
