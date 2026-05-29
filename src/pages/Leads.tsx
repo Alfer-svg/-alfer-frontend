@@ -3,7 +3,7 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
   UserPlus, Search, Tag, Phone, Mail, Instagram, X,
-  Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2, Upload,
+  Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2, Upload, TrendingUp,
 } from 'lucide-react'
 
 // Leva inicial de construtoras mapeadas (RMR + Suape) — formato: Empresa | Telefone | Observação
@@ -109,6 +109,36 @@ export default function Leads() {
       carregar()
     } catch (e: any) {
       setErro(e.response?.data?.message || 'Erro ao salvar')
+    }
+  }
+
+  const [enviandoCrm, setEnviandoCrm] = useState<string | null>(null)
+  const mandarProCrm = async (l: Lead) => {
+    const nome = l.empresa || l.nome || l.email || l.telefone || 'Oportunidade'
+    if (!confirm(`Criar oportunidade no CRM pra "${nome}"?`)) return
+    setEnviandoCrm(l.id)
+    setErro(null)
+    try {
+      const descricao = [l.observacoes, l.tags.length ? `Tags: ${l.tags.join(', ')}` : '']
+        .filter(Boolean).join('\n')
+      await api.post('/crm/oportunidades', {
+        titulo: nome,
+        descricao: descricao || null,
+        prospectNome: l.nome || null,
+        prospectEmpresa: l.empresa || null,
+        prospectTelefone: l.telefone || null,
+        prospectEmail: l.email || null,
+        origem: l.origem,
+        estagio: 'NOVO',
+      })
+      // Lead entrou no pipeline → marca como qualificado
+      if (l.status === 'NOVO') await api.put(`/leads/${l.id}`, { status: 'QUALIFICADO' })
+      setSucesso(`"${nome}" enviado pro CRM`)
+      carregar()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao enviar pro CRM')
+    } finally {
+      setEnviandoCrm(null)
     }
   }
 
@@ -299,6 +329,16 @@ export default function Leads() {
                   )}
                 </div>
                 <div className="flex gap-1">
+                  <button
+                    onClick={() => mandarProCrm(l)}
+                    disabled={enviandoCrm === l.id}
+                    className="p-1.5 rounded hover:bg-amber-50 disabled:opacity-50"
+                    title="Enviar pro CRM"
+                  >
+                    {enviandoCrm === l.id
+                      ? <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                      : <TrendingUp className="w-4 h-4 text-amber-600" />}
+                  </button>
                   <button
                     onClick={() => setEditando(l)}
                     className="p-1.5 rounded hover:bg-gray-100"
