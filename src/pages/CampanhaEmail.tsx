@@ -32,6 +32,10 @@ export default function CampanhaEmail() {
   const [corpoHtml, setCorpoHtml] = useState(CORPO_PADRAO)
   const [segmento, setSegmento] = useState('')
   const [status, setStatus] = useState('')
+  const [ctaTexto, setCtaTexto] = useState('Quero minha caçamba (10% off)')
+  const [ctaUrl, setCtaUrl] = useState(
+    'https://wa.me/5581971094000?text=' + encodeURIComponent('Olá! Vi a oferta de 10% off e quero locar uma caçamba.'),
+  )
   const [preview, setPreview] = useState<{ total: number; amostra: any[] } | null>(null)
   const [emailTeste, setEmailTeste] = useState('')
   const [loading, setLoading] = useState(false)
@@ -56,7 +60,7 @@ export default function CampanhaEmail() {
     if (!emailTeste) return setErro('Informe um e-mail pra teste')
     setLoading(true); setErro(''); setSucesso('')
     try {
-      await api.post('/email/campanha/disparar', { assunto, corpoHtml, teste: emailTeste })
+      await api.post('/email/campanha/disparar', { assunto, corpoHtml, ctaTexto, ctaUrl, teste: emailTeste })
       setSucesso(`E-mail de teste enviado pra ${emailTeste}`)
     } catch (e: any) {
       setErro(e.response?.data?.message || 'Erro ao enviar teste')
@@ -70,7 +74,7 @@ export default function CampanhaEmail() {
     if (!confirm(`Disparar a campanha pra ${preview.total} cliente(s) com e-mail?\n\nIsso envia de verdade. Confirma?`)) return
     setLoading(true); setErro(''); setSucesso('')
     try {
-      const dto: any = { assunto, corpoHtml }
+      const dto: any = { assunto, corpoHtml, ctaTexto, ctaUrl }
       if (segmento) dto.segmento = segmento
       if (status) dto.status = status
       const r = await api.post('/email/campanha/disparar', dto)
@@ -118,6 +122,18 @@ export default function CampanhaEmail() {
           <label className="block text-xs font-bold text-gray-600 mb-1">Corpo (HTML simples)</label>
           <textarea value={corpoHtml} onChange={(e) => setCorpoHtml(e.target.value)} rows={9} className={`${inputCls} font-mono`} style={inputStyle} />
           <p className="text-[10px] text-gray-500 mt-1">Aceita HTML básico (&lt;p&gt;, &lt;strong&gt;, &lt;br/&gt;). É embrulhado no layout da Alfer automaticamente.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl" style={{ background: '#FAFAF8', border: '1px solid #F1EFE8' }}>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Texto do botão (CTA)</label>
+            <input value={ctaTexto} onChange={(e) => setCtaTexto(e.target.value)} className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Link do botão</label>
+            <input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} className={inputCls} style={inputStyle} />
+            <p className="text-[10px] text-gray-500 mt-1">Padrão: abre o WhatsApp da Alfer com a mensagem pronta. Deixe vazio pra não mostrar botão.</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
