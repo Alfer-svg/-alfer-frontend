@@ -270,7 +270,6 @@ export default function Dashboard() {
                     />
                   </div>
                   <span className="text-sm font-bold text-gray-900 leading-none">{qtd}</span>
-                  <span className="text-[11px] text-gray-500 leading-none hidden sm:inline">{LABEL_TIPO[tipo] || tipo}</span>
                 </div>
               ))}
             </div>
