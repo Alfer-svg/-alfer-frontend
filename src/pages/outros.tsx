@@ -230,7 +230,7 @@ export function Financeiro() {
   // Modal de edição de observações da fatura
   const [obsModal, setObsModal] = useState<{ lanc: any; texto: string } | null>(null)
 
-  const carregar = () => {
+  const carregar = (pinId?: string) => {
     const params: any = {}
     if (filtroTipo) params.tipo = filtroTipo
     if (filtroStatus) params.status = filtroStatus
@@ -240,7 +240,13 @@ export function Financeiro() {
       api.get('/financeiro/lancamentos', { params }),
     ]).then(([d, l]) => {
       setDash(d.data)
-      setLancamentos(l.data)
+      let data = l.data
+      // Lançamento recém-criado fica no topo só nesta volta; depois volta à ordem normal
+      if (pinId) {
+        const novo = data.find((x: any) => x.id === pinId)
+        if (novo) data = [novo, ...data.filter((x: any) => x.id !== pinId)]
+      }
+      setLancamentos(data)
     })
   }
 
@@ -885,7 +891,7 @@ export function Financeiro() {
       {novaDespesaModal && (
         <NovaDespesaModal
           onClose={() => setNovaDespesaModal(false)}
-          onSaved={() => { setNovaDespesaModal(false); carregar() }}
+          onSaved={(id?: string) => { setNovaDespesaModal(false); carregar(id) }}
         />
       )}
       {enviarEmailModal && (
@@ -1412,7 +1418,7 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
   )
 }
 
-function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: (id?: string) => void }) {
   const [form, setForm] = useState({
     descricao: '',
     valor: '',
@@ -1455,7 +1461,7 @@ function NovaDespesaModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           dtPagamento: form.dtPagamento || form.dtVencimento,
         })
       }
-      onSaved()
+      onSaved(r.data?.id)
     } catch (e: any) {
       setErro(e.response?.data?.message || 'Erro ao salvar')
     } finally {

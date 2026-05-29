@@ -103,8 +103,8 @@ export default function NovoContrato() {
       if (form.multaRescisaoPct) payload.multaRescisaoPct = Number(form.multaRescisaoPct)
       if (equipamentosSel.length) payload.equipamentosIds = equipamentosSel
 
-      await api.post('/contratos', payload)
-      navigate('/contratos')
+      const r = await api.post('/contratos', payload)
+      navigate('/contratos', { state: { novoId: r.data?.id } })
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao cadastrar contrato.')
     } finally {

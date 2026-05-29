@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { FileText, Search, Plus, ChevronRight, AlertCircle, Archive, ArchiveRestore } from 'lucide-react'
 
@@ -28,6 +28,8 @@ import { fmtDate } from '../utils/data'
 
 export default function Contratos() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const novoId = (location.state as any)?.novoId as string | undefined
   const [contratos, setContratos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -37,7 +39,16 @@ export default function Contratos() {
   const carregar = () => {
     setLoading(true)
     api.get('/contratos', { params: { arquivado: filtroArquivado } })
-      .then((r) => setContratos(r.data))
+      .then((r) => {
+        let data = r.data
+        // Contrato recém-cadastrado fica no topo só nesta volta; depois volta à ordem normal
+        if (novoId) {
+          const novo = data.find((c: any) => c.id === novoId)
+          if (novo) data = [novo, ...data.filter((c: any) => c.id !== novoId)]
+          navigate('.', { replace: true, state: null })
+        }
+        setContratos(data)
+      })
       .finally(() => setLoading(false))
   }
 
