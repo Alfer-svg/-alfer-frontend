@@ -372,12 +372,23 @@ export default function ContratoDetalhe() {
         </div>
       </div>
 
-      {c.localMobilizacao && (
+      {(c.localMobilizacao || (c.mobLat && c.mobLng)) && (
         <div className="bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4" style={{ color: '#FFAF06' }} /> Local de mobilização
           </h2>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.localMobilizacao}</p>
+          {c.localMobilizacao && <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.localMobilizacao}</p>}
+          {c.mobLat && c.mobLng && (
+            <a
+              href={`https://www.google.com/maps?q=${c.mobLat},${c.mobLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 mt-2 text-xs font-medium"
+              style={{ color: '#FFAF06' }}
+            >
+              <MapPin className="w-3.5 h-3.5" /> Ver posição real no mapa
+            </a>
+          )}
         </div>
       )}
 
