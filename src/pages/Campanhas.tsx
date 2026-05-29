@@ -209,6 +209,8 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [templateName, setTemplateName] = useState('')
   const [templateLanguage, setTemplateLanguage] = useState('pt_BR')
   const [templateVars, setTemplateVars] = useState<string[]>([])
+  const [precisaImagem, setPrecisaImagem] = useState(false)
+  const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [tagFiltro, setTagFiltro] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<string[]>(['NOVO', 'QUALIFICADO'])
   const [delay, setDelay] = useState('30')
@@ -239,11 +241,18 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
     // Default: 1º placeholder = {{nome}}, 2º = {{empresa}}
     const labels = ['{{nome}}', '{{empresa}}', '{{var3}}', '{{var4}}']
     setTemplateVars(placeholders.map((_, i) => labels[i] || `{{var${i + 1}}}`))
+    // Header tipo IMAGE precisa de uma URL pública da imagem no envio
+    const header = (t.components || []).find((c: any) => c.type === 'HEADER')
+    const ehImagem = header?.format === 'IMAGE'
+    setPrecisaImagem(ehImagem)
+    // Prefill com a imagem de exemplo do template (pode expirar — ideal trocar por URL fixa)
+    setHeaderImageUrl(ehImagem ? (header?.example?.header_handle?.[0] || '') : '')
   }
 
   const submit = async () => {
     if (!nome) return setErro('Nome obrigatório')
     if (!templateName) return setErro('Escolha um template')
+    if (precisaImagem && !headerImageUrl.trim()) return setErro('Este template tem imagem no cabeçalho — informe a URL da imagem.')
     setLoading(true)
     setErro('')
     try {
@@ -252,6 +261,7 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
         templateName,
         templateLanguage,
         templateVars,
+        headerImageUrl: precisaImagem ? headerImageUrl.trim() : undefined,
         filtros: {
           tags: tagFiltro ? [tagFiltro] : undefined,
           status: statusFiltro.length ? statusFiltro : undefined,
@@ -326,6 +336,22 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
             <div className="text-[10px] text-gray-500 mt-2">
               Suportado por padrão: <code>{`{{nome}}`}</code>, <code>{`{{empresa}}`}</code>.
             </div>
+          </div>
+        )}
+
+        {precisaImagem && (
+          <div className="p-3 rounded-lg" style={{ background: '#FEF3E2', border: '1px solid #FCD34D' }}>
+            <label className="block text-xs font-bold text-gray-700 mb-1">URL da imagem do cabeçalho (obrigatório neste template)</label>
+            <input
+              value={headerImageUrl}
+              onChange={(e) => setHeaderImageUrl(e.target.value)}
+              placeholder="https://...imagem.jpg"
+              className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
+              style={{ border: '1px solid #E0DDD8' }}
+            />
+            <p className="text-[10px] text-gray-600 mt-1">
+              Este template tem imagem no topo. Cole uma URL pública (.jpg/.png). A imagem de exemplo do template pode expirar — prefira uma URL fixa do seu site.
+            </p>
           </div>
         )}
 
