@@ -29,12 +29,31 @@ interface Alerta {
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
+// Ícone (PNG em /public/icones) e rótulo por tipo de equipamento
+const ICONE_TIPO: Record<string, string> = {
+  CONTAINER_SECO: 'container.png',
+  CONTAINER_REEFER: 'container_reefer.png',
+  CACAMBA_ESTACIONARIA: 'cacamba.png',
+  CAMINHAO_MUNCK: 'munck.png',
+  CAMINHAO_POLIGUINDASTE: 'poliguindaste.png',
+  CAMINHAO_CAVALO_MECANICO: 'cavalo_mecanico.png',
+}
+const LABEL_TIPO: Record<string, string> = {
+  CONTAINER_SECO: 'Container Seco',
+  CONTAINER_REEFER: 'Container Reefer',
+  CACAMBA_ESTACIONARIA: 'Caçamba',
+  CAMINHAO_MUNCK: 'Munck',
+  CAMINHAO_POLIGUINDASTE: 'Poliguindaste',
+  CAMINHAO_CAVALO_MECANICO: 'Cavalo Mecânico',
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { usuario } = useAuth()
   const [data, setData] = useState<DashData | null>(null)
   const [alertas, setAlertas] = useState<any>(null)
   const [equipamentosLoc, setEquipamentosLoc] = useState<any[]>([])
+  const [contagemTipos, setContagemTipos] = useState<{ tipo: string; qtd: number }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,6 +65,14 @@ export default function Dashboard() {
       setData(dashRes.data)
       setAlertas(alertRes.data)
       setEquipamentosLoc(equipRes.data.filter((e: any) => e.latitude != null && e.longitude != null))
+      // Conta equipamentos mobilizados (locados) por tipo
+      const cont: Record<string, number> = {}
+      for (const e of equipRes.data as any[]) cont[e.tipo] = (cont[e.tipo] || 0) + 1
+      setContagemTipos(
+        Object.entries(cont)
+          .map(([tipo, qtd]) => ({ tipo, qtd }))
+          .sort((a, b) => b.qtd - a.qtd),
+      )
     }).catch(console.error)
     .finally(() => setLoading(false))
   }, [])
@@ -218,15 +245,40 @@ export default function Dashboard() {
 
       {/* Mapa dos equipamentos locados */}
       <div className="bg-white rounded-2xl p-6 mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3 flex-wrap mb-4">
           <div className="flex items-center gap-2">
             <MapIcon className="w-5 h-5" style={{ color: '#FFAF06' }} />
             <h2 className="font-semibold text-gray-900">Equipamentos locados — mapa</h2>
             <span className="text-xs text-gray-400">({equipamentosLoc.length} com localização)</span>
           </div>
+
+          {/* Miniaturas dos equipamentos mobilizados, por tipo */}
+          {contagemTipos.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {contagemTipos.map(({ tipo, qtd }) => (
+                <div
+                  key={tipo}
+                  title={`${qtd} ${LABEL_TIPO[tipo] || tipo} mobilizado(s)`}
+                  className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full"
+                  style={{ background: '#FAF6EF', border: '1px solid #E0DDD8' }}
+                >
+                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden" style={{ border: '1px solid #E0DDD8' }}>
+                    <img
+                      src={`/icones/${ICONE_TIPO[tipo] || 'container.png'}`}
+                      alt={LABEL_TIPO[tipo] || tipo}
+                      className="w-5 h-5 object-contain"
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 leading-none">{qtd}</span>
+                  <span className="text-[11px] text-gray-500 leading-none hidden sm:inline">{LABEL_TIPO[tipo] || tipo}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={() => navigate('/mapa')}
-            className="flex items-center gap-1 text-xs font-medium hover:opacity-80"
+            className="flex items-center gap-1 text-xs font-medium hover:opacity-80 ml-auto"
             style={{ color: '#FFAF06' }}
           >
             Ver mapa completo <ChevronRight className="w-3 h-3" />
