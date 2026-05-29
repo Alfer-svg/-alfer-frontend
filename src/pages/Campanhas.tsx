@@ -209,6 +209,7 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [templateName, setTemplateName] = useState('')
   const [templateLanguage, setTemplateLanguage] = useState('pt_BR')
   const [templateVars, setTemplateVars] = useState<string[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [precisaImagem, setPrecisaImagem] = useState(false)
   const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [tagFiltro, setTagFiltro] = useState('')
@@ -232,7 +233,8 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
   const onTemplateChange = (name: string) => {
     setTemplateName(name)
     const t = templates.find((x) => x.name === name)
-    if (!t) { setTemplateVars([]); return }
+    if (!t) { setTemplateVars([]); setSelectedTemplate(null); return }
+    setSelectedTemplate(t)
     setTemplateLanguage(t.language || 'pt_BR')
     // Extrai placeholders {{1}}, {{2}} do corpo do template
     const body = (t.components || []).find((c: any) => c.type === 'BODY')
@@ -355,6 +357,10 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
         )}
 
+        {selectedTemplate && (
+          <TemplatePreview template={selectedTemplate} headerImageUrl={precisaImagem ? headerImageUrl : ''} />
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">Filtrar por tag</label>
@@ -429,5 +435,95 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
         </div>
       </div>
     </Modal>
+  )
+}
+
+// Valores de exemplo pra preencher as variáveis do corpo no preview
+const EXEMPLO_VARS: Record<number, string> = {
+  1: 'João Silva',
+  2: 'Construtora Exemplo',
+  3: 'exemplo 3',
+  4: 'exemplo 4',
+}
+
+function TemplatePreview({ template, headerImageUrl }: { template: any; headerImageUrl?: string }) {
+  const components = template?.components || []
+  const header = components.find((c: any) => c.type === 'HEADER')
+  const body = components.find((c: any) => c.type === 'BODY')
+  const footer = components.find((c: any) => c.type === 'FOOTER')
+  const buttonsComp = components.find((c: any) => c.type === 'BUTTONS')
+  const buttons: any[] = buttonsComp?.buttons || []
+
+  // Substitui {{1}}, {{2}}... por valores de exemplo
+  const corpo = (body?.text || '').replace(/\{\{(\d+)\}\}/g, (_m: string, n: string) =>
+    EXEMPLO_VARS[Number(n)] || `exemplo ${n}`,
+  )
+
+  const headerImagem = header?.format === 'IMAGE'
+  const headerTexto = header?.format === 'TEXT' ? header?.text : ''
+
+  // Renderiza **negrito** simples do WhatsApp
+  const renderTexto = (texto: string) =>
+    texto.split(/(\*[^*]+\*)/g).map((parte, i) =>
+      parte.startsWith('*') && parte.endsWith('*') && parte.length > 1
+        ? <strong key={i}>{parte.slice(1, -1)}</strong>
+        : <span key={i}>{parte}</span>,
+    )
+
+  return (
+    <div>
+      <div className="text-xs font-bold text-gray-600 mb-1">Pré-visualização (como o cliente vê)</div>
+      <div
+        className="rounded-lg p-4"
+        style={{
+          background: '#E5DDD5',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'%3E%3Cpath d=\'M0 0h40v40H0z\' fill=\'%23E5DDD5\'/%3E%3C/svg%3E")',
+          border: '1px solid #E0DDD8',
+        }}
+      >
+        <div
+          className="max-w-[85%] rounded-lg shadow-sm overflow-hidden"
+          style={{ background: '#FFFFFF' }}
+        >
+          {headerImagem && (
+            headerImageUrl ? (
+              <img src={headerImageUrl} alt="cabeçalho" className="w-full max-h-48 object-cover" />
+            ) : (
+              <div className="w-full h-32 flex items-center justify-center text-xs text-gray-400" style={{ background: '#D1D7DB' }}>
+                🖼 imagem do cabeçalho
+              </div>
+            )
+          )}
+          <div className="p-2.5">
+            {headerTexto && (
+              <div className="font-bold text-sm text-gray-900 mb-1">{renderTexto(headerTexto)}</div>
+            )}
+            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-snug">
+              {renderTexto(corpo)}
+            </div>
+            {footer?.text && (
+              <div className="text-[11px] text-gray-400 mt-1.5">{footer.text}</div>
+            )}
+            <div className="text-[10px] text-gray-400 text-right mt-0.5">12:00</div>
+          </div>
+          {buttons.length > 0 && (
+            <div style={{ borderTop: '1px solid #F0F0F0' }}>
+              {buttons.map((b, i) => (
+                <div
+                  key={i}
+                  className="text-center text-sm font-medium py-2"
+                  style={{ color: '#00A5F4', borderTop: i > 0 ? '1px solid #F0F0F0' : 'none' }}
+                >
+                  {b.type === 'URL' ? '🔗 ' : b.type === 'PHONE_NUMBER' ? '📞 ' : ''}{b.text}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-500 mt-1">
+        Variáveis preenchidas com valores de exemplo. No envio, são substituídas pelos dados reais de cada lead.
+      </p>
+    </div>
   )
 }
