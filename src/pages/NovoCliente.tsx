@@ -24,6 +24,7 @@ export default function NovoCliente() {
     razaoSocial: '', cnpj: '', inscricaoEstadual: '', site: '',
     segmento: 'CONSTRUTORA', limiteCredito: '', prazoPagemento: '30',
     reajusteIndice: 'IPCA', formaCobranca: 'BOLETO', observacoes: '',
+    lembreteAtivo: 'herda', lembreteEmail: 'herda', lembreteWhatsapp: 'herda',
   })
   // IDs originais dos contatos/endereços carregados, pra saber o que foi deletado
   const contatosIniciaisRef = useRef<string[]>([])
@@ -51,6 +52,9 @@ export default function NovoCliente() {
           reajusteIndice: c.reajusteIndice || 'IPCA',
           formaCobranca: c.formaCobranca || 'BOLETO',
           observacoes: c.observacoes || '',
+          lembreteAtivo: c.lembreteAtivo == null ? 'herda' : (c.lembreteAtivo ? 'on' : 'off'),
+          lembreteEmail: c.lembreteEmail == null ? 'herda' : (c.lembreteEmail ? 'on' : 'off'),
+          lembreteWhatsapp: c.lembreteWhatsapp == null ? 'herda' : (c.lembreteWhatsapp ? 'on' : 'off'),
         })
         if (c.contatos?.length) {
           const cts = c.contatos.map((ct: any) => ({
@@ -198,10 +202,14 @@ export default function NovoCliente() {
     setErro('')
     setLoading(true)
     try {
+      const triState = (v: string) => (v === 'herda' ? null : v === 'on')
       const payload = {
         ...form,
         limiteCredito: form.limiteCredito ? Number(form.limiteCredito) : undefined,
         prazoPagemento: Number(form.prazoPagemento),
+        lembreteAtivo: triState(form.lembreteAtivo),
+        lembreteEmail: triState(form.lembreteEmail),
+        lembreteWhatsapp: triState(form.lembreteWhatsapp),
       }
       if (isEdit) {
         await api.put(`/clientes/${id}`, payload)
@@ -525,6 +533,42 @@ export default function NovoCliente() {
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Lembretes de vencimento */}
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <h2 className="font-semibold text-gray-900 mb-1">Lembretes de vencimento</h2>
+          <p className="text-gray-500 text-sm mb-4">Sobrepõe a configuração geral só pra este cliente. "Herdar" segue o padrão definido em Financeiro → Lembretes.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lembretes</label>
+              <select value={form.lembreteAtivo} onChange={e => set('lembreteAtivo', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="herda">Herdar config geral</option>
+                <option value="on">Ativados</option>
+                <option value="off">Desativados</option>
+              </select>
+            </div>
+            {form.lembreteAtivo !== 'off' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Por e-mail</label>
+                  <select value={form.lembreteEmail} onChange={e => set('lembreteEmail', e.target.value)} className={inputCls} style={inputStyle}>
+                    <option value="herda">Herdar</option>
+                    <option value="on">Sim</option>
+                    <option value="off">Não</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Por WhatsApp</label>
+                  <select value={form.lembreteWhatsapp} onChange={e => set('lembreteWhatsapp', e.target.value)} className={inputCls} style={inputStyle}>
+                    <option value="herda">Herdar</option>
+                    <option value="on">Sim</option>
+                    <option value="off">Não</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

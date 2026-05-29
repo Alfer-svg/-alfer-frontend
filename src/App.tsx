@@ -7,6 +7,7 @@ import Clientes from './pages/Clientes'
 import Contratos from './pages/Contratos'
 import ContratoDetalhe from './pages/ContratoDetalhe'
 import { Financeiro } from './pages/outros'
+import ConfigLembretes from './pages/ConfigLembretes'
 import Fornecedores from './pages/Fornecedores'
 import CRM from './pages/CRM'
 import Leads from './pages/Leads'
@@ -123,6 +124,7 @@ function AppRoutes() {
         <Route path="pedidos" element={<Pedidos />} />
         <Route path="pedidos/:id" element={<PedidoDetalhe />} />
         <Route path="financeiro" element={<Financeiro />} />
+        <Route path="financeiro/lembretes" element={<ConfigLembretes />} />
         <Route path="fornecedores" element={<Fornecedores />} />
         <Route path="crm" element={<CRM />} />
         <Route path="leads" element={<Leads />} />

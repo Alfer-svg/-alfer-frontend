@@ -1,9 +1,10 @@
 // Financeiro — receitas + despesas + filtros + modal nova despesa
 import { useState, useEffect, FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText, Search } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText, Search, BellRing } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const CATEGORIAS: { v: string; l: string }[] = [
@@ -210,6 +211,7 @@ async function enviarWhatsAppCloudLancamento(l: any) {
 }
 
 export function Financeiro() {
+  const navigate = useNavigate()
   const [dash, setDash] = useState<any>(null)
   const [lancamentos, setLancamentos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -469,13 +471,22 @@ export function Financeiro() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Financeiro</h1>
           <p className="text-gray-500 text-sm mt-1">Receitas, despesas e fluxo de caixa</p>
         </div>
-        <button
-          onClick={() => setNovaDespesaModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90"
-          style={{ background: '#FFAF06' }}
-        >
-          <Plus className="w-4 h-4" /> Nova despesa
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/financeiro/lembretes')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <BellRing className="w-4 h-4" /> Lembretes
+          </button>
+          <button
+            onClick={() => setNovaDespesaModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90"
+            style={{ background: '#FFAF06' }}
+          >
+            <Plus className="w-4 h-4" /> Nova despesa
+          </button>
+        </div>
       </div>
 
       {dash && (
