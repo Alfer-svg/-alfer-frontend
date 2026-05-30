@@ -18,6 +18,9 @@ const CARGOS = [
   'Administrativo',
 ]
 
+// Cargos que têm acesso ao app de campo (mesma regra do backend).
+const CARGOS_COM_APP = ['Motorista', 'Operador de Munck', 'Operador de Poliguindaste']
+
 export default function Motoristas() {
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -510,9 +513,9 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
               </select>
             </div>
           </div>
-          {form.cargo && form.cargo !== 'Motorista' && (
+          {form.cargo && !CARGOS_COM_APP.includes(form.cargo) && (
             <p className="text-[11px] text-amber-700 flex items-center gap-1 -mt-1">
-              <AlertCircle className="w-3 h-3" /> Apenas motoristas têm acesso ao app. O PIN não dará login pra este cargo.
+              <AlertCircle className="w-3 h-3" /> Sem acesso ao app. Só motoristas e operadores fazem login com o PIN.
             </p>
           )}
         </Secao>
