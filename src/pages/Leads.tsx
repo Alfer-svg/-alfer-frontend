@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal'
 import {
   UserPlus, Search, Tag, Phone, Mail, Instagram, X,
   Pencil, Trash2, AlertCircle, CheckCircle2, RefreshCcw, Loader2, Upload, TrendingUp,
+  BellOff, BellRing,
 } from 'lucide-react'
 
 // Leva inicial de construtoras mapeadas (RMR + Suape) — formato: Empresa | Telefone | Observação
@@ -30,6 +31,8 @@ type Lead = {
   status: StatusLead
   tags: string[]
   observacoes: string | null
+  optOutMarketing?: boolean
+  optOutEm?: string | null
   ultimoContatoEm: string | null
   convertidoEm: string | null
   clienteId: string | null
@@ -150,6 +153,18 @@ export default function Leads() {
       carregar()
     } catch (e: any) {
       setErro(e.response?.data?.message || 'Erro ao deletar')
+    }
+  }
+
+  const toggleOptOut = async (l: Lead) => {
+    const novo = !l.optOutMarketing
+    if (novo && !confirm(`Descadastrar "${l.nome || l.empresa || l.telefone}" das campanhas?\n\nNão vai mais receber disparos de marketing até ser reativado.`)) return
+    try {
+      await api.post(`/leads/${l.id}/opt-out`, { optOut: novo })
+      setSucesso(novo ? 'Lead descadastrado das campanhas' : 'Lead reativado nas campanhas')
+      carregar()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao atualizar')
     }
   }
 
@@ -289,6 +304,11 @@ export default function Leads() {
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                       {l.origem}
                     </span>
+                    {l.optOutMarketing && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">
+                        <BellOff className="w-3 h-3" /> Descadastrado
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-gray-600 flex-wrap">
                     {l.email && (
@@ -338,6 +358,15 @@ export default function Leads() {
                     {enviandoCrm === l.id
                       ? <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
                       : <TrendingUp className="w-4 h-4 text-amber-600" />}
+                  </button>
+                  <button
+                    onClick={() => toggleOptOut(l)}
+                    className={`p-1.5 rounded ${l.optOutMarketing ? 'hover:bg-emerald-50' : 'hover:bg-red-50'}`}
+                    title={l.optOutMarketing ? 'Reativar nas campanhas' : 'Descadastrar das campanhas'}
+                  >
+                    {l.optOutMarketing
+                      ? <BellRing className="w-4 h-4 text-emerald-600" />
+                      : <BellOff className="w-4 h-4 text-gray-400" />}
                   </button>
                   <button
                     onClick={() => setEditando(l)}

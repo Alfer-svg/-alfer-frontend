@@ -4,7 +4,7 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
   Megaphone, Plus, Play, Pause, X, AlertCircle, CheckCircle2, RefreshCcw,
-  Send, Clock, Users, Trash2, Loader2, MessageSquare, Mail,
+  Send, Clock, Users, Trash2, Loader2, MessageSquare, Mail, Search,
 } from 'lucide-react'
 
 type StatusCampanha = 'RASCUNHO' | 'AGENDADA' | 'ENVIANDO' | 'CONCLUIDA' | 'PAUSADA' | 'CANCELADA'
@@ -214,6 +214,12 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [tagFiltro, setTagFiltro] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<string[]>(['NOVO', 'QUALIFICADO'])
+  // Público: 'filtro' (por tag/status) ou 'lista' (escolher leads na mão)
+  const [modoPublico, setModoPublico] = useState<'filtro' | 'lista'>('filtro')
+  const [leads, setLeads] = useState<any[]>([])
+  const [carregandoLeads, setCarregandoLeads] = useState(false)
+  const [buscaLead, setBuscaLead] = useState('')
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [delay, setDelay] = useState('30')
   const [agendar, setAgendar] = useState(false)
   const [dataAgendada, setDataAgendada] = useState('')
@@ -229,6 +235,36 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
       .catch((e) => setErro(e.response?.data?.message || 'Erro ao listar templates'))
       .finally(() => setCarregandoTemplates(false))
   }, [])
+
+  // Carrega leads com telefone (uma vez) ao abrir o modo "escolher da lista"
+  useEffect(() => {
+    if (modoPublico !== 'lista' || leads.length > 0) return
+    setCarregandoLeads(true)
+    api.get('/leads', { params: { limite: 500 } })
+      .then((r) => setLeads((r.data || []).filter((l: any) => l.telefone && !l.optOutMarketing)))
+      .catch((e) => setErro(e.response?.data?.message || 'Erro ao carregar leads'))
+      .finally(() => setCarregandoLeads(false))
+  }, [modoPublico])
+
+  const leadsFiltrados = leads.filter((l) => {
+    if (!buscaLead.trim()) return true
+    const q = buscaLead.toLowerCase()
+    return [l.nome, l.empresa, l.telefone, l.email].filter(Boolean).some((x: string) => x.toLowerCase().includes(q))
+  })
+
+  const toggleLead = (id: string) => setSelecionados((s) => {
+    const n = new Set(s)
+    n.has(id) ? n.delete(id) : n.add(id)
+    return n
+  })
+  const toggleTodos = () => setSelecionados((s) => {
+    const visiveis = leadsFiltrados.map((l) => l.id)
+    const todosSelec = visiveis.every((id) => s.has(id))
+    const n = new Set(s)
+    if (todosSelec) visiveis.forEach((id) => n.delete(id))
+    else visiveis.forEach((id) => n.add(id))
+    return n
+  })
 
   const onTemplateChange = (name: string) => {
     setTemplateName(name)
@@ -255,19 +291,23 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
     if (!nome) return setErro('Nome obrigatório')
     if (!templateName) return setErro('Escolha um template')
     if (precisaImagem && !headerImageUrl.trim()) return setErro('Este template tem imagem no cabeçalho — informe a URL da imagem.')
+    if (modoPublico === 'lista' && selecionados.size === 0) return setErro('Selecione pelo menos um contato da lista.')
     setLoading(true)
     setErro('')
     try {
+      const filtros = modoPublico === 'lista'
+        ? { leadIds: Array.from(selecionados) }
+        : {
+            tags: tagFiltro ? [tagFiltro] : undefined,
+            status: statusFiltro.length ? statusFiltro : undefined,
+          }
       const dto: any = {
         nome,
         templateName,
         templateLanguage,
         templateVars,
         headerImageUrl: precisaImagem ? headerImageUrl.trim() : undefined,
-        filtros: {
-          tags: tagFiltro ? [tagFiltro] : undefined,
-          status: statusFiltro.length ? statusFiltro : undefined,
-        },
+        filtros,
         delaySegundos: Number(delay) || 30,
       }
       if (agendar && dataAgendada) dto.dataAgendada = dataAgendada
@@ -361,30 +401,92 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
           <TemplatePreview template={selectedTemplate} headerImageUrl={precisaImagem ? headerImageUrl : ''} />
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Filtrar por tag</label>
-            <input
-              value={tagFiltro}
-              onChange={(e) => setTagFiltro(e.target.value)}
-              placeholder="Ex: CAÇAMBA ESTACIONARIA RECORRENTE"
-              className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
-              style={{ border: '1px solid #E0DDD8' }}
-            />
+        {/* PÚBLICO: por filtro ou escolher da lista */}
+        <div>
+          <label className="block text-xs font-bold text-gray-600 mb-1">Quem vai receber</label>
+          <div className="flex gap-1 p-1 rounded-lg mb-2" style={{ background: '#F1EFE8' }}>
+            {[
+              { v: 'filtro', label: 'Por filtro (tag + status)' },
+              { v: 'lista', label: 'Escolher da lista' },
+            ].map((m) => (
+              <button
+                key={m.v}
+                type="button"
+                onClick={() => setModoPublico(m.v as any)}
+                className="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold transition-all"
+                style={modoPublico === m.v
+                  ? { background: '#fff', color: '#7B5B0F', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' }
+                  : { color: '#8A8579' }}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Status do lead</label>
-            <select
-              multiple
-              value={statusFiltro}
-              onChange={(e) => setStatusFiltro(Array.from(e.target.selectedOptions, (o) => o.value))}
-              className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
-              style={{ border: '1px solid #E0DDD8', height: 'auto' }}
-              size={3}
-            >
-              {['NOVO', 'QUALIFICADO', 'PROPOSTA'].map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+
+          {modoPublico === 'filtro' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-gray-500 mb-1">Filtrar por tag</label>
+                <input
+                  value={tagFiltro}
+                  onChange={(e) => setTagFiltro(e.target.value)}
+                  placeholder="Ex: CAÇAMBA ESTACIONARIA RECORRENTE"
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
+                  style={{ border: '1px solid #E0DDD8' }}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-500 mb-1">Status do lead</label>
+                <select
+                  multiple
+                  value={statusFiltro}
+                  onChange={(e) => setStatusFiltro(Array.from(e.target.selectedOptions, (o) => o.value))}
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-white outline-none"
+                  style={{ border: '1px solid #E0DDD8', height: 'auto' }}
+                  size={3}
+                >
+                  {['NOVO', 'QUALIFICADO', 'PROPOSTA'].map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg" style={{ border: '1px solid #E0DDD8' }}>
+              <div className="flex items-center gap-2 p-2 border-b" style={{ borderColor: '#F1EFE8' }}>
+                <Search className="w-3.5 h-3.5 text-gray-400" />
+                <input
+                  value={buscaLead}
+                  onChange={(e) => setBuscaLead(e.target.value)}
+                  placeholder="Buscar nome, empresa, telefone..."
+                  className="flex-1 text-sm outline-none bg-transparent"
+                />
+                <button type="button" onClick={toggleTodos} className="text-xs font-semibold text-amber-700 hover:underline whitespace-nowrap">
+                  {leadsFiltrados.length > 0 && leadsFiltrados.every((l) => selecionados.has(l.id)) ? 'Limpar' : 'Todos'}
+                </button>
+              </div>
+              <div className="max-h-56 overflow-y-auto">
+                {carregandoLeads ? (
+                  <div className="text-xs text-gray-400 p-4 text-center"><Loader2 className="w-4 h-4 animate-spin inline mr-1" /> Carregando leads...</div>
+                ) : leadsFiltrados.length === 0 ? (
+                  <div className="text-xs text-gray-400 p-4 text-center">Nenhum lead com telefone encontrado.</div>
+                ) : (
+                  leadsFiltrados.map((l) => (
+                    <label key={l.id} className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 cursor-pointer border-b last:border-0" style={{ borderColor: '#F7F5F0' }}>
+                      <input type="checkbox" checked={selecionados.has(l.id)} onChange={() => toggleLead(l.id)} />
+                      <span className="flex-1 min-w-0">
+                        <span className="text-sm text-gray-800 font-medium">{l.nome || l.empresa || '(sem nome)'}</span>
+                        {l.empresa && l.nome && <span className="text-xs text-gray-400"> · {l.empresa}</span>}
+                        <span className="block text-[11px] text-gray-400">{l.telefone}{l.status ? ` · ${l.status}` : ''}</span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="p-2 border-t text-xs text-gray-500 flex items-center gap-1" style={{ borderColor: '#F1EFE8' }}>
+                <Users className="w-3 h-3" /> {selecionados.size} selecionado(s)
+                <span className="text-gray-300">· descadastrados não aparecem aqui</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
