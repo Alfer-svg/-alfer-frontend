@@ -1,9 +1,11 @@
 import { useEffect, useState, FormEvent, DragEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
   TrendingUp, Plus, AlertCircle, Loader2, X, Building2, Phone, Mail, Calendar,
   MessageSquare, DollarSign, FileText, Trash2, Pencil, Award, XCircle, ArrowRight,
+  Megaphone, CheckSquare, Square,
 } from 'lucide-react'
 
 const ESTAGIOS = [
@@ -57,12 +59,40 @@ export default function CRM() {
   const [modalDetalhe, setModalDetalhe] = useState<any | null>(null)
   const [erro, setErro] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
+  // Seleção de oportunidades pra levar pra uma campanha de WhatsApp
+  const [modoSelecao, setModoSelecao] = useState(false)
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
+  const navigate = useNavigate()
 
   const load = () => {
     setLoading(true)
     api.get('/crm/kanban').then((r) => setData(r.data)).finally(() => setLoading(false))
   }
   useEffect(load, [])
+
+  // Só dá pra mandar pra campanha quem tem telefone (direto ou via cliente)
+  const temContato = (op: any) => !!(op.prospectTelefone || op.clienteId)
+  const toggleSelecao = (op: any) => {
+    if (!temContato(op)) return
+    setSelecionadas((s) => {
+      const n = new Set(s); n.has(op.id) ? n.delete(op.id) : n.add(op.id); return n
+    })
+  }
+  const sairSelecao = () => { setModoSelecao(false); setSelecionadas(new Set()) }
+  const irParaCampanha = () => {
+    if (selecionadas.size === 0) return
+    navigate('/campanhas', { state: { oportunidadeIds: Array.from(selecionadas) } })
+  }
+  const selecionarColuna = (estagio: string) => {
+    const ids = (data?.colunas[estagio] || []).filter(temContato).map((o: any) => o.id)
+    setSelecionadas((s) => {
+      const todasSelec = ids.length > 0 && ids.every((id) => s.has(id))
+      const n = new Set(s)
+      if (todasSelec) ids.forEach((id) => n.delete(id))
+      else ids.forEach((id) => n.add(id))
+      return n
+    })
+  }
 
   const handleDrop = async (e: DragEvent, novoEstagio: string) => {
     e.preventDefault()
@@ -87,16 +117,54 @@ export default function CRM() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">CRM — Pipeline</h1>
-          <p className="text-gray-500 text-sm mt-1">Arraste cards entre colunas pra mover entre estágios</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {modoSelecao ? 'Marque as oportunidades e leve pra uma campanha' : 'Arraste cards entre colunas pra mover entre estágios'}
+          </p>
         </div>
-        <button
-          onClick={() => setModalNova(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90"
-          style={{ background: '#FFAF06' }}
-        >
-          <Plus className="w-4 h-4" /> Nova oportunidade
-        </button>
+        <div className="flex items-center gap-2">
+          {modoSelecao ? (
+            <button
+              onClick={sairSelecao}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              style={{ border: '1px solid #E0DDD8' }}
+            >
+              <X className="w-4 h-4" /> Cancelar seleção
+            </button>
+          ) : (
+            <button
+              onClick={() => setModoSelecao(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              style={{ border: '1px solid #E0DDD8' }}
+            >
+              <Megaphone className="w-4 h-4" /> Selecionar p/ campanha
+            </button>
+          )}
+          <button
+            onClick={() => setModalNova(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 hover:opacity-90"
+            style={{ background: '#FFAF06' }}
+          >
+            <Plus className="w-4 h-4" /> Nova oportunidade
+          </button>
+        </div>
       </div>
+
+      {modoSelecao && (
+        <div className="flex items-center justify-between gap-3 p-3 mb-4 rounded-xl flex-wrap" style={{ background: '#FEF3E2', border: '1px solid #FFAF06' }}>
+          <span className="text-sm font-medium" style={{ color: '#7B5B0F' }}>
+            {selecionadas.size} oportunidade(s) selecionada(s)
+            <span className="text-xs font-normal text-gray-500 ml-1">— só entram quem tem telefone</span>
+          </span>
+          <button
+            onClick={irParaCampanha}
+            disabled={selecionadas.size === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 disabled:opacity-50"
+            style={{ background: '#FFAF06' }}
+          >
+            <Megaphone className="w-4 h-4" /> Criar campanha com selecionadas
+          </button>
+        </div>
+      )}
 
       {erro && (
         <div className="p-3 mb-4 rounded-xl text-red-700 text-sm flex items-center gap-2" style={{ background: '#FDEEEE', border: '1px solid #FACACA' }}>
@@ -124,13 +192,26 @@ export default function CRM() {
                       {stats.count} • {fmtBRL(stats.valor)}
                     </div>
                   </div>
+                  {modoSelecao && items.some(temContato) && (
+                    <button
+                      onClick={() => selecionarColuna(est.v)}
+                      className="text-[11px] font-semibold hover:underline"
+                      style={{ color: est.text }}
+                      title="Selecionar/limpar a coluna"
+                    >
+                      todos
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2 flex-1">
                   {items.map((op) => (
                     <CardOportunidade
                       key={op.id}
                       op={op}
-                      onClick={() => setModalDetalhe(op)}
+                      modoSelecao={modoSelecao}
+                      selecionada={selecionadas.has(op.id)}
+                      selecionavel={temContato(op)}
+                      onClick={() => modoSelecao ? toggleSelecao(op) : setModalDetalhe(op)}
                       onDragStart={() => setDragId(op.id)}
                       onDragEnd={() => setDragId(null)}
                       isDragging={dragId === op.id}
@@ -166,23 +247,30 @@ export default function CRM() {
   )
 }
 
-function CardOportunidade({ op, onClick, onDragStart, onDragEnd, isDragging }: any) {
+function CardOportunidade({ op, onClick, onDragStart, onDragEnd, isDragging, modoSelecao, selecionada, selecionavel }: any) {
   const cliente = op.cliente?.razaoSocial || op.prospectEmpresa || op.prospectNome || '—'
   const dias = diasAte(op.dtProximaAcao)
   const corAcao = dias == null ? '#888' : dias < 0 ? '#8B0000' : dias === 0 ? '#8B0000' : dias <= 3 ? '#A77400' : '#27500A'
 
   return (
     <div
-      draggable
+      draggable={!modoSelecao}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition-all"
+      className={`bg-white rounded-xl p-3 transition-all ${modoSelecao && !selecionavel ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
       style={{
         boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
         opacity: isDragging ? 0.4 : 1,
+        border: selecionada ? '2px solid #FFAF06' : '2px solid transparent',
       }}
     >
+      {modoSelecao && (
+        <div className="flex items-center gap-1.5 mb-1.5 text-xs font-medium" style={{ color: selecionada ? '#7B5B0F' : '#9A958A' }}>
+          {selecionada ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+          {selecionavel ? (selecionada ? 'Selecionada' : 'Selecionar') : 'Sem telefone'}
+        </div>
+      )}
       <div className="text-sm font-semibold text-gray-900 mb-1.5">{op.titulo}</div>
       <div className="text-xs text-gray-600 mb-2 truncate">{cliente}</div>
       {op.valorEstimado != null && (

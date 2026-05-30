@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import {
@@ -46,7 +46,19 @@ export default function Campanhas() {
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
   const [criando, setCriando] = useState(false)
+  const [preCrmIds, setPreCrmIds] = useState<string[] | undefined>(undefined)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Chegou do CRM com oportunidades selecionadas → abre o modal já no modo CRM
+  useEffect(() => {
+    const ids = (location.state as any)?.oportunidadeIds as string[] | undefined
+    if (ids?.length) {
+      setPreCrmIds(ids)
+      setCriando(true)
+      navigate(location.pathname, { replace: true, state: {} }) // limpa o state
+    }
+  }, [location.state])
 
   const carregar = async () => {
     setLoading(true)
@@ -190,11 +202,13 @@ export default function Campanhas() {
 
       {criando && (
         <CriarCampanhaModal
-          onClose={() => setCriando(false)}
+          preCrmIds={preCrmIds}
+          onClose={() => { setCriando(false); setPreCrmIds(undefined) }}
           onCreated={(c) => {
             setCriando(false)
+            setPreCrmIds(undefined)
             setSucesso(`Campanha "${c.nome}" criada`)
-            navigate(`/campanhas/${c.id}`)
+            carregar()
           }}
         />
       )}
@@ -202,7 +216,7 @@ export default function Campanhas() {
   )
 }
 
-function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCreated: (c: any) => void }) {
+function CriarCampanhaModal({ onClose, onCreated, preCrmIds }: { onClose: () => void; onCreated: (c: any) => void; preCrmIds?: string[] }) {
   const [nome, setNome] = useState('')
   const [templates, setTemplates] = useState<any[]>([])
   const [carregandoTemplates, setCarregandoTemplates] = useState(true)
@@ -214,12 +228,18 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
   const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [tagFiltro, setTagFiltro] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<string[]>(['NOVO', 'QUALIFICADO'])
-  // Público: 'filtro' (por tag/status) ou 'lista' (escolher leads na mão)
-  const [modoPublico, setModoPublico] = useState<'filtro' | 'lista'>('filtro')
+  // Público: 'filtro' (tag/status), 'lista' (leads na mão) ou 'crm' (oportunidades)
+  const [modoPublico, setModoPublico] = useState<'filtro' | 'lista' | 'crm'>(preCrmIds?.length ? 'crm' : 'filtro')
   const [leads, setLeads] = useState<any[]>([])
   const [carregandoLeads, setCarregandoLeads] = useState(false)
   const [buscaLead, setBuscaLead] = useState('')
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  // Fonte CRM
+  const [ops, setOps] = useState<any[]>([])
+  const [carregandoOps, setCarregandoOps] = useState(false)
+  const [buscaOp, setBuscaOp] = useState('')
+  const [estagiosFiltro, setEstagiosFiltro] = useState<string[]>([])
+  const [opsSelec, setOpsSelec] = useState<Set<string>>(new Set(preCrmIds || []))
   const [delay, setDelay] = useState('30')
   const [agendar, setAgendar] = useState(false)
   const [dataAgendada, setDataAgendada] = useState('')
@@ -266,6 +286,41 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
     return n
   })
 
+  // ── Fonte CRM: carrega oportunidades (achatadas do kanban) ──────────────────
+  useEffect(() => {
+    if (modoPublico !== 'crm' || ops.length > 0) return
+    setCarregandoOps(true)
+    api.get('/crm/kanban')
+      .then((r) => {
+        const colunas = r.data?.colunas || {}
+        const flat = Object.entries(colunas).flatMap(([estagio, arr]: any) =>
+          (arr as any[]).map((o) => ({ ...o, estagio })))
+        // Só vale pra WhatsApp quem tem telefone direto ou cliente vinculado
+        setOps(flat.filter((o) => o.prospectTelefone || o.clienteId))
+      })
+      .catch((e) => setErro(e.response?.data?.message || 'Erro ao carregar CRM'))
+      .finally(() => setCarregandoOps(false))
+  }, [modoPublico])
+
+  const opsFiltradas = ops.filter((o) => {
+    if (estagiosFiltro.length && !estagiosFiltro.includes(o.estagio)) return false
+    if (!buscaOp.trim()) return true
+    const q = buscaOp.toLowerCase()
+    return [o.titulo, o.prospectNome, o.prospectEmpresa, o.prospectTelefone, o.cliente?.razaoSocial]
+      .filter(Boolean).some((x: string) => x.toLowerCase().includes(q))
+  })
+  const toggleOp = (id: string) => setOpsSelec((s) => {
+    const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n
+  })
+  const toggleTodasOps = () => setOpsSelec((s) => {
+    const visiveis = opsFiltradas.map((o) => o.id)
+    const todasSelec = visiveis.every((id) => s.has(id))
+    const n = new Set(s)
+    if (todasSelec) visiveis.forEach((id) => n.delete(id))
+    else visiveis.forEach((id) => n.add(id))
+    return n
+  })
+
   const onTemplateChange = (name: string) => {
     setTemplateName(name)
     const t = templates.find((x) => x.name === name)
@@ -292,15 +347,18 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
     if (!templateName) return setErro('Escolha um template')
     if (precisaImagem && !headerImageUrl.trim()) return setErro('Este template tem imagem no cabeçalho — informe a URL da imagem.')
     if (modoPublico === 'lista' && selecionados.size === 0) return setErro('Selecione pelo menos um contato da lista.')
+    if (modoPublico === 'crm' && opsSelec.size === 0) return setErro('Selecione pelo menos uma oportunidade do CRM.')
     setLoading(true)
     setErro('')
     try {
       const filtros = modoPublico === 'lista'
         ? { leadIds: Array.from(selecionados) }
-        : {
-            tags: tagFiltro ? [tagFiltro] : undefined,
-            status: statusFiltro.length ? statusFiltro : undefined,
-          }
+        : modoPublico === 'crm'
+          ? { oportunidadeIds: Array.from(opsSelec) }
+          : {
+              tags: tagFiltro ? [tagFiltro] : undefined,
+              status: statusFiltro.length ? statusFiltro : undefined,
+            }
       const dto: any = {
         nome,
         templateName,
@@ -406,8 +464,9 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
           <label className="block text-xs font-bold text-gray-600 mb-1">Quem vai receber</label>
           <div className="flex gap-1 p-1 rounded-lg mb-2" style={{ background: '#F1EFE8' }}>
             {[
-              { v: 'filtro', label: 'Por filtro (tag + status)' },
-              { v: 'lista', label: 'Escolher da lista' },
+              { v: 'filtro', label: 'Por filtro' },
+              { v: 'lista', label: 'Da lista' },
+              { v: 'crm', label: 'Do CRM' },
             ].map((m) => (
               <button
                 key={m.v}
@@ -425,7 +484,7 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
 
           {modoPublico === 'filtro' ? (
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div key="tag-field">
                 <label className="block text-[11px] font-medium text-gray-500 mb-1">Filtrar por tag</label>
                 <input
                   value={tagFiltro}
@@ -449,7 +508,7 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
                 </select>
               </div>
             </div>
-          ) : (
+          ) : modoPublico === 'lista' ? (
             <div className="rounded-lg" style={{ border: '1px solid #E0DDD8' }}>
               <div className="flex items-center gap-2 p-2 border-b" style={{ borderColor: '#F1EFE8' }}>
                 <Search className="w-3.5 h-3.5 text-gray-400" />
@@ -484,6 +543,63 @@ function CriarCampanhaModal({ onClose, onCreated }: { onClose: () => void; onCre
               <div className="p-2 border-t text-xs text-gray-500 flex items-center gap-1" style={{ borderColor: '#F1EFE8' }}>
                 <Users className="w-3 h-3" /> {selecionados.size} selecionado(s)
                 <span className="text-gray-300">· descadastrados não aparecem aqui</span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg" style={{ border: '1px solid #E0DDD8' }}>
+              {/* Filtro por estágio do pipeline */}
+              <div className="flex flex-wrap gap-1 p-2 border-b" style={{ borderColor: '#F1EFE8' }}>
+                {['NOVO', 'QUALIFICADO', 'PROPOSTA', 'NEGOCIACAO', 'GANHO', 'PERDIDO'].map((e) => {
+                  const on = estagiosFiltro.includes(e)
+                  return (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => setEstagiosFiltro((s) => on ? s.filter((x) => x !== e) : [...s, e])}
+                      className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                      style={on ? { background: '#FFAF06', color: '#7B5B0F' } : { background: '#F1EFE8', color: '#8A8579' }}
+                    >
+                      {e}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 p-2 border-b" style={{ borderColor: '#F1EFE8' }}>
+                <Search className="w-3.5 h-3.5 text-gray-400" />
+                <input
+                  value={buscaOp}
+                  onChange={(e) => setBuscaOp(e.target.value)}
+                  placeholder="Buscar oportunidade, cliente, telefone..."
+                  className="flex-1 text-sm outline-none bg-transparent"
+                />
+                <button type="button" onClick={toggleTodasOps} className="text-xs font-semibold text-amber-700 hover:underline whitespace-nowrap">
+                  {opsFiltradas.length > 0 && opsFiltradas.every((o) => opsSelec.has(o.id)) ? 'Limpar' : 'Todos'}
+                </button>
+              </div>
+              <div className="max-h-56 overflow-y-auto">
+                {carregandoOps ? (
+                  <div className="text-xs text-gray-400 p-4 text-center"><Loader2 className="w-4 h-4 animate-spin inline mr-1" /> Carregando CRM...</div>
+                ) : opsFiltradas.length === 0 ? (
+                  <div className="text-xs text-gray-400 p-4 text-center">Nenhuma oportunidade com contato.</div>
+                ) : (
+                  opsFiltradas.map((o) => (
+                    <label key={o.id} className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 cursor-pointer border-b last:border-0" style={{ borderColor: '#F7F5F0' }}>
+                      <input type="checkbox" checked={opsSelec.has(o.id)} onChange={() => toggleOp(o.id)} />
+                      <span className="flex-1 min-w-0">
+                        <span className="text-sm text-gray-800 font-medium">{o.prospectNome || o.cliente?.razaoSocial || o.titulo}</span>
+                        <span className="ml-1 text-[10px] font-semibold text-amber-700">{o.estagio}</span>
+                        <span className="block text-[11px] text-gray-400">
+                          {o.prospectTelefone || (o.clienteId ? 'telefone via cliente' : '—')}
+                          {o.prospectEmpresa ? ` · ${o.prospectEmpresa}` : ''}
+                        </span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="p-2 border-t text-xs text-gray-500 flex items-center gap-1" style={{ borderColor: '#F1EFE8' }}>
+                <Users className="w-3 h-3" /> {opsSelec.size} oportunidade(s)
+                <span className="text-gray-300">· descadastrados são removidos no disparo</span>
               </div>
             </div>
           )}
