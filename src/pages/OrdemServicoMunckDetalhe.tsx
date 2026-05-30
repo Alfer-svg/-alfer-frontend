@@ -109,6 +109,26 @@ export default function OrdemServicoMunckDetalhe() {
     await salvar(undefined, 'CONCLUIDA')
   }
 
+  const [enviandoWa, setEnviandoWa] = useState(false)
+  const enviarWhatsApp = async () => {
+    const tel = os.whatsappCliente || os.contatoTelefone
+    if (!tel) {
+      alert('Preencha o WhatsApp do cliente antes de enviar.')
+      return
+    }
+    if (!confirm(`Enviar a OS pro WhatsApp do cliente (${tel})?`)) return
+    setEnviandoWa(true)
+    setErro('')
+    try {
+      const r = await api.post(`/ordens-servico/munck/${os.id}/enviar-whatsapp`, {})
+      alert(`OS enviada pro WhatsApp ${r.data.telefone}.`)
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao enviar OS pro WhatsApp')
+    } finally {
+      setEnviandoWa(false)
+    }
+  }
+
   const excluir = async () => {
     if (!confirm('Excluir esta OS? Não dá pra desfazer.')) return
     try {
@@ -200,6 +220,9 @@ export default function OrdemServicoMunckDetalhe() {
               <Input value={os.contatoTelefone} onChange={(v) => setCampo('contatoTelefone', v)} disabled={concluida} />
             </Campo>
           </Grid2>
+          <Campo label="WhatsApp do cliente (envio da OS concluída)">
+            <Input value={os.whatsappCliente} onChange={(v) => setCampo('whatsappCliente', v)} disabled={concluida} />
+          </Campo>
         </Secao>
 
         {/* 2. LOCAL DA OPERAÇÃO */}
@@ -435,6 +458,17 @@ export default function OrdemServicoMunckDetalhe() {
           >
             {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Concluir OS
+          </button>
+        )}
+        {concluida && (
+          <button
+            onClick={enviarWhatsApp}
+            disabled={enviandoWa}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: '#25D366' }}
+          >
+            {enviandoWa ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+            Enviar pro WhatsApp
           </button>
         )}
       </div>
