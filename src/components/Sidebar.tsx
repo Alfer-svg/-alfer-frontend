@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useInboxAlert } from '../context/InboxAlertContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, Building2, Shield, X, BarChart3
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -41,6 +41,8 @@ const nav: NavItem[] = [
       { to: '/cacambas', label: 'Caçambas' },
       { to: '/logistica', label: 'Logística' },
       { to: '/frete-spot', label: 'Frete Spot' },
+      { to: '/ordens-servico/munck', label: 'OS Munck' },
+      { to: '/ordens-servico/poli', label: 'OS Poliguindaste' },
     ],
   },
   {
@@ -80,15 +82,6 @@ const nav: NavItem[] = [
       { to: '/caminhoes', label: 'Caminhões' },
     ],
   },
-  {
-    label: 'OSs',
-    icon: ClipboardList,
-    basePath: '/ordens-servico',
-    children: [
-      { to: '/ordens-servico/munck', label: 'OS Munck' },
-      { to: '/ordens-servico/poli', label: 'OS Poliguindaste' },
-    ],
-  },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
   { to: '/mapa', icon: Map, label: 'Mapa' },
 ]
@@ -118,7 +111,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
     if (isGroup(i)) {
       const extras =
         i.label === 'Equipamentos' ? ['/modelos', '/caminhoes'] :
-        i.label === 'Locações' ? ['/contratos', '/cacambas', '/logistica'] :
+        i.label === 'Locações' ? ['/contratos', '/cacambas', '/logistica', '/frete-spot', '/ordens-servico'] :
         i.label === 'Comercial' ? ['/crm', '/leads', '/campanhas', '/inbox-whatsapp', '/condicoes-orcamento', '/pedidos'] :
         []
       initialOpen[i.label] = i.children.some((c) => location.pathname.startsWith(c.to))
