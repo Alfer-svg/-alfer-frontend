@@ -38,7 +38,8 @@ export default function MotoristaLogin() {
     setLoading(true)
     try {
       await login(matriculaSel, pin.trim())
-      navigate('/m/veiculo')
+      // Index do /m redireciona pro home certo conforme o modo (campo→veículo, pátio→tarefas).
+      navigate('/m')
     } catch (e: any) {
       setErro(e?.response?.data?.message || 'Falha no login')
     } finally {
