@@ -5,7 +5,7 @@ import api from '../services/api'
 import {
   Package, FileText, DollarSign, AlertTriangle,
   Layers, Clock, CheckCircle, XCircle, Map as MapIcon, ChevronRight,
-  Target, Pencil, Truck, Box, TrendingUp, TrendingDown
+  Target, Pencil, Truck, Box, TrendingUp, TrendingDown, Navigation
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import MapaEquipamentos from '../components/MapaEquipamentos'
@@ -28,7 +28,7 @@ interface Alerta {
 }
 
 interface MetaItem { meta: number; realizado: number }
-interface MetasData { mes: string; munck: MetaItem; cacambas: MetaItem; containers: MetaItem }
+interface MetasData { mes: string; munck: MetaItem; cacambas: MetaItem; containers: MetaItem; fretes: MetaItem }
 
 const mesAtual = () => {
   const d = new Date()
@@ -67,7 +67,7 @@ export default function Dashboard() {
   const [metas, setMetas] = useState<MetasData | null>(null)
   const [mesMetas, setMesMetas] = useState(mesAtual())
   const [editandoMetas, setEditandoMetas] = useState(false)
-  const [metasForm, setMetasForm] = useState({ metaMunck: '', metaCacambas: '', metaContainers: '' })
+  const [metasForm, setMetasForm] = useState({ metaMunck: '', metaCacambas: '', metaContainers: '', metaFretes: '' })
   const [salvandoMetas, setSalvandoMetas] = useState(false)
 
   useEffect(() => {
@@ -106,6 +106,7 @@ export default function Dashboard() {
       metaMunck: metas?.munck.meta ? String(metas.munck.meta) : '',
       metaCacambas: metas?.cacambas.meta ? String(metas.cacambas.meta) : '',
       metaContainers: metas?.containers.meta ? String(metas.containers.meta) : '',
+      metaFretes: metas?.fretes.meta ? String(metas.fretes.meta) : '',
     })
     setEditandoMetas(true)
   }
@@ -117,6 +118,7 @@ export default function Dashboard() {
         metaMunck: Number(metasForm.metaMunck) || 0,
         metaCacambas: Number(metasForm.metaCacambas) || 0,
         metaContainers: Number(metasForm.metaContainers) || 0,
+        metaFretes: Number(metasForm.metaFretes) || 0,
       })
       const { data: nova } = await api.get('/dashboard/metas', { params: { mes: mesMetas } })
       setMetas(nova)
@@ -259,11 +261,12 @@ export default function Dashboard() {
           </div>
 
           {editandoMetas ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {([
                 { key: 'metaMunck', label: 'Faturamento Munck' },
                 { key: 'metaCacambas', label: 'Faturamento Caçambas' },
                 { key: 'metaContainers', label: 'Containers (Seco + Reefer)' },
+                { key: 'metaFretes', label: 'Fretes (Frete Spot)' },
               ] as const).map((f) => (
                 <div key={f.key}>
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">{f.label}</label>
@@ -282,7 +285,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
-              <div className="md:col-span-3 flex justify-end gap-2 mt-1">
+              <div className="md:col-span-2 lg:col-span-4 flex justify-end gap-2 mt-1">
                 <button
                   onClick={() => setEditandoMetas(false)}
                   className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
@@ -300,11 +303,12 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {([
                 { item: metas.munck, label: 'Munck', icon: Truck, color: '#2D80D1', bg: '#E3EEFA' },
                 { item: metas.cacambas, label: 'Caçambas', icon: Layers, color: '#9B59B6', bg: '#F0E6F6' },
                 { item: metas.containers, label: 'Containers', icon: Box, color: '#27AE60', bg: '#EAF3DE' },
+                { item: metas.fretes, label: 'Fretes', icon: Navigation, color: '#FFAF06', bg: '#FEF3E2' },
               ] as const).map((m) => {
                 const pct = m.item.meta > 0 ? Math.min((m.item.realizado / m.item.meta) * 100, 100) : 0
                 const pctReal = m.item.meta > 0 ? Math.round((m.item.realizado / m.item.meta) * 100) : 0
