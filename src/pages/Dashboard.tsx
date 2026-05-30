@@ -28,7 +28,7 @@ interface Alerta {
 }
 
 interface MetaItem { meta: number; realizado: number }
-interface MetasData { mes: string; munck: MetaItem; cacambas: MetaItem; containers: MetaItem; fretes: MetaItem }
+interface MetasData { mes: string; munck: MetaItem; cacambas: MetaItem; containers: MetaItem; fretes: MetaItem; geral: MetaItem }
 
 const mesAtual = () => {
   const d = new Date()
@@ -303,6 +303,44 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
+            <>
+            {/* Meta geral — soma de todas */}
+            {(() => {
+              const g = metas.geral
+              const pct = g.meta > 0 ? Math.min((g.realizado / g.meta) * 100, 100) : 0
+              const pctReal = g.meta > 0 ? Math.round((g.realizado / g.meta) * 100) : 0
+              const batida = g.meta > 0 && g.realizado >= g.meta
+              const ehMesCorrente = metas.mes === mesAtual()
+              const hojeD = new Date()
+              const diasNoMes = new Date(hojeD.getFullYear(), hojeD.getMonth() + 1, 0).getDate()
+              const paceEsperado = ehMesCorrente ? (hojeD.getDate() / diasNoMes) * 100 : 100
+              const noRitmo = g.meta > 0 && pctReal >= paceEsperado
+              return (
+                <div className="rounded-xl p-4 mb-4" style={{ background: '#FEF3E2', border: '1px solid #FFAF06' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#FFAF06' }}>
+                        <Target className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-bold text-gray-900">Faturamento mensal (geral)</span>
+                    </div>
+                    {g.meta > 0 && (
+                      <span className="flex items-center gap-1 text-xs font-bold" style={{ color: batida || noRitmo ? '#27AE60' : '#E74C3C' }}>
+                        {batida || noRitmo ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                        {pctReal}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-display text-2xl font-bold text-gray-900">{fmt(g.realizado)}</span>
+                    <span className="text-xs text-gray-500">{g.meta > 0 ? `de ${fmt(g.meta)}` : 'defina as metas acima'}</span>
+                  </div>
+                  <div className="h-2 bg-white/60 rounded-full overflow-hidden mt-2">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: batida ? '#27AE60' : '#FFAF06' }} />
+                  </div>
+                </div>
+              )
+            })()}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {([
                 { item: metas.munck, label: 'Munck', icon: Truck, color: '#2D80D1', bg: '#E3EEFA' },
@@ -355,6 +393,7 @@ export default function Dashboard() {
                 )
               })}
             </div>
+            </>
           )}
         </div>
       )}
