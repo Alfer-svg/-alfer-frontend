@@ -100,7 +100,7 @@ export default function Logistica() {
       {/* Tabs por status — EM_ROTA fica oculto aqui (visível em /cacambas) */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {Object.entries(statusInfo)
-          .filter(([key]) => key !== 'EM_ROTA' && key !== 'EM_ROTA_DESMOBILIZAR')
+          .filter(([key]) => key !== 'EM_ROTA' && key !== 'EM_ROTA_DESMOBILIZAR' && key !== 'DESMOBILIZADO')
           .map(([key, info]) => {
           const n = contagens[key] || 0
           const ativo = filtroStatus === key
