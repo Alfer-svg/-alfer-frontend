@@ -28,8 +28,8 @@ export default function Layout() {
         <button
           onClick={() => setMobileOpen(true)}
           aria-label="Abrir menu"
-          className="lg:hidden fixed top-4 left-4 z-30 w-11 h-11 flex items-center justify-center rounded-xl bg-white shadow-lg"
-          style={{ border: '1px solid #E0DDD8' }}
+          className="lg:hidden fixed left-4 z-30 w-11 h-11 flex items-center justify-center rounded-xl bg-white shadow-lg"
+          style={{ border: '1px solid #E0DDD8', top: 'calc(env(safe-area-inset-top) + 1rem)' }}
         >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
@@ -45,7 +45,7 @@ export default function Layout() {
 
         <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-        <main className="flex-1 min-h-screen lg:ml-60 pt-16 lg:pt-0">
+        <main className="flex-1 min-h-screen lg:ml-60 pt-[calc(env(safe-area-inset-top)_+_4rem)] lg:pt-0">
           <Outlet />
         </main>
       </div>
