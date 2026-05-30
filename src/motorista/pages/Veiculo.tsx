@@ -131,9 +131,7 @@ export default function MotoristaVeiculo() {
             {jornadaAberta ? 'Encerrar jornada' : 'Iniciar jornada'}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">
-            {jornadaAberta
-              ? `Em andamento desde ${new Date(jornadaAberta.dtInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-              : 'Bater o ponto (hora e local)'}
+            {jornadaAberta ? 'Jornada em andamento' : 'Bater o ponto'}
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-gray-400" />
