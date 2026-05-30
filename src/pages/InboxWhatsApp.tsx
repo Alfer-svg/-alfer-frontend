@@ -88,6 +88,39 @@ export default function InboxWhatsApp() {
   const [carregando, setCarregando] = useState(true)
   const [conversaSel, setConversaSel] = useState<Conversa | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [autoWa, setAutoWa] = useState(false)
+  const [autoIg, setAutoIg] = useState(false)
+  const [salvandoAuto, setSalvandoAuto] = useState<'WHATSAPP' | 'INSTAGRAM' | null>(null)
+
+  const carregarConfig = async () => {
+    try {
+      const r = await api.get('/agente/config')
+      setAutoWa(!!r.data?.autonomoWhatsapp)
+      setAutoIg(!!r.data?.autonomoInstagram)
+    } catch { /* silencioso */ }
+  }
+
+  useEffect(() => { carregarConfig() }, [])
+
+  const toggleAuto = async (canal: 'WHATSAPP' | 'INSTAGRAM') => {
+    const atual = canal === 'WHATSAPP' ? autoWa : autoIg
+    const novo = !atual
+    setSalvandoAuto(canal)
+    // Otimista
+    if (canal === 'WHATSAPP') setAutoWa(novo); else setAutoIg(novo)
+    try {
+      const body = canal === 'WHATSAPP' ? { autonomoWhatsapp: novo } : { autonomoInstagram: novo }
+      const r = await api.post('/agente/config', body)
+      setAutoWa(!!r.data?.autonomoWhatsapp)
+      setAutoIg(!!r.data?.autonomoInstagram)
+    } catch {
+      // Reverte em caso de erro
+      if (canal === 'WHATSAPP') setAutoWa(atual); else setAutoIg(atual)
+      alert('Não consegui salvar o modo autônomo. Tenta de novo.')
+    } finally {
+      setSalvandoAuto(null)
+    }
+  }
 
   const carregar = async () => {
     setCarregando(true)
@@ -157,6 +190,40 @@ export default function InboxWhatsApp() {
             <t.icon className="w-3.5 h-3.5" /> {t.label}
           </button>
         ))}
+      </div>
+
+      {/* Modo autônomo da IA: quando ligado, o agente responde sozinho (sem aprovação humana). */}
+      <div className="mb-4 p-3 rounded-xl flex flex-wrap items-center gap-x-5 gap-y-2" style={{ background: '#FEF3E2', border: '1px solid #FBE2B6' }}>
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+          <Sparkles className="w-4 h-4" style={{ color: '#FFAF06' }} /> IA responde sozinha
+        </div>
+        {([
+          { canal: 'WHATSAPP' as const, label: 'WhatsApp', cor: '#25D366', on: autoWa, Icon: Phone },
+          { canal: 'INSTAGRAM' as const, label: 'Instagram', cor: '#C13584', on: autoIg, Icon: Instagram },
+        ]).map(({ canal, label, cor, on, Icon }) => (
+          <button
+            key={canal}
+            onClick={() => toggleAuto(canal)}
+            disabled={salvandoAuto === canal}
+            className="inline-flex items-center gap-2 text-sm disabled:opacity-50"
+            title={on ? `IA respondendo sozinha no ${label}` : `Ligar resposta autônoma no ${label}`}
+          >
+            <Icon className="w-4 h-4" style={{ color: cor }} />
+            <span className="text-gray-700">{label}</span>
+            <span
+              className="relative inline-block w-9 h-5 rounded-full transition-colors"
+              style={{ background: on ? cor : '#D1CFC9' }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                style={{ transform: on ? 'translateX(16px)' : 'translateX(0)' }}
+              />
+            </span>
+          </button>
+        ))}
+        <span className="text-xs text-gray-500 basis-full sm:basis-auto">
+          Ligado: a IA envia a resposta direto pro cliente. Desligado: gera rascunho pra você aprovar.
+        </span>
       </div>
 
       {erro && (
