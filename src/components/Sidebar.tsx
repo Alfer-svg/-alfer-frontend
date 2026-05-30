@@ -193,7 +193,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
                             end
                             className={({ isActive }) =>
                               `flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-                                isActive ? 'text-gray-900' : 'text-gray-700 hover:text-gray-900'
+                                isActive ? 'text-gray-900' : 'text-gray-700 hover:text-gray-900 hover:bg-[#FBE2B6]'
                               }`
                             }
                             style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
