@@ -106,7 +106,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
     icon: User,
     basePath: '/motoristas',
     children: [
-      { to: '/motoristas', label: 'Motoristas' },
+      { to: '/motoristas', label: 'Funcionários' },
       ...(podeVerUsuarios ? [{ to: '/usuarios', label: 'Usuários do sistema' }] : []),
     ],
   }

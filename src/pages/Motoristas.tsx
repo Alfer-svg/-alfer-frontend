@@ -63,7 +63,7 @@ export default function Motoristas() {
   }
 
   const excluir = async (m: any) => {
-    if (!confirm(`Excluir DEFINITIVAMENTE o motorista "${m.nome}"? Esta ação não pode ser desfeita.`)) return
+    if (!confirm(`Excluir DEFINITIVAMENTE o funcionário "${m.nome}"? Esta ação não pode ser desfeita.`)) return
     if (!confirm('Confirma de novo? Se houver histórico vinculado, a exclusão será bloqueada.')) return
     setAcaoErro('')
     setAcaoLoadingId(m.id)
@@ -71,7 +71,7 @@ export default function Motoristas() {
       await api.delete(`/motoristas/${m.id}`)
       load()
     } catch (err: any) {
-      setAcaoErro(err.response?.data?.message || 'Erro ao excluir motorista.')
+      setAcaoErro(err.response?.data?.message || 'Erro ao excluir funcionário.')
     } finally {
       setAcaoLoadingId('')
     }
@@ -81,8 +81,8 @@ export default function Motoristas() {
     <div className="p-8 animate-fade-in">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Motoristas</h1>
-          <p className="text-gray-500 text-sm mt-1">{motoristas.length} motoristas cadastrados</p>
+          <h1 className="font-display text-2xl font-bold text-gray-900">Funcionários</h1>
+          <p className="text-gray-500 text-sm mt-1">{motoristas.length} funcionários cadastrados</p>
         </div>
         <button
           onClick={() => setShowNovo(true)}
@@ -90,7 +90,7 @@ export default function Motoristas() {
           style={{ background: '#FFAF06' }}
         >
           <Plus className="w-4 h-4" />
-          Novo motorista
+          Novo funcionário
         </button>
       </div>
 
@@ -120,7 +120,7 @@ export default function Motoristas() {
       ) : motoristas.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <User className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Nenhum motorista encontrado</p>
+          <p>Nenhum funcionário encontrado</p>
         </div>
       ) : (
         <div className="space-y-3 stagger">
@@ -440,7 +440,7 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
       }
       onSuccess()
     } catch (err: any) {
-      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} motorista.`)
+      setErro(err.response?.data?.message || `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} funcionário.`)
     } finally {
       setLoading(false)
     }
@@ -452,7 +452,7 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
   return (
     <Modal onClose={onClose} maxWidth="max-w-md">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar motorista' : 'Novo motorista'}</h2>
+        <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar funcionário' : 'Novo funcionário'}</h2>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <form onSubmit={submit} className="space-y-3">
