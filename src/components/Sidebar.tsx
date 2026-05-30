@@ -69,7 +69,6 @@ const nav: NavItem[] = [
       { to: '/equipamentos/estoque', label: 'Estoque' },
       { to: '/equipamentos', label: 'Cadastrar equipamentos' },
       { to: '/modelos', label: 'Cadastrar modelos' },
-      { to: '/caminhoes', label: 'Frota' },
     ],
   },
   {
