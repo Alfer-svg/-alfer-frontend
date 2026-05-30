@@ -548,6 +548,31 @@ function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () 
   )
 }
 
+const INPUT_CLS = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+const INPUT_STYLE = { border: '1px solid #E0DDD8' }
+
+// Definidos no escopo do módulo (não dentro do modal) — se ficarem dentro,
+// o React recria o componente a cada tecla e o input perde o foco.
+function Secao({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="pt-1">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{title}</div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function Campo({ label, value, onChange, ...rest }: {
+  label: string; value: string; onChange: (v: string) => void
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} className={INPUT_CLS} style={INPUT_STYLE} {...rest} />
+    </div>
+  )
+}
+
 function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; onClose: () => void; onSuccess: () => void }) {
   const isEdit = !!motorista
   const [loading, setLoading] = useState(false)
@@ -603,20 +628,8 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
     }
   }
 
-  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
-  const inputStyle = { border: '1px solid #E0DDD8' }
-  const Campo = ({ label, k, ...rest }: { label: string; k: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
-    <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
-      <input value={(form as any)[k]} onChange={(e) => set(k, e.target.value)} className={inputCls} style={inputStyle} {...rest} />
-    </div>
-  )
-  const Secao = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="pt-1">
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{title}</div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  )
+  const inputCls = INPUT_CLS
+  const inputStyle = INPUT_STYLE
 
   return (
     <Modal onClose={onClose} maxWidth="max-w-2xl">
@@ -627,13 +640,13 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
       <form onSubmit={submit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
 
         <Secao title="Dados pessoais">
-          <Campo label="Nome completo *" k="nome" required />
+          <Campo label="Nome completo *" value={form.nome} onChange={(v) => set('nome', v)} required />
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="CPF" k="cpf" placeholder="000.000.000-00" />
-            <Campo label="RG" k="rg" placeholder="Número" />
+            <Campo label="CPF" value={form.cpf} onChange={(v) => set('cpf', v)} placeholder="000.000.000-00" />
+            <Campo label="RG" value={form.rg} onChange={(v) => set('rg', v)} placeholder="Número" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="Data de nascimento" k="dataNascimento" type="date" />
+            <Campo label="Data de nascimento" value={form.dataNascimento} onChange={(v) => set('dataNascimento', v)} type="date" />
             <div>
               <label className="block text-xs text-gray-500 mb-1">Cargo / função</label>
               <select value={form.cargo} onChange={(e) => set('cargo', e.target.value)} className={inputCls} style={inputStyle}>
@@ -651,32 +664,32 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
 
         <Secao title="Contato">
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="Telefone" k="telefone" placeholder="(81) 9 0000-0000" />
-            <Campo label="E-mail" k="email" type="email" placeholder="email@exemplo.com" />
+            <Campo label="Telefone" value={form.telefone} onChange={(v) => set('telefone', v)} placeholder="(81) 9 0000-0000" />
+            <Campo label="E-mail" value={form.email} onChange={(v) => set('email', v)} type="email" placeholder="email@exemplo.com" />
           </div>
-          <Campo label="Endereço" k="endereco" placeholder="Rua, número, bairro" />
+          <Campo label="Endereço" value={form.endereco} onChange={(v) => set('endereco', v)} placeholder="Rua, número, bairro" />
           <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2"><Campo label="Cidade" k="cidade" /></div>
-            <Campo label="UF" k="uf" maxLength={2} placeholder="PE" />
+            <div className="col-span-2"><Campo label="Cidade" value={form.cidade} onChange={(v) => set('cidade', v)} /></div>
+            <Campo label="UF" value={form.uf} onChange={(v) => set('uf', v)} maxLength={2} placeholder="PE" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="Contato de emergência" k="contatoEmergenciaNome" placeholder="Nome" />
-            <Campo label="Telefone de emergência" k="contatoEmergenciaTelefone" placeholder="(81) 9 0000-0000" />
+            <Campo label="Contato de emergência" value={form.contatoEmergenciaNome} onChange={(v) => set('contatoEmergenciaNome', v)} placeholder="Nome" />
+            <Campo label="Telefone de emergência" value={form.contatoEmergenciaTelefone} onChange={(v) => set('contatoEmergenciaTelefone', v)} placeholder="(81) 9 0000-0000" />
           </div>
         </Secao>
 
         <Secao title="CNH">
           <div className="grid grid-cols-3 gap-3">
-            <Campo label="Número" k="cnh" />
-            <Campo label="Categoria" k="cnhCategoria" placeholder="D, E…" />
-            <Campo label="Válida até" k="cnhValida" type="date" />
+            <Campo label="Número" value={form.cnh} onChange={(v) => set('cnh', v)} />
+            <Campo label="Categoria" value={form.cnhCategoria} onChange={(v) => set('cnhCategoria', v)} placeholder="D, E…" />
+            <Campo label="Válida até" value={form.cnhValida} onChange={(v) => set('cnhValida', v)} type="date" />
           </div>
         </Secao>
 
         <Secao title="Vínculo e acesso">
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="Matrícula *" k="matricula" required placeholder="MOT-001" />
-            <Campo label="Data de admissão" k="dataAdmissao" type="date" />
+            <Campo label="Matrícula *" value={form.matricula} onChange={(v) => set('matricula', v)} required placeholder="MOT-001" />
+            <Campo label="Data de admissão" value={form.dataAdmissao} onChange={(v) => set('dataAdmissao', v)} type="date" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">PIN (login app) {isEdit ? '' : '*'}</label>
