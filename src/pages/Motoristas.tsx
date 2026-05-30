@@ -136,6 +136,7 @@ export default function Motoristas() {
                   <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <span className="font-semibold text-gray-900">{m.nome}</span>
                     <span className="text-xs text-gray-400">#{m.matricula}</span>
+                    {m.cargo && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#FEF3E2', color: '#633806' }}>{m.cargo}</span>}
                     {!m.ativo && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#F1EFE8', color: '#888' }}>Inativo</span>}
                     {cnhVencendo && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: '#FEF3E2', color: '#633806' }}>CNH vencendo</span>}
                   </div>
@@ -404,16 +405,31 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
   const isEdit = !!motorista
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const d = (s: any) => (s ? new Date(s).toISOString().slice(0, 10) : '')
   const [form, setForm] = useState({
     nome: motorista?.nome || '',
     matricula: motorista?.matricula || '',
     pin: '',
+    cargo: motorista?.cargo || '',
     telefone: motorista?.telefone || '',
+    email: motorista?.email || '',
+    cpf: motorista?.cpf || '',
+    rg: motorista?.rg || '',
+    dataNascimento: d(motorista?.dataNascimento),
+    dataAdmissao: d(motorista?.dataAdmissao),
     cnh: motorista?.cnh || '',
-    cnhValida: motorista?.cnhValida ? new Date(motorista.cnhValida).toISOString().slice(0, 10) : '',
+    cnhCategoria: motorista?.cnhCategoria || '',
+    cnhValida: d(motorista?.cnhValida),
+    endereco: motorista?.endereco || '',
+    cidade: motorista?.cidade || '',
+    uf: motorista?.uf || '',
+    contatoEmergenciaNome: motorista?.contatoEmergenciaNome || '',
+    contatoEmergenciaTelefone: motorista?.contatoEmergenciaTelefone || '',
+    observacoes: motorista?.observacoes || '',
     jornadaInicio: motorista?.jornadaInicio || '',
     jornadaFim: motorista?.jornadaFim || '',
   })
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -423,15 +439,9 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
     if (form.pin && form.pin.length < 4) return setErro('PIN deve ter pelo menos 4 dígitos.')
     setLoading(true)
     try {
-      const payload: any = {
-        nome: form.nome,
-        matricula: form.matricula,
-        telefone: form.telefone || null,
-        cnh: form.cnh || null,
-        cnhValida: form.cnhValida || null,
-        jornadaInicio: form.jornadaInicio || null,
-        jornadaFim: form.jornadaFim || null,
-      }
+      const payload: any = { ...form }
+      delete payload.pin
+      for (const k of Object.keys(payload)) if (payload[k] === '') payload[k] = null
       if (form.pin) payload.pin = form.pin
       if (isEdit) {
         await api.put(`/motoristas/${motorista.id}`, payload)
@@ -448,75 +458,118 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
 
   const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
   const inputStyle = { border: '1px solid #E0DDD8' }
+  const Campo = ({ label, k, ...rest }: { label: string; k: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <input value={(form as any)[k]} onChange={(e) => set(k, e.target.value)} className={inputCls} style={inputStyle} {...rest} />
+    </div>
+  )
+  const Secao = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="pt-1">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{title}</div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg font-bold text-gray-900">{isEdit ? 'Editar funcionário' : 'Novo funcionário'}</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
-        </div>
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Nome completo *</label>
-            <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required className={inputCls} style={inputStyle} />
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <form onSubmit={submit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+
+        <Secao title="Dados pessoais">
+          <Campo label="Nome completo *" k="nome" required />
+          <div className="grid grid-cols-2 gap-3">
+            <Campo label="CPF" k="cpf" placeholder="000.000.000-00" />
+            <Campo label="RG" k="rg" placeholder="Número" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Matrícula *</label>
-              <input value={form.matricula} onChange={(e) => setForm({ ...form, matricula: e.target.value })} required placeholder="MOT-001" className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">PIN (login app) {isEdit ? '' : '*'}</label>
-              <input
-                value={form.pin}
-                onChange={(e) => setForm({ ...form, pin: e.target.value })}
-                required={!isEdit}
-                maxLength={6}
-                placeholder={isEdit ? 'Deixe em branco para manter' : '4-6 dígitos'}
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
+            <Campo label="Data de nascimento" k="dataNascimento" type="date" />
+            <Campo label="Cargo / função" k="cargo" placeholder="Motorista, operador…" />
           </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Telefone</label>
-            <input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(81) 9 0000-0000" className={inputCls} style={inputStyle} />
+        </Secao>
+
+        <Secao title="Contato">
+          <div className="grid grid-cols-2 gap-3">
+            <Campo label="Telefone" k="telefone" placeholder="(81) 9 0000-0000" />
+            <Campo label="E-mail" k="email" type="email" placeholder="email@exemplo.com" />
+          </div>
+          <Campo label="Endereço" k="endereco" placeholder="Rua, número, bairro" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><Campo label="Cidade" k="cidade" /></div>
+            <Campo label="UF" k="uf" maxLength={2} placeholder="PE" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">CNH</label>
-              <input value={form.cnh} onChange={(e) => setForm({ ...form, cnh: e.target.value })} placeholder="Número" className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">CNH válida até</label>
-              <input value={form.cnhValida} onChange={(e) => setForm({ ...form, cnhValida: e.target.value })} type="date" className={inputCls} style={inputStyle} />
-            </div>
+            <Campo label="Contato de emergência" k="contatoEmergenciaNome" placeholder="Nome" />
+            <Campo label="Telefone de emergência" k="contatoEmergenciaTelefone" placeholder="(81) 9 0000-0000" />
+          </div>
+        </Secao>
+
+        <Secao title="CNH">
+          <div className="grid grid-cols-3 gap-3">
+            <Campo label="Número" k="cnh" />
+            <Campo label="Categoria" k="cnhCategoria" placeholder="D, E…" />
+            <Campo label="Válida até" k="cnhValida" type="date" />
+          </div>
+        </Secao>
+
+        <Secao title="Vínculo e acesso">
+          <div className="grid grid-cols-2 gap-3">
+            <Campo label="Matrícula *" k="matricula" required placeholder="MOT-001" />
+            <Campo label="Data de admissão" k="dataAdmissao" type="date" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">PIN (login app) {isEdit ? '' : '*'}</label>
+            <input
+              value={form.pin}
+              onChange={(e) => set('pin', e.target.value)}
+              required={!isEdit}
+              maxLength={6}
+              placeholder={isEdit ? 'Deixe em branco para manter' : '4-6 dígitos'}
+              className={inputCls}
+              style={inputStyle}
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Jornada padrão (horário de trabalho)</label>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 w-10">Início</span>
-                <input value={form.jornadaInicio} onChange={(e) => setForm({ ...form, jornadaInicio: e.target.value })} type="time" className={inputCls} style={inputStyle} />
+                <input value={form.jornadaInicio} onChange={(e) => set('jornadaInicio', e.target.value)} type="time" className={inputCls} style={inputStyle} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 w-10">Fim</span>
-                <input value={form.jornadaFim} onChange={(e) => setForm({ ...form, jornadaFim: e.target.value })} type="time" className={inputCls} style={inputStyle} />
+                <input value={form.jornadaFim} onChange={(e) => set('jornadaFim', e.target.value)} type="time" className={inputCls} style={inputStyle} />
               </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Usado pra alertar atraso na tela de motoristas (tolerância de 15 min). Em branco usa 08:00–18:00.</p>
+            <p className="text-[11px] text-gray-400 mt-1">Usado pra alertar atraso na tela de funcionários (tolerância de 15 min). Em branco usa 08:00–18:00.</p>
           </div>
-          {erro && (<div className="text-xs text-red-700 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> {erro}</div>)}
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isEdit ? 'Salvar alterações' : 'Cadastrar'}
-            </button>
-          </div>
-        </form>
+        </Secao>
+
+        <Secao title="Observações">
+          <textarea
+            value={form.observacoes}
+            onChange={(e) => set('observacoes', e.target.value)}
+            rows={3}
+            placeholder="Anotações internas sobre o funcionário"
+            className={inputCls}
+            style={inputStyle}
+          />
+        </Secao>
+
+        {erro && (<div className="text-xs text-red-700 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> {erro}</div>)}
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: loading ? '#CC8C00' : '#FFAF06' }}>
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {isEdit ? 'Salvar alterações' : 'Cadastrar'}
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
