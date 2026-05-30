@@ -58,7 +58,9 @@ const isoLocal = (d?: string) => (d ? String(d).slice(0, 10) : '')
 
 export default function FreteSpotDetalhe() {
   const { id } = useParams<{ id: string }>()
-  const isNova = id === 'nova'
+  // A rota /frete-spot/nova é estática: useParams().id vem undefined.
+  // Em /frete-spot/:id o id existe. Então "sem id" = viagem nova.
+  const isNova = !id || id === 'nova'
   const navigate = useNavigate()
   const [v, setV] = useState<any>(null)
   const [loading, setLoading] = useState(true)
