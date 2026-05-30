@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
-import { Truck, ChevronDown } from 'lucide-react'
+import { HardHat, ChevronDown } from 'lucide-react'
 import AlferLogo from '../../components/AlferLogo'
 
 interface MotoristaItem {
@@ -54,12 +54,12 @@ export default function MotoristaLogin() {
             <AlferLogo size={120} />
           </div>
           <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-            <Truck className="w-4 h-4" />
-            <span>App do Motorista</span>
+            <HardHat className="w-4 h-4" />
+            <span>App do Colaborador</span>
           </div>
         </div>
 
-        <label className="block text-xs font-medium text-gray-600 mb-1">Motorista</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Funcionário</label>
         <div className="relative mb-4">
           <select
             value={matriculaSel}
