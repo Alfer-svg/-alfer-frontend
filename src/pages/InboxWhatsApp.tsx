@@ -117,6 +117,12 @@ export default function InboxWhatsApp() {
         linhas.push('')
         linhas.push(`Páginas administradas pelo token: ${d.paginas.map((p: any) => p.pagina).join(', ')}`)
       }
+      if (d.pageTokenRecomendado) {
+        linhas.push('')
+        linhas.push(d.tokenLongo ? '✅ Token de Página PERMANENTE (não expira):' : '⚠️ Token de Página TEMPORÁRIO:')
+        linhas.push('(copiado pra área de transferência — cole no INSTAGRAM_TOKEN e FACEBOOK_TOKEN do Railway)')
+        try { await navigator.clipboard.writeText(d.pageTokenRecomendado) } catch { /* ignore */ }
+      }
       alert(linhas.join('\n'))
 
       // Se não achou e ainda não tentou com token colado, oferece colar um.
