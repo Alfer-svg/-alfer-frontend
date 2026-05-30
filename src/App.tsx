@@ -57,6 +57,7 @@ import MotoristaLayout from './motorista/Layout'
 import MotoristaLogin from './motorista/pages/Login'
 import MotoristaVeiculo from './motorista/pages/Veiculo'
 import MotoristaChecklist from './motorista/pages/Checklist'
+import MotoristaAbastecimento from './motorista/pages/Abastecimento'
 import MotoristaOperacoes from './motorista/pages/Operacoes'
 import MotoristaOperacaoDetalhe from './motorista/pages/OperacaoDetalhe'
 import MotoristaOSDetalhe from './motorista/pages/OSDetalhe'
@@ -92,6 +93,7 @@ function MotoristaRoutes() {
         <Route index element={<Navigate to="/m/veiculo" replace />} />
         <Route path="veiculo" element={<MotoristaVeiculo />} />
         <Route path="checklist" element={<MotoristaChecklist />} />
+        <Route path="abastecimento" element={<MotoristaAbastecimento />} />
         <Route path="operacoes" element={<MotoristaOperacoes />} />
         <Route path="operacoes/:id" element={<MotoristaOperacaoDetalhe />} />
         <Route path="os/:tipo/:id" element={<MotoristaOSDetalhe />} />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
-import { Truck, ChevronRight, AlertCircle } from 'lucide-react'
+import { Truck, ChevronRight, AlertCircle, Fuel } from 'lucide-react'
 import { iconePorTipoCaminhao } from '../iconesCaminhao'
 
 export default function MotoristaVeiculo() {
@@ -112,6 +112,24 @@ export default function MotoristaVeiculo() {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
       )}
+
+      <button
+        onClick={() => navigate('/m/abastecimento')}
+        className="w-full py-4 rounded-2xl bg-white border flex items-center gap-3 px-5 active:bg-gray-50"
+        style={{ borderColor: '#E0DDD8' }}
+      >
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: '#FEF3E2' }}
+        >
+          <Fuel className="w-5 h-5" style={{ color: '#FFAF06' }} />
+        </div>
+        <div className="text-left flex-1">
+          <div className="font-semibold text-gray-900">Registrar abastecimento</div>
+          <div className="text-xs text-gray-500 mt-0.5">KM, valor, diesel e arla</div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
+      </button>
     </div>
   )
 }
