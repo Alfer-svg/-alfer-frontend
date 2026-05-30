@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
-import { Truck, ChevronRight, AlertCircle, Fuel } from 'lucide-react'
+import { Truck, ChevronRight, AlertCircle, Fuel, Clock } from 'lucide-react'
 import { iconePorTipoCaminhao } from '../iconesCaminhao'
 
 export default function MotoristaVeiculo() {
   const { caminhao } = useAuthMotorista()
   const navigate = useNavigate()
   const [checklistHoje, setChecklistHoje] = useState<any>(null)
+  const [jornadaAberta, setJornadaAberta] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    apiMotorista.get('/motorista-app/me/checklist-hoje')
-      .then((r) => setChecklistHoje(r.data))
-      .finally(() => setLoading(false))
+    Promise.all([
+      apiMotorista.get('/motorista-app/me/checklist-hoje').then((r) => setChecklistHoje(r.data)).catch(() => {}),
+      apiMotorista.get('/motorista-app/me/jornada-aberta').then((r) => setJornadaAberta(r.data)).catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -112,6 +114,30 @@ export default function MotoristaVeiculo() {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
       )}
+
+      <button
+        onClick={() => navigate('/m/jornada')}
+        className="w-full py-4 rounded-2xl bg-white border flex items-center gap-3 px-5 active:bg-gray-50"
+        style={{ borderColor: jornadaAberta ? '#C8E6C9' : '#E0DDD8' }}
+      >
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: jornadaAberta ? '#E8F5E9' : '#FEF3E2' }}
+        >
+          <Clock className="w-5 h-5" style={{ color: jornadaAberta ? '#2D7D32' : '#FFAF06' }} />
+        </div>
+        <div className="text-left flex-1">
+          <div className="font-semibold text-gray-900">
+            {jornadaAberta ? 'Encerrar jornada' : 'Iniciar jornada'}
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {jornadaAberta
+              ? `Em andamento desde ${new Date(jornadaAberta.dtInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Bater o ponto (hora e local)'}
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
+      </button>
 
       <button
         onClick={() => navigate('/m/abastecimento')}
