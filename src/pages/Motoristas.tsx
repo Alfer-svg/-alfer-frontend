@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil, Clock, MapPin, Play, Square, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil, Clock, MapPin, Play, Square, ClipboardList, CheckCircle2, Repeat, UserPlus } from 'lucide-react'
 
 // Funções no molde da Alfer (locação de munck/poliguindaste/caçambas/containers).
 const CARGOS = [
@@ -38,6 +38,7 @@ export default function Motoristas() {
   const [editando, setEditando] = useState<any>(null)
   const [verJornadas, setVerJornadas] = useState<any>(null)
   const [verTarefas, setVerTarefas] = useState<any>(null)
+  const [showRotinas, setShowRotinas] = useState(false)
 
   const [acaoErro, setAcaoErro] = useState('')
   const [acaoLoadingId, setAcaoLoadingId] = useState('')
@@ -112,14 +113,24 @@ export default function Motoristas() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Funcionários</h1>
           <p className="text-gray-500 text-sm mt-1">{motoristas.length} funcionários cadastrados</p>
         </div>
-        <button
-          onClick={() => setShowNovo(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
-          style={{ background: '#FFAF06' }}
-        >
-          <Plus className="w-4 h-4" />
-          Novo funcionário
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowRotinas(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-700 text-sm font-medium border hover:bg-gray-50 transition-all"
+            style={{ borderColor: '#E0DDD8' }}
+          >
+            <Repeat className="w-4 h-4" />
+            Rotinas
+          </button>
+          <button
+            onClick={() => setShowNovo(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-gray-900 text-sm font-medium hover:opacity-90 transition-all"
+            style={{ background: '#FFAF06' }}
+          >
+            <Plus className="w-4 h-4" />
+            Novo funcionário
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-6">
@@ -230,6 +241,7 @@ export default function Motoristas() {
       {editando && <MotoristaModal motorista={editando} onClose={() => setEditando(null)} onSuccess={() => { setEditando(null); load() }} />}
       {verJornadas && <JornadasModal motorista={verJornadas} onClose={() => setVerJornadas(null)} />}
       {verTarefas && <TarefasModal funcionario={verTarefas} onClose={() => setVerTarefas(null)} />}
+      {showRotinas && <RotinasModal funcionarios={motoristas.filter((m) => m.ativo)} onClose={() => setShowRotinas(false)} />}
     </div>
   )
 }
@@ -689,6 +701,171 @@ function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () 
         </div>
       )}
       </>
+      )}
+    </Modal>
+  )
+}
+
+// Catálogo global de rotinas: cadastra uma vez e atribui a qualquer colaborador.
+function RotinasModal({ funcionarios, onClose }: { funcionarios: any[]; onClose: () => void }) {
+  const [rotinas, setRotinas] = useState<any[]>([])
+  const [atribuicoes, setAtribuicoes] = useState<Record<string, { id: string; nome: string }[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [form, setForm] = useState<any>({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL', recorrencia: 'DIARIA', diasSemana: [] as number[] })
+  const [atribuindo, setAtribuindo] = useState('') // id da rotina em atribuição
+
+  const carregar = () => {
+    setLoading(true)
+    Promise.all([
+      api.get('/tarefas/rotinas').then((r) => setRotinas(r.data || [])),
+      api.get('/tarefas/rotinas/atribuicoes').then((r) => setAtribuicoes(r.data || {})).catch(() => setAtribuicoes({})),
+    ]).finally(() => setLoading(false))
+  }
+  useEffect(carregar, [])
+
+  const criar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErro('')
+    if (!form.titulo.trim()) return setErro('Informe o título da rotina.')
+    if (form.recorrencia === 'SEMANAL' && form.diasSemana.length === 0) return setErro('Escolha ao menos um dia da semana.')
+    setSalvando(true)
+    try {
+      await api.post('/tarefas/rotinas', {
+        titulo: form.titulo,
+        descricao: form.descricao,
+        local: form.local,
+        prioridade: form.prioridade,
+        recorrencia: form.recorrencia,
+        diasSemana: form.recorrencia === 'SEMANAL' ? form.diasSemana.join(',') : null,
+      })
+      setForm({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL', recorrencia: 'DIARIA', diasSemana: [] })
+      carregar()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao criar rotina.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const excluir = async (r: any) => {
+    if (!confirm(`Excluir a rotina "${r.titulo}" do catálogo? As atribuições já feitas continuam valendo.`)) return
+    await api.post(`/tarefas/rotinas/${r.id}/excluir`)
+    carregar()
+  }
+
+  const atribuir = async (rotinaId: string, funcionarioId: string) => {
+    if (!funcionarioId) return
+    setAtribuindo(rotinaId)
+    setErro('')
+    try {
+      await api.post(`/tarefas/rotinas/${rotinaId}/atribuir`, { funcionarioId })
+      carregar()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao atribuir rotina.')
+    } finally {
+      setAtribuindo('')
+    }
+  }
+
+  const toggleDia = (d: number) => setForm((f: any) => ({
+    ...f,
+    diasSemana: f.diasSemana.includes(d) ? f.diasSemana.filter((x: number) => x !== d) : [...f.diasSemana, d].sort(),
+  }))
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-lg">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <Repeat className="w-5 h-5" style={{ color: '#FFAF06' }} /> Rotinas
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">Cadastre uma rotina e atribua a qualquer colaborador pelo seletor.</p>
+
+      <form onSubmit={criar} className="space-y-2 rounded-xl border p-3 mb-4" style={{ borderColor: '#E0DDD8', background: '#FBFAF7' }}>
+        <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Título da rotina *" className={INPUT_CLS} style={INPUT_STYLE} />
+        <textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} placeholder="Descrição (opcional)" className={INPUT_CLS} style={INPUT_STYLE} />
+        <div className="grid grid-cols-2 gap-2">
+          <input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} placeholder="Local / referência" className={INPUT_CLS} style={INPUT_STYLE} />
+          <select value={form.prioridade} onChange={(e) => setForm({ ...form, prioridade: e.target.value })} className={INPUT_CLS} style={INPUT_STYLE}>
+            <option value="BAIXA">Prioridade baixa</option>
+            <option value="NORMAL">Prioridade normal</option>
+            <option value="ALTA">Prioridade alta</option>
+          </select>
+        </div>
+        <select value={form.recorrencia} onChange={(e) => setForm({ ...form, recorrencia: e.target.value })} className={INPUT_CLS} style={INPUT_STYLE}>
+          <option value="DIARIA">Todos os dias</option>
+          <option value="DIAS_UTEIS">Dias úteis (seg–sex)</option>
+          <option value="SEMANAL">Dias específicos da semana</option>
+        </select>
+        {form.recorrencia === 'SEMANAL' && (
+          <div className="flex gap-1">
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((lbl, d) => (
+              <button key={d} type="button" onClick={() => toggleDia(d)} className="flex-1 py-2 rounded-lg text-xs font-bold border"
+                style={form.diasSemana.includes(d) ? { background: '#FFAF06', borderColor: '#FFAF06', color: '#111' } : { background: '#fff', borderColor: '#E0DDD8', color: '#888' }}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+        )}
+        {erro && <div className="text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {erro}</div>}
+        <button type="submit" disabled={salvando} className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: salvando ? '#CC8C00' : '#FFAF06' }}>
+          {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Cadastrar rotina
+        </button>
+      </form>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>
+      ) : rotinas.length === 0 ? (
+        <div className="text-center py-8 text-gray-400 text-sm">
+          <Repeat className="w-10 h-10 mx-auto mb-2 opacity-30" /> Nenhuma rotina cadastrada.
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+          {rotinas.map((r) => {
+            const quem = atribuicoes[r.id] || []
+            return (
+              <div key={r.id} className="rounded-xl border p-3" style={{ borderColor: '#E0DDD8' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-gray-900 text-sm">{r.titulo}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#FEF3E2', color: '#633806' }}>{rotuloRecorrencia(r)}</span>
+                      {r.prioridade === 'ALTA' && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#FDEEEE', color: '#C62828' }}>Alta</span>}
+                    </div>
+                    {r.descricao && <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{r.descricao}</div>}
+                    {r.local && <div className="flex items-center gap-1 text-xs text-gray-400 mt-1"><MapPin className="w-3 h-3" /> {r.local}</div>}
+                    {quem.length > 0 && (
+                      <div className="text-[11px] text-gray-500 mt-1.5">
+                        Atribuída a: {quem.map((q) => q.nome).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => excluir(r)} title="Excluir" className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 mt-2.5">
+                  <UserPlus className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <select
+                    value=""
+                    disabled={atribuindo === r.id}
+                    onChange={(e) => atribuir(r.id, e.target.value)}
+                    className="flex-1 px-2.5 py-2 rounded-lg text-sm outline-none bg-white disabled:opacity-60"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    <option value="">{atribuindo === r.id ? 'Atribuindo…' : 'Atribuir a um colaborador…'}</option>
+                    {funcionarios.map((f) => (
+                      <option key={f.id} value={f.id}>{f.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
     </Modal>
   )
