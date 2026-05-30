@@ -41,7 +41,6 @@ const nav: NavItem[] = [
       { to: '/cacambas', label: 'Caçambas' },
       { to: '/logistica', label: 'Logística' },
       { to: '/frete-spot', label: 'Frete Spot' },
-      { to: '/frete-spot/config', label: 'Frete Spot (custo fixo)' },
     ],
   },
   {
