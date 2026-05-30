@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import api from '../services/api'
 import {
   ChevronLeft, Save, Trash2, Loader2, AlertCircle, Navigation, MapPin,
-  DollarSign, Fuel, Calculator, TrendingUp, TrendingDown,
+  DollarSign, Fuel, Calculator, TrendingUp, TrendingDown, CheckCircle2,
 } from 'lucide-react'
 
 const FONTES = [
@@ -285,6 +285,18 @@ export default function FreteSpotDetalhe() {
           <div className="text-xs text-gray-500 mt-3">
             A receber: <span className="font-semibold text-gray-700">{fmt(r.aReceber)}</span> · Recebido: {fmt(r.recebido)}
           </div>
+
+          {/* Integração com o financeiro */}
+          {v.lancamentoId ? (
+            <div className="mt-3 flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg" style={{ background: '#EAF3DE', color: '#27500A' }}>
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              Receita lançada no financeiro ({fmt(r.receita)} · pago)
+            </div>
+          ) : (
+            <div className="mt-3 text-[11px] text-gray-500">
+              Conclua a viagem e marque o pagamento como recebido para gerar a receita no financeiro automaticamente.
+            </div>
+          )}
         </div>
       </form>
 
