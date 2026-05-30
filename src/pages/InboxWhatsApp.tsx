@@ -103,7 +103,7 @@ export default function InboxWhatsApp() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl font-bold text-gray-900 flex items-center gap-2">
           <MessageCircle className="w-6 h-6" /> WhatsApp 0800
@@ -154,7 +154,7 @@ export default function InboxWhatsApp() {
             <p className="text-xs mt-1">As mensagens enviadas e recebidas pelo WhatsApp 0800 (Cloud API) aparecem aqui</p>
           </div>
         ) : (
-          <div className="grid gap-2">
+          <div className="flex flex-col gap-2">
             {conversas.map((c) => (
               <div
                 key={c.telefone}
@@ -202,7 +202,7 @@ export default function InboxWhatsApp() {
                   <button
                     onClick={(e) => { e.stopPropagation(); excluirConversa(c.telefone) }}
                     title="Excluir conversa"
-                    className="flex-shrink-0 p-2 rounded-lg text-gray-300 hover:text-red-600 hover:bg-red-50 transition-all"
+                    className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-white hover:bg-red-500 transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
