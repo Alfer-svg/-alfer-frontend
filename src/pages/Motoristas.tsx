@@ -3,6 +3,21 @@ import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil, Clock, MapPin, Play, Square } from 'lucide-react'
 
+// Funções no molde da Alfer (locação de munck/poliguindaste/caçambas/containers).
+const CARGOS = [
+  'Motorista',
+  'Operador de Munck',
+  'Operador de Poliguindaste',
+  'Ajudante',
+  'Auxiliar de Operações',
+  'Mecânico',
+  'Soldador',
+  'Borracheiro',
+  'Encarregado de Operações',
+  'Supervisor de Operações',
+  'Administrativo',
+]
+
 export default function Motoristas() {
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -487,8 +502,19 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Data de nascimento" k="dataNascimento" type="date" />
-            <Campo label="Cargo / função" k="cargo" placeholder="Motorista, operador…" />
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Cargo / função</label>
+              <select value={form.cargo} onChange={(e) => set('cargo', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="">Selecione…</option>
+                {CARGOS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
+          {form.cargo && form.cargo !== 'Motorista' && (
+            <p className="text-[11px] text-amber-700 flex items-center gap-1 -mt-1">
+              <AlertCircle className="w-3 h-3" /> Apenas motoristas têm acesso ao app. O PIN não dará login pra este cargo.
+            </p>
+          )}
         </Secao>
 
         <Secao title="Contato">
