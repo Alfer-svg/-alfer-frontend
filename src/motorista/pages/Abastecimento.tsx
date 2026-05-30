@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
-import { Fuel, Gauge, Droplets, CheckCircle2, AlertCircle, ChevronLeft } from 'lucide-react'
+import { Fuel, Gauge, Droplets, CheckCircle2, AlertCircle, ChevronLeft, Camera, Loader2, Check } from 'lucide-react'
 
 interface AbastecimentoItem {
   id: string
@@ -20,6 +20,30 @@ const fmtMoeda = (v: number) =>
 // Aceita "123,45" ou "123.45" e devolve número (ou NaN).
 const parseNum = (s: string) => Number(String(s).replace(/\./g, '').replace(',', '.'))
 
+async function comprimirImagem(file: File, maxLado = 1280, qualidade = 0.7): Promise<Blob> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = reject
+    i.src = dataUrl
+  })
+  let w = img.width, h = img.height
+  if (w > h && w > maxLado) { h = (h * maxLado) / w; w = maxLado }
+  else if (h > maxLado) { w = (w * maxLado) / h; h = maxLado }
+  const canvas = document.createElement('canvas')
+  canvas.width = w; canvas.height = h
+  canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+  return new Promise<Blob>((resolve) => {
+    canvas.toBlob((b) => resolve(b!), 'image/jpeg', qualidade)
+  })
+}
+
 export default function MotoristaAbastecimento() {
   const { caminhao } = useAuthMotorista()
   const navigate = useNavigate()
@@ -28,10 +52,30 @@ export default function MotoristaAbastecimento() {
   const [valor, setValor] = useState('')
   const [litrosDiesel, setLitrosDiesel] = useState('')
   const [litrosArla, setLitrosArla] = useState('')
+  const [fotoNota, setFotoNota] = useState('')
+  const [uploadingFoto, setUploadingFoto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState(false)
   const [recentes, setRecentes] = useState<AbastecimentoItem[]>([])
+
+  const escolherFotoNota = async (file: File) => {
+    setUploadingFoto(true)
+    setErro('')
+    try {
+      const blob = await comprimirImagem(file)
+      const form = new FormData()
+      form.append('file', blob, 'nota.jpg')
+      const { data } = await apiMotorista.post('/motorista-app/upload/abastecimento', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setFotoNota(data.url)
+    } catch (e: any) {
+      setErro('Falha ao enviar foto: ' + (e?.response?.data?.message || e.message))
+    } finally {
+      setUploadingFoto(false)
+    }
+  }
 
   useEffect(() => {
     apiMotorista.get('/motorista-app/me/abastecimentos')
@@ -52,6 +96,7 @@ export default function MotoristaAbastecimento() {
     if (!(dieselN > 0)) return setErro('Informe os litros de diesel')
     if (!(valorN > 0)) return setErro('Informe o valor abastecido')
     if (litrosArla.trim() && (!Number.isFinite(arlaN) || arlaN < 0)) return setErro('Litros de arla inválido')
+    if (!fotoNota) return setErro('Anexe a foto da nota fiscal')
 
     setEnviando(true)
     try {
@@ -60,9 +105,10 @@ export default function MotoristaAbastecimento() {
         valorTotal: valorN,
         litros: dieselN,
         litrosArla: litrosArla.trim() ? arlaN : null,
+        fotoNotaUrl: fotoNota,
       })
       setOk(true)
-      setKm(''); setValor(''); setLitrosDiesel(''); setLitrosArla('')
+      setKm(''); setValor(''); setLitrosDiesel(''); setLitrosArla(''); setFotoNota('')
     } catch (e: any) {
       setErro(e?.response?.data?.message || 'Falha ao registrar abastecimento')
     } finally {
@@ -163,6 +209,48 @@ export default function MotoristaAbastecimento() {
             inputMode="decimal"
             sufixo="L"
           />
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Foto da nota fiscal</label>
+            <label
+              className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer overflow-hidden bg-white active:bg-gray-50"
+              style={{ borderColor: fotoNota ? '#C8E6C9' : '#E0DDD8', minHeight: fotoNota ? '11rem' : '6rem' }}
+            >
+              {fotoNota ? (
+                <>
+                  <img src={fotoNota} alt="Nota fiscal" className="w-full h-44 object-cover" />
+                  <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-1 text-center">
+                    Toque pra trocar
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center py-5">
+                  {uploadingFoto ? (
+                    <Loader2 className="w-7 h-7 text-orange-500 animate-spin" />
+                  ) : (
+                    <Camera className="w-7 h-7 text-gray-400" />
+                  )}
+                  <div className="text-xs text-gray-600 mt-1.5 font-medium">
+                    {uploadingFoto ? 'Enviando…' : 'Tirar foto da nota'}
+                  </div>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) escolherFotoNota(f)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
         </div>
 
         {erro && (
@@ -171,7 +259,7 @@ export default function MotoristaAbastecimento() {
 
         <button
           type="submit"
-          disabled={enviando}
+          disabled={enviando || uploadingFoto}
           className="w-full py-3.5 rounded-xl font-semibold text-gray-900 text-base disabled:opacity-50 active:opacity-80"
           style={{ background: '#FFAF06' }}
         >

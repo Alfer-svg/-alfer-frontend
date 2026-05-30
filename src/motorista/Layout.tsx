@@ -1,11 +1,22 @@
+import { useState } from 'react'
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { useAuthMotorista } from './AuthMotoristaContext'
-import { LogOut, Truck } from 'lucide-react'
+import { LogOut, Truck, ShieldCheck } from 'lucide-react'
 import { iconePorTipoCaminhao } from './iconesCaminhao'
+import { dicaAleatoria, type DicaSeguranca } from './dicasSeguranca'
 
 export default function MotoristaLayout() {
   const { motorista, caminhao, logout } = useAuthMotorista()
   const navigate = useNavigate()
+
+  // Mostra uma dica de segurança logo após o login (flag setada no login()).
+  const [dica, setDica] = useState<DicaSeguranca | null>(() => {
+    if (sessionStorage.getItem('alfer_motorista_dica')) {
+      sessionStorage.removeItem('alfer_motorista_dica')
+      return dicaAleatoria()
+    }
+    return null
+  })
 
   const handleLogout = () => {
     logout()
@@ -13,6 +24,35 @@ export default function MotoristaLayout() {
   }
 
   const icone = caminhao ? iconePorTipoCaminhao[caminhao.tipo] : null
+
+  if (dica) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[#FAF9F6]">
+        <div className="w-full max-w-sm text-center">
+          <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide mb-6" style={{ color: '#9a7b1a' }}>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Dica do dia</span>
+          </div>
+          <div
+            className="rounded-3xl px-7 py-9"
+            style={{ background: '#FEF3E2', border: '1px solid #FFAF06' }}
+          >
+            <div className="text-6xl mb-4">{dica.emoji}</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">{dica.titulo}</h2>
+            <p className="text-gray-700 text-base leading-relaxed">{dica.texto}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDica(null)}
+            className="w-full py-3.5 rounded-xl font-semibold text-gray-900 text-base active:opacity-80 mt-7"
+            style={{ background: '#FFAF06' }}
+          >
+            Entendi, vamos lá
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF9F6]">

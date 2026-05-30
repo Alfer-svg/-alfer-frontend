@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthMotorista } from '../AuthMotoristaContext'
 import apiMotorista from '../api'
-import { Truck, ChevronDown, ShieldCheck } from 'lucide-react'
+import { Truck, ChevronDown } from 'lucide-react'
 import AlferLogo from '../../components/AlferLogo'
-import { dicaAleatoria, type DicaSeguranca } from '../dicasSeguranca'
 
 interface MotoristaItem {
   id: string
@@ -21,7 +20,6 @@ export default function MotoristaLogin() {
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
   const [carregandoLista, setCarregandoLista] = useState(true)
-  const [dica, setDica] = useState<DicaSeguranca | null>(null)
 
   useEffect(() => {
     apiMotorista.get('/auth/motorista/lista')
@@ -40,42 +38,12 @@ export default function MotoristaLogin() {
     setLoading(true)
     try {
       await login(matriculaSel, pin.trim())
-      // Mostra uma dica de segurança aleatória antes de seguir pro app.
-      setDica(dicaAleatoria())
+      navigate('/m/veiculo')
     } catch (e: any) {
       setErro(e?.response?.data?.message || 'Falha no login')
     } finally {
       setLoading(false)
     }
-  }
-
-  if (dica) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[#FAF9F6]">
-        <div className="w-full max-w-sm text-center">
-          <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide mb-6" style={{ color: '#9a7b1a' }}>
-            <ShieldCheck className="w-4 h-4" />
-            <span>Dica de segurança</span>
-          </div>
-          <div
-            className="rounded-3xl px-7 py-9"
-            style={{ background: '#FEF3E2', border: '1px solid #FFAF06' }}
-          >
-            <div className="text-6xl mb-4">{dica.emoji}</div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">{dica.titulo}</h2>
-            <p className="text-gray-700 text-base leading-relaxed">{dica.texto}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/m/veiculo')}
-            className="w-full py-3.5 rounded-xl font-semibold text-gray-900 text-base active:opacity-80 mt-7"
-            style={{ background: '#FFAF06' }}
-          >
-            Entendi, vamos lá
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (

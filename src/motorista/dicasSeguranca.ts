@@ -1,4 +1,5 @@
-// Dicas de segurança exibidas no login do motorista (uma aleatória por acesso).
+// Dicas exibidas no login do motorista (uma aleatória por acesso) — segurança,
+// cuidado com o veículo e apresentação.
 export interface DicaSeguranca {
   emoji: string
   titulo: string
@@ -18,6 +19,12 @@ export const DICAS_SEGURANCA: DicaSeguranca[] = [
   { emoji: '⚖️', titulo: 'Carga e amarração', texto: 'Distribua o peso corretamente e revise as cintas. Carga solta desestabiliza o conjunto.' },
   { emoji: '💧', titulo: 'Hidratação e alimentação', texto: 'Beba água e faça refeições leves. Corpo bem cuidado mantém a atenção na direção.' },
   { emoji: '🚧', titulo: 'Atenção em operações', texto: 'Em carga/descarga com munck ou guindaste, mantenha distância da zona de risco e use sinalização.' },
+  { emoji: '🧼', titulo: 'Caminhão limpo', texto: 'Veículo limpo passa profissionalismo e ajuda a identificar vazamentos e avarias. Lave por dentro e por fora com frequência.' },
+  { emoji: '✨', titulo: 'Cuide da pintura', texto: 'Evite riscos e batidas em manobras. A boa aparência do caminhão é o cartão de visita da Alfer na rua.' },
+  { emoji: '👕', titulo: 'Boa apresentação', texto: 'Uniforme limpo e postura educada com o cliente. Você representa a empresa em cada entrega.' },
+  { emoji: '🛞', titulo: 'Calibragem dos pneus', texto: 'Pneu calibrado dura mais, economiza diesel e é mais seguro. Confira a pressão toda semana.' },
+  { emoji: '🩹', titulo: 'Reporte avarias', texto: 'Bateu, riscou ou notou um defeito? Avise o gestor na hora. Pequeno reparo cedo evita gasto grande depois.' },
+  { emoji: '🪑', titulo: 'Cuide da cabine', texto: 'Mantenha a cabine organizada e sem lixo. Painel limpo e nada solto que possa atrapalhar a direção.' },
 ]
 
 export function dicaAleatoria(): DicaSeguranca {

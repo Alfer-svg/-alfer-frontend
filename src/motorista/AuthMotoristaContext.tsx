@@ -66,6 +66,8 @@ export function AuthMotoristaProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('alfer_motorista_token', data.token)
     localStorage.setItem('alfer_motorista_user', JSON.stringify(data.motorista))
     if (data.caminhao) localStorage.setItem('alfer_motorista_caminhao', JSON.stringify(data.caminhao))
+    // Sinaliza pro Layout exibir a dica de segurança logo após o login.
+    sessionStorage.setItem('alfer_motorista_dica', '1')
     setToken(data.token)
     setMotorista(data.motorista)
     setCaminhao(data.caminhao || null)
