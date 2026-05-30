@@ -3,13 +3,14 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram, Search,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram, Search, Facebook,
 } from 'lucide-react'
 
-// Cor/ícone do canal pra diferenciar visualmente WhatsApp x Instagram.
+// Cor/ícone do canal pra diferenciar visualmente WhatsApp x Instagram x Messenger.
 const CANAL_INFO: Record<string, { label: string; cor: string; bg: string; icon: any }> = {
   WHATSAPP:  { label: 'WhatsApp', cor: '#25D366', bg: '#E8F8EE', icon: Phone },
   INSTAGRAM: { label: 'Instagram', cor: '#C13584', bg: '#FCE7F3', icon: Instagram },
+  MESSENGER: { label: 'Messenger', cor: '#0084FF', bg: '#E7F1FF', icon: Facebook },
 }
 const canalInfo = (canal?: string) => CANAL_INFO[canal || 'WHATSAPP'] || CANAL_INFO.WHATSAPP
 
@@ -38,7 +39,7 @@ type Mensagem = {
 
 type Conversa = {
   telefone: string
-  canal?: 'WHATSAPP' | 'INSTAGRAM'
+  canal?: 'WHATSAPP' | 'INSTAGRAM' | 'MESSENGER'
   nomeContato?: string | null
   mensagens: Mensagem[]
   ultima: string
@@ -53,6 +54,9 @@ function rotuloConversa(c: { canal?: string; nomeContato?: string | null; telefo
   if (c.canal === 'INSTAGRAM') {
     const h = c.nomeContato
     return h ? (h.startsWith('@') ? h : `@${h}`) : `Instagram ${c.telefone.slice(-6)}`
+  }
+  if (c.canal === 'MESSENGER') {
+    return c.nomeContato || `Messenger ${c.telefone.slice(-6)}`
   }
   return c.telefone
 }
@@ -90,7 +94,8 @@ export default function InboxWhatsApp() {
   const [erro, setErro] = useState<string | null>(null)
   const [autoWa, setAutoWa] = useState(false)
   const [autoIg, setAutoIg] = useState(false)
-  const [salvandoAuto, setSalvandoAuto] = useState<'WHATSAPP' | 'INSTAGRAM' | null>(null)
+  const [autoFb, setAutoFb] = useState(false)
+  const [salvandoAuto, setSalvandoAuto] = useState<'WHATSAPP' | 'INSTAGRAM' | 'MESSENGER' | null>(null)
   const [descobrindoIg, setDescobrindoIg] = useState(false)
 
   const descobrirInstagram = async (tokenColado?: string) => {
@@ -136,25 +141,33 @@ export default function InboxWhatsApp() {
       const r = await api.get('/agente/config')
       setAutoWa(!!r.data?.autonomoWhatsapp)
       setAutoIg(!!r.data?.autonomoInstagram)
+      setAutoFb(!!r.data?.autonomoMessenger)
     } catch { /* silencioso */ }
   }
 
   useEffect(() => { carregarConfig() }, [])
 
-  const toggleAuto = async (canal: 'WHATSAPP' | 'INSTAGRAM') => {
-    const atual = canal === 'WHATSAPP' ? autoWa : autoIg
+  const toggleAuto = async (canal: 'WHATSAPP' | 'INSTAGRAM' | 'MESSENGER') => {
+    const atual = canal === 'WHATSAPP' ? autoWa : canal === 'INSTAGRAM' ? autoIg : autoFb
     const novo = !atual
     setSalvandoAuto(canal)
     // Otimista
-    if (canal === 'WHATSAPP') setAutoWa(novo); else setAutoIg(novo)
+    const setLocal = canal === 'WHATSAPP' ? setAutoWa : canal === 'INSTAGRAM' ? setAutoIg : setAutoFb
+    setLocal(novo)
     try {
-      const body = canal === 'WHATSAPP' ? { autonomoWhatsapp: novo } : { autonomoInstagram: novo }
+      const body =
+        canal === 'WHATSAPP'
+          ? { autonomoWhatsapp: novo }
+          : canal === 'INSTAGRAM'
+            ? { autonomoInstagram: novo }
+            : { autonomoMessenger: novo }
       const r = await api.post('/agente/config', body)
       setAutoWa(!!r.data?.autonomoWhatsapp)
       setAutoIg(!!r.data?.autonomoInstagram)
+      setAutoFb(!!r.data?.autonomoMessenger)
     } catch {
       // Reverte em caso de erro
-      if (canal === 'WHATSAPP') setAutoWa(atual); else setAutoIg(atual)
+      setLocal(atual)
       alert('Não consegui salvar o modo autônomo. Tenta de novo.')
     } finally {
       setSalvandoAuto(null)
@@ -239,6 +252,7 @@ export default function InboxWhatsApp() {
         {([
           { canal: 'WHATSAPP' as const, label: 'WhatsApp', cor: '#25D366', on: autoWa, Icon: Phone },
           { canal: 'INSTAGRAM' as const, label: 'Instagram', cor: '#C13584', on: autoIg, Icon: Instagram },
+          { canal: 'MESSENGER' as const, label: 'Messenger', cor: '#0084FF', on: autoFb, Icon: Facebook },
         ]).map(({ canal, label, cor, on, Icon }) => (
           <button
             key={canal}
@@ -319,9 +333,9 @@ export default function InboxWhatsApp() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm ${(c.naoLidas || 0) > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{rotuloConversa(c)}</span>
-                      {c.canal === 'INSTAGRAM' && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#FCE7F3', color: '#C13584' }}>Instagram</span>
-                      )}
+                      {c.canal && c.canal !== 'WHATSAPP' && (() => { const ci = canalInfo(c.canal); return (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: ci.bg, color: ci.cor }}>{ci.label}</span>
+                      ) })()}
                       <span className="text-[10px] text-gray-500">
                         {new Date(c.ultima).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -570,9 +584,9 @@ function ConversaModal({
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               {(() => { const ci = canalInfo(conversa.canal); const Icon = ci.icon; return <Icon className="w-4 h-4" style={{ color: ci.cor }} /> })()}
               {rotuloConversa(conversa)}
-              {conversa.canal === 'INSTAGRAM' && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#FCE7F3', color: '#C13584' }}>Instagram</span>
-              )}
+              {conversa.canal && conversa.canal !== 'WHATSAPP' && (() => { const ci = canalInfo(conversa.canal); return (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: ci.bg, color: ci.cor }}>{ci.label}</span>
+              ) })()}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {conversa.mensagens.length} mensagens · ↓ {conversa.inbound} recebidas · ↑ {conversa.outbound} enviadas
