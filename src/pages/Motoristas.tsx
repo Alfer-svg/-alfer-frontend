@@ -655,9 +655,12 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
               </select>
             </div>
           </div>
-          {form.cargo && !CARGOS_COM_APP.includes(form.cargo) && (
-            <p className="text-[11px] text-amber-700 flex items-center gap-1 -mt-1">
-              <AlertCircle className="w-3 h-3" /> Sem acesso ao app. Só motoristas e operadores fazem login com o PIN.
+          {form.cargo && (
+            <p className="text-[11px] flex items-center gap-1 -mt-1" style={{ color: '#27500A' }}>
+              <CheckCircle2 className="w-3 h-3" />
+              {CARGOS_COM_APP.includes(form.cargo)
+                ? 'Acessa o app no modo campo (veículo, checklist, operações).'
+                : 'Acessa o app no modo pátio (tarefas atribuídas pelo gestor).'}
             </p>
           )}
         </Secao>
