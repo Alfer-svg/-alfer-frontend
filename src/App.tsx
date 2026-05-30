@@ -46,6 +46,9 @@ import Usuarios from './pages/Usuarios'
 import Emissores from './pages/Emissores'
 import Relatorios from './pages/Relatorios'
 import EmailAgendados from './pages/EmailAgendados'
+import FreteSpot from './pages/FreteSpot'
+import FreteSpotDetalhe from './pages/FreteSpotDetalhe'
+import FreteSpotConfigPage from './pages/FreteSpotConfig'
 import EstoqueEquipamentos from './pages/EstoqueEquipamentos'
 import ConfirmarRecebimento from './pages/ConfirmarRecebimento'
 import RedefinirSenha from './pages/RedefinirSenha'
@@ -160,6 +163,10 @@ function AppRoutes() {
         <Route path="emissores" element={<Emissores />} />
         <Route path="relatorios" element={<Relatorios />} />
         <Route path="emails-agendados" element={<EmailAgendados />} />
+        <Route path="frete-spot" element={<FreteSpot />} />
+        <Route path="frete-spot/config" element={<FreteSpotConfigPage />} />
+        <Route path="frete-spot/nova" element={<FreteSpotDetalhe />} />
+        <Route path="frete-spot/:id" element={<FreteSpotDetalhe />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
