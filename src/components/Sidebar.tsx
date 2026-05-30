@@ -25,7 +25,7 @@ const nav: NavItem[] = [
       { to: '/crm', label: 'CRM (Pipeline)' },
       { to: '/leads', label: 'Leads (Pré-venda)' },
       { to: '/campanhas', label: 'Campanhas WhatsApp' },
-      { to: '/inbox-whatsapp', label: 'Inbox WhatsApp 0800' },
+      { to: '/inbox-whatsapp', label: 'Inbox 0800' },
       { to: '/orcamentos', label: 'Orçamentos' },
       { to: '/condicoes-orcamento', label: 'Condições padrão' },
       { to: '/pedidos', label: 'Pedidos' },
