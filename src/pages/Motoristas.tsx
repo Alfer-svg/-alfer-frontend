@@ -21,6 +21,15 @@ const CARGOS = [
 // Cargos que têm acesso ao app de campo (mesma regra do backend).
 const CARGOS_COM_APP = ['Motorista', 'Operador de Munck', 'Operador de Poliguindaste']
 
+const DIAS_LBL = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+// Rótulo legível da recorrência (ex.: "Diária", "Dias úteis", "Seg, Qua, Sex").
+function rotuloRecorrencia(r: any): string {
+  if (r.recorrencia === 'DIARIA') return 'Diária'
+  if (r.recorrencia === 'DIAS_UTEIS') return 'Dias úteis'
+  const dias = (r.diasSemana || '').split(',').filter(Boolean).map((d: string) => DIAS_LBL[Number(d)])
+  return dias.length ? dias.join(', ') : 'Semanal'
+}
+
 export default function Motoristas() {
   const [motoristas, setMotoristas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -430,17 +439,21 @@ function Marca({ icon, label, hora, endereco, lat, lng, mapsLink }: {
 }
 
 function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () => void }) {
+  const [aba, setAba] = useState<'avulsas' | 'recorrentes'>('avulsas')
   const [tarefas, setTarefas] = useState<any[]>([])
+  const [recorrentes, setRecorrentes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL' })
+  const [formRec, setFormRec] = useState<any>({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL', recorrencia: 'DIARIA', diasSemana: [] as number[] })
 
   const carregar = () => {
     setLoading(true)
-    api.get('/tarefas', { params: { funcionarioId: funcionario.id } })
-      .then((r) => setTarefas(r.data || []))
-      .finally(() => setLoading(false))
+    Promise.all([
+      api.get('/tarefas', { params: { funcionarioId: funcionario.id } }).then((r) => setTarefas(r.data || [])),
+      api.get('/tarefas/recorrentes', { params: { funcionarioId: funcionario.id } }).then((r) => setRecorrentes(r.data || [])).catch(() => setRecorrentes([])),
+    ]).finally(() => setLoading(false))
   }
   useEffect(carregar, [funcionario.id])
 
@@ -466,6 +479,47 @@ function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () 
     carregar()
   }
 
+  const criarRec = async (e: FormEvent) => {
+    e.preventDefault()
+    setErro('')
+    if (!formRec.titulo.trim()) return setErro('Informe o título da tarefa recorrente.')
+    if (formRec.recorrencia === 'SEMANAL' && formRec.diasSemana.length === 0) return setErro('Escolha ao menos um dia da semana.')
+    setSalvando(true)
+    try {
+      await api.post('/tarefas/recorrentes', {
+        funcionarioId: funcionario.id,
+        titulo: formRec.titulo,
+        descricao: formRec.descricao,
+        local: formRec.local,
+        prioridade: formRec.prioridade,
+        recorrencia: formRec.recorrencia,
+        diasSemana: formRec.recorrencia === 'SEMANAL' ? formRec.diasSemana.join(',') : null,
+      })
+      setFormRec({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL', recorrencia: 'DIARIA', diasSemana: [] })
+      carregar()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao criar tarefa recorrente.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const toggleRec = async (r: any) => {
+    await api.post(`/tarefas/recorrentes/${r.id}`, { ativo: !r.ativo })
+    carregar()
+  }
+
+  const excluirRec = async (r: any) => {
+    if (!confirm(`Excluir a recorrência "${r.titulo}"? As tarefas já geradas não serão removidas.`)) return
+    await api.post(`/tarefas/recorrentes/${r.id}/excluir`)
+    carregar()
+  }
+
+  const toggleDia = (d: number) => setFormRec((f: any) => ({
+    ...f,
+    diasSemana: f.diasSemana.includes(d) ? f.diasSemana.filter((x: number) => x !== d) : [...f.diasSemana, d].sort(),
+  }))
+
   const STATUS: Record<string, { label: string; bg: string; cor: string }> = {
     PENDENTE: { label: 'Pendente', bg: '#F1EFE8', cor: '#888' },
     EM_ANDAMENTO: { label: 'Em andamento', bg: '#FEF3E2', cor: '#633806' },
@@ -487,6 +541,96 @@ function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () 
         <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
       </div>
 
+      <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ background: '#F1EFE8' }}>
+        {([['avulsas', 'Avulsas'], ['recorrentes', 'Recorrentes']] as const).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => { setAba(k); setErro('') }}
+            className="flex-1 py-2 rounded-lg text-sm font-semibold transition"
+            style={aba === k ? { background: '#fff', color: '#111', boxShadow: '0 1px 2px rgba(0,0,0,.06)' } : { color: '#888' }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {aba === 'recorrentes' ? (
+        <>
+          <form onSubmit={criarRec} className="space-y-2 rounded-xl border p-3 mb-4" style={{ borderColor: '#E0DDD8', background: '#FBFAF7' }}>
+            <input value={formRec.titulo} onChange={(e) => setFormRec({ ...formRec, titulo: e.target.value })} placeholder="Título da tarefa *" className={inputCls} style={inputStyle} />
+            <textarea value={formRec.descricao} onChange={(e) => setFormRec({ ...formRec, descricao: e.target.value })} rows={2} placeholder="Descrição (opcional)" className={inputCls} style={inputStyle} />
+            <div className="grid grid-cols-2 gap-2">
+              <input value={formRec.local} onChange={(e) => setFormRec({ ...formRec, local: e.target.value })} placeholder="Local / referência" className={inputCls} style={inputStyle} />
+              <select value={formRec.prioridade} onChange={(e) => setFormRec({ ...formRec, prioridade: e.target.value })} className={inputCls} style={inputStyle}>
+                <option value="BAIXA">Prioridade baixa</option>
+                <option value="NORMAL">Prioridade normal</option>
+                <option value="ALTA">Prioridade alta</option>
+              </select>
+            </div>
+            <select value={formRec.recorrencia} onChange={(e) => setFormRec({ ...formRec, recorrencia: e.target.value })} className={inputCls} style={inputStyle}>
+              <option value="DIARIA">Todos os dias</option>
+              <option value="DIAS_UTEIS">Dias úteis (seg–sex)</option>
+              <option value="SEMANAL">Dias específicos da semana</option>
+            </select>
+            {formRec.recorrencia === 'SEMANAL' && (
+              <div className="flex gap-1">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((lbl, d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => toggleDia(d)}
+                    className="flex-1 py-2 rounded-lg text-xs font-bold border"
+                    style={formRec.diasSemana.includes(d)
+                      ? { background: '#FFAF06', borderColor: '#FFAF06', color: '#111' }
+                      : { background: '#fff', borderColor: '#E0DDD8', color: '#888' }}
+                  >
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            )}
+            {erro && <div className="text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {erro}</div>}
+            <button type="submit" disabled={salvando} className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: salvando ? '#CC8C00' : '#FFAF06' }}>
+              {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Criar recorrência
+            </button>
+          </form>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>
+          ) : recorrentes.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm">
+              <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" /> Nenhuma tarefa recorrente.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+              {recorrentes.map((r) => (
+                <div key={r.id} className="rounded-xl border p-3" style={{ borderColor: '#E0DDD8', opacity: r.ativo ? 1 : 0.55 }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 text-sm">{r.titulo}</span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#FEF3E2', color: '#633806' }}>{rotuloRecorrencia(r)}</span>
+                        {!r.ativo && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#F1EFE8', color: '#888' }}>Pausada</span>}
+                      </div>
+                      {r.descricao && <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{r.descricao}</div>}
+                      {r.local && <div className="flex items-center gap-1 text-xs text-gray-400 mt-1"><MapPin className="w-3 h-3" /> {r.local}</div>}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => toggleRec(r)} title={r.ativo ? 'Pausar' : 'Ativar'} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100">
+                        {r.ativo ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => excluirRec(r)} title="Excluir" className="p-1.5 rounded-lg text-red-600 hover:bg-red-50">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+      <>
       <form onSubmit={criar} className="space-y-2 rounded-xl border p-3 mb-4" style={{ borderColor: '#E0DDD8', background: '#FBFAF7' }}>
         <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Título da tarefa *" className={inputCls} style={inputStyle} />
         <textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} placeholder="Descrição (opcional)" className={inputCls} style={inputStyle} />
@@ -543,6 +687,8 @@ function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () 
             )
           })}
         </div>
+      )}
+      </>
       )}
     </Modal>
   )
