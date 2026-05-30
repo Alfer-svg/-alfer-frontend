@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import {
   Package, FileText, DollarSign, AlertTriangle,
-  Layers, Clock, CheckCircle, XCircle, Map as MapIcon, ChevronRight
+  Layers, Clock, CheckCircle, XCircle, Map as MapIcon, ChevronRight,
+  Target, Pencil, Truck, Box
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import MapaEquipamentos from '../components/MapaEquipamentos'
@@ -25,6 +26,9 @@ interface Alerta {
   descricao: string
   urgencia: 'alta' | 'media'
 }
+
+interface MetaItem { meta: number; realizado: number }
+interface MetasData { munck: MetaItem; cacambas: MetaItem; containers: MetaItem }
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
@@ -55,15 +59,21 @@ export default function Dashboard() {
   const [equipamentosLoc, setEquipamentosLoc] = useState<any[]>([])
   const [contagemTipos, setContagemTipos] = useState<{ tipo: string; qtd: number }[]>([])
   const [loading, setLoading] = useState(true)
+  const [metas, setMetas] = useState<MetasData | null>(null)
+  const [editandoMetas, setEditandoMetas] = useState(false)
+  const [metasForm, setMetasForm] = useState({ metaMunck: '', metaCacambas: '', metaContainers: '' })
+  const [salvandoMetas, setSalvandoMetas] = useState(false)
 
   useEffect(() => {
     Promise.all([
       api.get('/dashboard'),
       api.get('/dashboard/alertas'),
       api.get('/equipamentos', { params: { status: 'LOCADO' } }),
-    ]).then(([dashRes, alertRes, equipRes]) => {
+      api.get('/dashboard/metas'),
+    ]).then(([dashRes, alertRes, equipRes, metasRes]) => {
       setData(dashRes.data)
       setAlertas(alertRes.data)
+      setMetas(metasRes.data)
       setEquipamentosLoc(equipRes.data.filter((e: any) => e.latitude != null && e.longitude != null))
       // Conta equipamentos mobilizados (locados) por tipo — inclui todos os tipos, mesmo com 0
       const cont: Record<string, number> = {}
@@ -80,6 +90,33 @@ export default function Dashboard() {
 
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
+
+  const abrirEditarMetas = () => {
+    setMetasForm({
+      metaMunck: metas?.munck.meta ? String(metas.munck.meta) : '',
+      metaCacambas: metas?.cacambas.meta ? String(metas.cacambas.meta) : '',
+      metaContainers: metas?.containers.meta ? String(metas.containers.meta) : '',
+    })
+    setEditandoMetas(true)
+  }
+
+  const salvarMetas = async () => {
+    setSalvandoMetas(true)
+    try {
+      const { data: nova } = await api.put('/dashboard/metas', {
+        metaMunck: Number(metasForm.metaMunck) || 0,
+        metaCacambas: Number(metasForm.metaCacambas) || 0,
+        metaContainers: Number(metasForm.metaContainers) || 0,
+      })
+      setMetas(nova)
+      setEditandoMetas(false)
+    } catch (e) {
+      console.error(e)
+      alert('Não foi possível salvar as metas.')
+    } finally {
+      setSalvandoMetas(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -181,6 +218,112 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Metas de faturamento */}
+      {metas && (
+        <div className="bg-white rounded-2xl p-6 mb-8" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5" style={{ color: '#FFAF06' }} />
+              <h2 className="font-semibold text-gray-900">Metas de faturamento</h2>
+              <span className="text-xs text-gray-400">
+                {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} — faturado no mês
+              </span>
+            </div>
+            {!editandoMetas && (
+              <button
+                onClick={abrirEditarMetas}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                style={{ color: '#FFAF06' }}
+              >
+                <Pencil className="w-3.5 h-3.5" /> Editar metas
+              </button>
+            )}
+          </div>
+
+          {editandoMetas ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {([
+                { key: 'metaMunck', label: 'Faturamento Munck' },
+                { key: 'metaCacambas', label: 'Faturamento Caçambas' },
+                { key: 'metaContainers', label: 'Containers (Seco + Reefer)' },
+              ] as const).map((f) => (
+                <div key={f.key}>
+                  <label className="text-xs font-medium text-gray-600 block mb-1.5">{f.label}</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={metasForm[f.key]}
+                      onChange={(e) => setMetasForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                      placeholder="0"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+                      style={{ borderColor: '#E0DDD8' }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="md:col-span-3 flex justify-end gap-2 mt-1">
+                <button
+                  onClick={() => setEditandoMetas(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={salvarMetas}
+                  disabled={salvandoMetas}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60"
+                  style={{ background: '#FFAF06' }}
+                >
+                  {salvandoMetas ? 'Salvando...' : 'Salvar metas'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {([
+                { item: metas.munck, label: 'Munck', icon: Truck, color: '#2D80D1', bg: '#E3EEFA' },
+                { item: metas.cacambas, label: 'Caçambas', icon: Layers, color: '#9B59B6', bg: '#F0E6F6' },
+                { item: metas.containers, label: 'Containers', icon: Box, color: '#27AE60', bg: '#EAF3DE' },
+              ] as const).map((m) => {
+                const pct = m.item.meta > 0 ? Math.min((m.item.realizado / m.item.meta) * 100, 100) : 0
+                const pctReal = m.item.meta > 0 ? Math.round((m.item.realizado / m.item.meta) * 100) : 0
+                const batida = m.item.meta > 0 && m.item.realizado >= m.item.meta
+                return (
+                  <div key={m.label} className="rounded-xl p-4" style={{ background: '#FAFAF9', border: '1px solid #F1EFE8' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: m.bg }}>
+                          <m.icon className="w-4 h-4" style={{ color: m.color }} />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">{m.label}</span>
+                      </div>
+                      {m.item.meta > 0 && (
+                        <span className="text-xs font-bold" style={{ color: batida ? '#27AE60' : m.color }}>
+                          {pctReal}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-display text-xl font-bold text-gray-900">{fmt(m.item.realizado)}</div>
+                    <div className="text-xs text-gray-400 mb-3">
+                      {m.item.meta > 0 ? `de ${fmt(m.item.meta)}` : 'sem meta definida'}
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: batida ? '#27AE60' : m.color }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Gráfico */}
