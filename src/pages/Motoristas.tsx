@@ -328,12 +328,26 @@ function StatusJornada({ jornada, agora, ativo, inicioPadrao, fimPadrao }: {
 function JornadasModal({ motorista, onClose }: { motorista: any; onClose: () => void }) {
   const [jornadas, setJornadas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [excluindo, setExcluindo] = useState('')
 
-  useEffect(() => {
+  const carregar = () => {
+    setLoading(true)
     api.get('/jornadas', { params: { motoristaId: motorista.id } })
       .then((r) => setJornadas(r.data || []))
       .finally(() => setLoading(false))
-  }, [motorista.id])
+  }
+  useEffect(carregar, [motorista.id])
+
+  const excluir = async (j: any) => {
+    if (!confirm(`Apagar a jornada de ${fmtData(j.dtInicio)}? Essa ação não pode ser desfeita.`)) return
+    setExcluindo(j.id)
+    try {
+      await api.post(`/jornadas/${j.id}/excluir`)
+      setJornadas((arr) => arr.filter((x) => x.id !== j.id))
+    } finally {
+      setExcluindo('')
+    }
+  }
 
   const fmtData = (s: string) => new Date(s).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
   const fmtHora = (s: string) => new Date(s).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -371,15 +385,25 @@ function JornadasModal({ motorista, onClose }: { motorista: any; onClose: () => 
             <div key={j.id} className="rounded-xl border p-3.5" style={{ borderColor: '#E0DDD8' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-gray-900 text-sm capitalize">{fmtData(j.dtInicio)}</span>
-                {j.dtFim ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#F1EFE8', color: '#555' }}>
-                    {duracao(j.dtInicio, j.dtFim)}
-                  </span>
-                ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#EAF3DE', color: '#27500A' }}>
-                    Em aberto
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {j.dtFim ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#F1EFE8', color: '#555' }}>
+                      {duracao(j.dtInicio, j.dtFim)}
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#EAF3DE', color: '#27500A' }}>
+                      Em aberto
+                    </span>
+                  )}
+                  <button
+                    onClick={() => excluir(j)}
+                    disabled={excluindo === j.id}
+                    title="Apagar jornada"
+                    className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {excluindo === j.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
