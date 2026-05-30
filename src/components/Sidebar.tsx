@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useInboxAlert } from '../context/InboxAlertContext'
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3, Navigation
+  Truck, Package, Calendar, LogOut, Layers, User, ChevronDown, ChevronRight, FileSignature, Map, Forklift, KeyRound, ClipboardList, Building2, Shield, X, BarChart3
 } from 'lucide-react'
 import AlferLogo from './AlferLogo'
 
@@ -40,6 +40,8 @@ const nav: NavItem[] = [
       { to: '/contratos', label: 'Contratos' },
       { to: '/cacambas', label: 'Caçambas' },
       { to: '/logistica', label: 'Logística' },
+      { to: '/frete-spot', label: 'Frete Spot' },
+      { to: '/frete-spot/config', label: 'Frete Spot (custo fixo)' },
     ],
   },
   {
@@ -86,15 +88,6 @@ const nav: NavItem[] = [
     children: [
       { to: '/ordens-servico/munck', label: 'OS Munck' },
       { to: '/ordens-servico/poli', label: 'OS Poliguindaste' },
-    ],
-  },
-  {
-    label: 'Frete Spot',
-    icon: Navigation,
-    basePath: '/frete-spot',
-    children: [
-      { to: '/frete-spot', label: 'Viagens' },
-      { to: '/frete-spot/config', label: 'Custo fixo (config)' },
     ],
   },
   { to: '/agenda', icon: Calendar, label: 'Agenda' },
