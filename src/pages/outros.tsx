@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
 import { FornecedorModal } from './Fornecedores'
-import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText, Search, BellRing } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Clock, FileDown, XCircle, Trash2, AlertCircle, CheckCircle2, Plus, X, Loader2, ArrowDownCircle, ArrowUpCircle, Banknote, Copy, RefreshCw, QrCode, Mail, Send, MessageCircle, Star, Building2, FileText, Search, BellRing, Repeat, Power } from 'lucide-react'
 import { fmtDate } from '../utils/data'
 
 const CATEGORIAS: { v: string; l: string }[] = [
@@ -221,6 +221,7 @@ export function Financeiro() {
   const [filtroEmissor, setFiltroEmissor] = useState('')
   const [busca, setBusca] = useState('')
   const [novaDespesaModal, setNovaDespesaModal] = useState(false)
+  const [recorrentesModal, setRecorrentesModal] = useState(false)
   const [enviarEmailModal, setEnviarEmailModal] = useState<any>(null)
   // Modal de troca de emissor da fatura
   const [emissorModal, setEmissorModal] = useState<any>(null)
@@ -484,6 +485,13 @@ export function Financeiro() {
             style={{ border: '1px solid #E0DDD8' }}
           >
             <BellRing className="w-4 h-4" /> Lembretes
+          </button>
+          <button
+            onClick={() => setRecorrentesModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            style={{ border: '1px solid #E0DDD8' }}
+          >
+            <Repeat className="w-4 h-4" /> Recorrentes
           </button>
           <button
             onClick={() => setNovaDespesaModal(true)}
@@ -892,6 +900,12 @@ export function Financeiro() {
         <NovaDespesaModal
           onClose={() => setNovaDespesaModal(false)}
           onSaved={(id?: string) => { setNovaDespesaModal(false); carregar(id) }}
+        />
+      )}
+      {recorrentesModal && (
+        <DespesasRecorrentesModal
+          onClose={() => setRecorrentesModal(false)}
+          onChange={() => carregar()}
         />
       )}
       {enviarEmailModal && (
@@ -1414,6 +1428,223 @@ function EnviarEmailModal({ lancamento, onClose, onSent }: { lancamento: any; on
           </button>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+// ─── DESPESAS RECORRENTES (fixas e variáveis) ──────────────────────────────
+function DespesasRecorrentesModal({ onClose, onChange }: { onClose: () => void; onChange: () => void }) {
+  const vazio = { descricao: '', valor: '', categoria: 'OPERACIONAL', fixa: true, diaVencimento: '10', fornecedorId: '', observacoes: '' }
+  const [lista, setLista] = useState<any[]>([])
+  const [fornecedores, setFornecedores] = useState<any[]>([])
+  const [form, setForm] = useState<any>(vazio)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  const carregar = () =>
+    Promise.all([
+      api.get('/financeiro/despesas-recorrentes'),
+      api.get('/fornecedores', { params: { ativo: 'true' } }),
+    ]).then(([r, f]) => { setLista(r.data || []); setFornecedores(f.data || []) })
+
+  useEffect(() => { carregar().finally(() => setLoading(false)) }, [])
+
+  const resetForm = () => { setForm(vazio); setEditId(null); setErro('') }
+
+  const editar = (d: any) => {
+    setEditId(d.id)
+    setForm({
+      descricao: d.descricao || '',
+      valor: String(d.valor ?? ''),
+      categoria: d.categoria || 'OPERACIONAL',
+      fixa: d.fixa !== false,
+      diaVencimento: String(d.diaVencimento ?? '10'),
+      fornecedorId: d.fornecedorId || '',
+      observacoes: d.observacoes || '',
+    })
+    setErro('')
+  }
+
+  const salvar = async () => {
+    if (!form.descricao.trim()) return setErro('Descrição é obrigatória.')
+    if (!form.valor || Number(form.valor) <= 0) return setErro('Valor inválido.')
+    setSalvando(true); setErro('')
+    try {
+      const payload = {
+        descricao: form.descricao.trim(),
+        valor: Number(form.valor),
+        categoria: form.categoria,
+        fixa: form.fixa,
+        diaVencimento: Number(form.diaVencimento) || 10,
+        fornecedorId: form.fornecedorId || null,
+        observacoes: form.observacoes || null,
+      }
+      if (editId) await api.post(`/financeiro/despesas-recorrentes/${editId}`, payload)
+      else await api.post('/financeiro/despesas-recorrentes', payload)
+      await carregar()
+      resetForm()
+      onChange()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao salvar')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const alternarAtivo = async (d: any) => {
+    try {
+      await api.post(`/financeiro/despesas-recorrentes/${d.id}`, { ativo: !d.ativo })
+      await carregar()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao alterar')
+    }
+  }
+
+  const excluir = async (d: any) => {
+    if (!confirm(`Excluir a despesa recorrente "${d.descricao}"? Os lançamentos já gerados não são afetados.`)) return
+    try {
+      await api.post(`/financeiro/despesas-recorrentes/${d.id}/excluir`)
+      await carregar()
+      if (editId === d.id) resetForm()
+      onChange()
+    } catch (e: any) {
+      setErro(e.response?.data?.message || 'Erro ao excluir')
+    }
+  }
+
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+  const inputStyle = { border: '1px solid #E0DDD8' }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+          <Repeat className="w-5 h-5" style={{ color: '#FFAF06' }} /> Despesas recorrentes
+        </h2>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        Cadastre despesas que se repetem todo mês. <b>Fixas</b> geram o lançamento já com o valor;
+        <b> variáveis</b> geram um rascunho pra você ajustar o valor do mês. O lançamento do mês é
+        criado automaticamente ao abrir o Financeiro.
+      </p>
+
+      {/* Formulário */}
+      <div className="rounded-2xl p-4 mb-4" style={{ background: '#FEF3E2' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-600 mb-1">Descrição *</label>
+            <input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              placeholder="Ex: Aluguel do pátio, Conta de energia..." className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Valor (R$) *</label>
+            <input type="number" step="0.01" min="0" value={form.valor}
+              onChange={(e) => setForm({ ...form, valor: e.target.value })}
+              placeholder="0,00" className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Dia do vencimento *</label>
+            <input type="number" min="1" max="31" value={form.diaVencimento}
+              onChange={(e) => setForm({ ...form, diaVencimento: e.target.value })}
+              className={inputCls} style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Categoria</label>
+            <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+              className={inputCls} style={inputStyle}>
+              {CATEGORIAS.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Fornecedor</label>
+            <select value={form.fornecedorId} onChange={(e) => setForm({ ...form, fornecedorId: e.target.value })}
+              className={inputCls} style={inputStyle}>
+              <option value="">— sem fornecedor —</option>
+              {fornecedores.map((f) => (
+                <option key={f.id} value={f.id}>{f.nome}{f.nomeFantasia && f.nomeFantasia !== f.nome ? ` (${f.nomeFantasia})` : ''}</option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-600 mb-1">Tipo de valor</label>
+            <div className="flex gap-2">
+              {[
+                { v: true, l: 'Fixa', d: 'mesmo valor todo mês' },
+                { v: false, l: 'Variável', d: 'ajusto o valor a cada mês' },
+              ].map((t) => (
+                <button key={String(t.v)} type="button" onClick={() => setForm({ ...form, fixa: t.v })}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium transition-all text-left px-3"
+                  style={form.fixa === t.v
+                    ? { background: '#FFAF06', color: '#1A1C1E' }
+                    : { background: '#fff', color: '#555', border: '1px solid #E0DDD8' }}>
+                  {t.l} <span className="text-[11px] opacity-70">— {t.d}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs text-gray-600 mb-1">Observações</label>
+            <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+              className={inputCls} style={inputStyle} />
+          </div>
+        </div>
+        {erro && <div className="text-xs text-red-700 flex items-center gap-2 mt-3"><AlertCircle className="w-3 h-3" /> {erro}</div>}
+        <div className="flex gap-2 mt-3">
+          {editId && (
+            <button type="button" onClick={resetForm} className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white" style={{ border: '1px solid #E0DDD8' }}>Cancelar edição</button>
+          )}
+          <button type="button" onClick={salvar} disabled={salvando}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2"
+            style={{ background: salvando ? '#CC8C00' : '#FFAF06' }}>
+            {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (editId ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />)}
+            {editId ? 'Salvar alterações' : 'Adicionar recorrente'}
+          </button>
+        </div>
+      </div>
+
+      {/* Lista */}
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>
+      ) : lista.length === 0 ? (
+        <div className="text-center py-8 text-gray-400 text-sm">Nenhuma despesa recorrente cadastrada ainda.</div>
+      ) : (
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {lista.map((d) => {
+            const cat = CATEGORIAS.find((c) => c.v === d.categoria)?.l
+            return (
+              <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid #E0DDD8', opacity: d.ativo ? 1 : 0.55 }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-gray-900 truncate">{d.descricao}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                      style={d.fixa ? { background: '#E3EEFA', color: '#2D80D1' } : { background: '#FEF3E2', color: '#633806' }}>
+                      {d.fixa ? 'Fixa' : 'Variável'}
+                    </span>
+                    {!d.ativo && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#EEE', color: '#888' }}>Pausada</span>}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {fmt(Number(d.valor))} · vence dia {d.diaVencimento}{cat ? ` · ${cat}` : ''}
+                    {d.fornecedorEnt ? ` · ${d.fornecedorEnt.nome}` : ''}
+                  </div>
+                </div>
+                <button onClick={() => alternarAtivo(d)} title={d.ativo ? 'Pausar' : 'Reativar'}
+                  className="p-2 rounded-lg hover:bg-gray-50" style={{ color: d.ativo ? '#27AE60' : '#999' }}>
+                  <Power className="w-4 h-4" />
+                </button>
+                <button onClick={() => editar(d)} title="Editar" className="p-2 rounded-lg hover:bg-gray-50 text-gray-500">
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button onClick={() => excluir(d)} title="Excluir" className="p-2 rounded-lg hover:bg-gray-50 text-red-500">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </Modal>
   )
 }
