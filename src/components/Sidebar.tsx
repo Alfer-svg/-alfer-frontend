@@ -72,6 +72,14 @@ const nav: NavItem[] = [
     ],
   },
   {
+    label: 'Frota',
+    icon: Truck,
+    basePath: '/caminhoes',
+    children: [
+      { to: '/caminhoes', label: 'Caminhões' },
+    ],
+  },
+  {
     label: 'OSs',
     icon: ClipboardList,
     basePath: '/ordens-servico',
