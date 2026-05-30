@@ -247,6 +247,7 @@ export default function InboxWhatsApp() {
           <span className="inline-flex items-center gap-1 text-gray-400">
             <Phone className="w-4 h-4" style={{ color: '#25D366' }} />
             <Instagram className="w-4 h-4" style={{ color: '#C13584' }} />
+            <Facebook className="w-4 h-4" style={{ color: '#0084FF' }} />
           </span>
         </h1>
         <button
