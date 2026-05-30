@@ -14,6 +14,10 @@ export default function Motoristas() {
   const [acaoErro, setAcaoErro] = useState('')
   const [acaoLoadingId, setAcaoLoadingId] = useState('')
 
+  // Monitoramento de jornadas do dia (cronômetro + alertas de horário).
+  const [monitor, setMonitor] = useState<any[]>([])
+  const [agora, setAgora] = useState(Date.now())
+
   const load = () => {
     setLoading(true)
     api.get('/motoristas', { params: filtroAtivo !== '' ? { ativo: filtroAtivo } : {} })
@@ -21,6 +25,29 @@ export default function Motoristas() {
       .finally(() => setLoading(false))
   }
   useEffect(load, [filtroAtivo])
+
+  const carregarMonitor = () => {
+    api.get('/jornadas/monitor-hoje').then((r) => setMonitor(r.data || [])).catch(() => {})
+  }
+  useEffect(() => {
+    carregarMonitor()
+    const t = setInterval(carregarMonitor, 60000) // refaz a cada 1min
+    return () => clearInterval(t)
+  }, [])
+
+  // Tick de 1s pro cronômetro das jornadas em andamento.
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Mapa motoristaId → jornada relevante (prioriza a que está em aberto).
+  const jornadaPorMotorista: Record<string, any> = {}
+  for (const j of monitor) {
+    const atual = jornadaPorMotorista[j.motoristaId]
+    if (!atual) { jornadaPorMotorista[j.motoristaId] = j; continue }
+    if (!j.dtFim && atual.dtFim) jornadaPorMotorista[j.motoristaId] = j // aberta ganha
+  }
 
   const alternarAtivo = async (m: any) => {
     setAcaoErro('')
@@ -118,6 +145,7 @@ export default function Motoristas() {
                     {caminhao && <span>Caminhão: {caminhao.codigo} ({caminhao.placa})</span>}
                   </div>
                 </div>
+                <StatusJornada jornada={jornadaPorMotorista[m.id]} agora={agora} ativo={m.ativo} />
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => setVerJornadas(m)}
@@ -165,6 +193,63 @@ export default function Motoristas() {
       {editando && <MotoristaModal motorista={editando} onClose={() => setEditando(null)} onSuccess={() => { setEditando(null); load() }} />}
       {verJornadas && <JornadasModal motorista={verJornadas} onClose={() => setVerJornadas(null)} />}
     </div>
+  )
+}
+
+// Chip de status da jornada do dia (cronômetro ao vivo + alertas de horário).
+function StatusJornada({ jornada, agora, ativo }: { jornada: any; agora: number; ativo: boolean }) {
+  if (!ativo) return null
+
+  const hoje = new Date(agora)
+  const limInicio = new Date(hoje); limInicio.setHours(8, 15, 0, 0)
+  const limFim = new Date(hoje); limFim.setHours(18, 15, 0, 0)
+
+  const fmtDur = (ms: number) => {
+    const tot = Math.max(0, Math.floor(ms / 1000))
+    const h = Math.floor(tot / 3600)
+    const m = Math.floor((tot % 3600) / 60)
+    const s = tot % 60
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+  }
+
+  // Sem jornada hoje.
+  if (!jornada) {
+    if (agora > limInicio.getTime()) {
+      return (
+        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0" style={{ background: '#FDEEEE', color: '#C62828' }}>
+          <AlertCircle className="w-3.5 h-3.5" /> Não iniciou
+        </span>
+      )
+    }
+    return (
+      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: '#F1EFE8', color: '#888' }}>
+        <Clock className="w-3.5 h-3.5" /> Aguardando início
+      </span>
+    )
+  }
+
+  // Jornada em aberto → cronômetro ao vivo.
+  if (!jornada.dtFim) {
+    const decorrido = fmtDur(agora - new Date(jornada.dtInicio).getTime())
+    const atrasada = agora > limFim.getTime()
+    return (
+      <span
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 tabular-nums"
+        style={atrasada ? { background: '#FDEEEE', color: '#C62828' } : { background: '#EAF3DE', color: '#27500A' }}
+      >
+        {atrasada ? <AlertCircle className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+        {atrasada ? 'Não encerrou · ' : ''}{decorrido}
+      </span>
+    )
+  }
+
+  // Jornada encerrada hoje.
+  const total = fmtDur(new Date(jornada.dtFim).getTime() - new Date(jornada.dtInicio).getTime())
+  return (
+    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: '#F1EFE8', color: '#555' }}>
+      <Square className="w-3.5 h-3.5" /> Encerrada · {total}
+    </span>
   )
 }
 
