@@ -3,7 +3,7 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram, Search, Facebook,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram, Search, Facebook, BellOff,
 } from 'lucide-react'
 
 // Cor/ícone do canal pra diferenciar visualmente WhatsApp x Instagram x Messenger.
@@ -47,6 +47,7 @@ type Conversa = {
   inbound: number
   outbound: number
   naoLidas: number
+  optOut?: boolean
 }
 
 // Rótulo legível pra cada conversa: no Instagram mostra @/nome (o IGSID não diz
@@ -370,6 +371,11 @@ export default function InboxWhatsApp() {
                       {c.canal && c.canal !== 'WHATSAPP' && (() => { const ci = canalInfo(c.canal); return (
                         <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: ci.bg, color: ci.cor }}>{ci.label}</span>
                       ) })()}
+                      {c.optOut && (
+                        <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-red-100 text-red-700" title="O cliente pediu para parar de receber campanhas">
+                          <BellOff className="w-2.5 h-2.5" /> Pediu descadastro
+                        </span>
+                      )}
                       <span className="text-[10px] text-gray-500">
                         {new Date(c.ultima).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
