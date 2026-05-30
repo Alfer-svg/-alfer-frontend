@@ -3,7 +3,7 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram, Search,
 } from 'lucide-react'
 
 // Cor/ícone do canal pra diferenciar visualmente WhatsApp x Instagram.
@@ -91,6 +91,33 @@ export default function InboxWhatsApp() {
   const [autoWa, setAutoWa] = useState(false)
   const [autoIg, setAutoIg] = useState(false)
   const [salvandoAuto, setSalvandoAuto] = useState<'WHATSAPP' | 'INSTAGRAM' | null>(null)
+  const [descobrindoIg, setDescobrindoIg] = useState(false)
+
+  const descobrirInstagram = async () => {
+    setDescobrindoIg(true)
+    try {
+      const r = await api.get('/whatsapp/instagram/descobrir')
+      const d = r.data || {}
+      const linhas: string[] = []
+      linhas.push(d.recomendacao || 'Sem recomendação.')
+      if (Array.isArray(d.contasInstagram) && d.contasInstagram.length) {
+        linhas.push('')
+        linhas.push('Contas Instagram encontradas:')
+        d.contasInstagram.forEach((c: any) => {
+          linhas.push(`• @${c.usuario} → INSTAGRAM_ACCOUNT_ID = ${c.INSTAGRAM_ACCOUNT_ID}`)
+        })
+      }
+      if (Array.isArray(d.paginas) && d.paginas.length) {
+        linhas.push('')
+        linhas.push(`Páginas administradas pelo token: ${d.paginas.map((p: any) => p.pagina).join(', ')}`)
+      }
+      alert(linhas.join('\n'))
+    } catch (e: any) {
+      alert('Erro ao descobrir: ' + (e.response?.data?.message || e.message))
+    } finally {
+      setDescobrindoIg(false)
+    }
+  }
 
   const carregarConfig = async () => {
     try {
@@ -221,7 +248,17 @@ export default function InboxWhatsApp() {
             </span>
           </button>
         ))}
-        <span className="text-xs text-gray-500 basis-full sm:basis-auto">
+        <button
+          onClick={descobrirInstagram}
+          disabled={descobrindoIg}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white disabled:opacity-50 ml-auto"
+          style={{ border: '1px solid #E0DDD8' }}
+          title="Descobre a conta Instagram vinculada e o ID pra configurar"
+        >
+          {descobrindoIg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" style={{ color: '#C13584' }} />}
+          Descobrir conta IG
+        </button>
+        <span className="text-xs text-gray-500 basis-full">
           Ligado: a IA envia a resposta direto pro cliente. Desligado: gera rascunho pra você aprovar.
         </span>
       </div>
