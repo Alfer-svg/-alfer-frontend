@@ -28,7 +28,12 @@ interface Alerta {
 }
 
 interface MetaItem { meta: number; realizado: number }
-interface MetasData { munck: MetaItem; cacambas: MetaItem; containers: MetaItem }
+interface MetasData { mes: string; munck: MetaItem; cacambas: MetaItem; containers: MetaItem }
+
+const mesAtual = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
@@ -60,6 +65,7 @@ export default function Dashboard() {
   const [contagemTipos, setContagemTipos] = useState<{ tipo: string; qtd: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [metas, setMetas] = useState<MetasData | null>(null)
+  const [mesMetas, setMesMetas] = useState(mesAtual())
   const [editandoMetas, setEditandoMetas] = useState(false)
   const [metasForm, setMetasForm] = useState({ metaMunck: '', metaCacambas: '', metaContainers: '' })
   const [salvandoMetas, setSalvandoMetas] = useState(false)
@@ -69,11 +75,9 @@ export default function Dashboard() {
       api.get('/dashboard'),
       api.get('/dashboard/alertas'),
       api.get('/equipamentos', { params: { status: 'LOCADO' } }),
-      api.get('/dashboard/metas'),
-    ]).then(([dashRes, alertRes, equipRes, metasRes]) => {
+    ]).then(([dashRes, alertRes, equipRes]) => {
       setData(dashRes.data)
       setAlertas(alertRes.data)
-      setMetas(metasRes.data)
       setEquipamentosLoc(equipRes.data.filter((e: any) => e.latitude != null && e.longitude != null))
       // Conta equipamentos mobilizados (locados) por tipo — inclui todos os tipos, mesmo com 0
       const cont: Record<string, number> = {}
@@ -87,6 +91,12 @@ export default function Dashboard() {
     }).catch(console.error)
     .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    api.get('/dashboard/metas', { params: { mes: mesMetas } })
+      .then((r) => setMetas(r.data))
+      .catch(console.error)
+  }, [mesMetas])
 
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
@@ -103,11 +113,12 @@ export default function Dashboard() {
   const salvarMetas = async () => {
     setSalvandoMetas(true)
     try {
-      const { data: nova } = await api.put('/dashboard/metas', {
+      await api.put('/dashboard/metas', {
         metaMunck: Number(metasForm.metaMunck) || 0,
         metaCacambas: Number(metasForm.metaCacambas) || 0,
         metaContainers: Number(metasForm.metaContainers) || 0,
       })
+      const { data: nova } = await api.get('/dashboard/metas', { params: { mes: mesMetas } })
       setMetas(nova)
       setEditandoMetas(false)
     } catch (e) {
@@ -223,12 +234,18 @@ export default function Dashboard() {
       {metas && (
         <div className="bg-white rounded-2xl p-6 mb-8" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Target className="w-5 h-5" style={{ color: '#FFAF06' }} />
               <h2 className="font-semibold text-gray-900">Metas de faturamento</h2>
-              <span className="text-xs text-gray-400">
-                {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} — faturado no mês
-              </span>
+              <span className="text-xs text-gray-400">faturado no mês</span>
+              <input
+                type="month"
+                value={mesMetas}
+                max={mesAtual()}
+                onChange={(e) => setMesMetas(e.target.value || mesAtual())}
+                className="text-xs px-2 py-1 rounded-lg border focus:outline-none focus:ring-2"
+                style={{ borderColor: '#E0DDD8' }}
+              />
             </div>
             {!editandoMetas && (
               <button
