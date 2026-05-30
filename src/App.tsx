@@ -62,6 +62,7 @@ import MotoristaJornada from './motorista/pages/Jornada'
 import MotoristaOperacoes from './motorista/pages/Operacoes'
 import MotoristaOperacaoDetalhe from './motorista/pages/OperacaoDetalhe'
 import MotoristaOSDetalhe from './motorista/pages/OSDetalhe'
+import MotoristaTarefas from './motorista/pages/Tarefas'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth()
@@ -86,12 +87,14 @@ function MotoristaPrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function MotoristaRoutes() {
-  const { motorista } = useAuthMotorista()
+  const { motorista, modo } = useAuthMotorista()
+  const home = modo === 'patio' ? '/m/tarefas' : '/m/veiculo'
   return (
     <Routes>
-      <Route path="login" element={motorista ? <Navigate to="/m/veiculo" replace /> : <MotoristaLogin />} />
+      <Route path="login" element={motorista ? <Navigate to={home} replace /> : <MotoristaLogin />} />
       <Route element={<MotoristaPrivateRoute><MotoristaLayout /></MotoristaPrivateRoute>}>
-        <Route index element={<Navigate to="/m/veiculo" replace />} />
+        <Route index element={<Navigate to={home} replace />} />
+        <Route path="tarefas" element={<MotoristaTarefas />} />
         <Route path="veiculo" element={<MotoristaVeiculo />} />
         <Route path="checklist" element={<MotoristaChecklist />} />
         <Route path="abastecimento" element={<MotoristaAbastecimento />} />
@@ -100,7 +103,7 @@ function MotoristaRoutes() {
         <Route path="operacoes/:id" element={<MotoristaOperacaoDetalhe />} />
         <Route path="os/:tipo/:id" element={<MotoristaOSDetalhe />} />
       </Route>
-      <Route path="*" element={<Navigate to="/m/veiculo" replace />} />
+      <Route path="*" element={<Navigate to={home} replace />} />
     </Routes>
   )
 }

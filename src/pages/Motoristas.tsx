@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../services/api'
 import { Modal } from '../components/Modal'
-import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil, Clock, MapPin, Play, Square } from 'lucide-react'
+import { User, Plus, Phone, CreditCard, X, Loader2, AlertCircle, Trash2, PowerOff, Power, Pencil, Clock, MapPin, Play, Square, ClipboardList, CheckCircle2 } from 'lucide-react'
 
 // Funções no molde da Alfer (locação de munck/poliguindaste/caçambas/containers).
 const CARGOS = [
@@ -28,6 +28,7 @@ export default function Motoristas() {
   const [showNovo, setShowNovo] = useState(false)
   const [editando, setEditando] = useState<any>(null)
   const [verJornadas, setVerJornadas] = useState<any>(null)
+  const [verTarefas, setVerTarefas] = useState<any>(null)
 
   const [acaoErro, setAcaoErro] = useState('')
   const [acaoLoadingId, setAcaoLoadingId] = useState('')
@@ -167,6 +168,14 @@ export default function Motoristas() {
                 <StatusJornada jornada={jornadaPorMotorista[m.id]} agora={agora} ativo={m.ativo} inicioPadrao={m.jornadaInicio} fimPadrao={m.jornadaFim} />
                 <div className="flex gap-2 flex-shrink-0">
                   <button
+                    onClick={() => setVerTarefas(m)}
+                    title="Tarefas de pátio"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    style={{ border: '1px solid #E0DDD8' }}
+                  >
+                    <ClipboardList className="w-3 h-3" /> Tarefas
+                  </button>
+                  <button
                     onClick={() => setVerJornadas(m)}
                     title="Ver jornadas (ponto)"
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
@@ -211,6 +220,7 @@ export default function Motoristas() {
       {showNovo && <MotoristaModal onClose={() => setShowNovo(false)} onSuccess={() => { setShowNovo(false); load() }} />}
       {editando && <MotoristaModal motorista={editando} onClose={() => setEditando(null)} onSuccess={() => { setEditando(null); load() }} />}
       {verJornadas && <JornadasModal motorista={verJornadas} onClose={() => setVerJornadas(null)} />}
+      {verTarefas && <TarefasModal funcionario={verTarefas} onClose={() => setVerTarefas(null)} />}
     </div>
   )
 }
@@ -416,6 +426,125 @@ function Marca({ icon, label, hora, endereco, lat, lng, mapsLink }: {
         )}
       </div>
     </div>
+  )
+}
+
+function TarefasModal({ funcionario, onClose }: { funcionario: any; onClose: () => void }) {
+  const [tarefas, setTarefas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [form, setForm] = useState({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL' })
+
+  const carregar = () => {
+    setLoading(true)
+    api.get('/tarefas', { params: { funcionarioId: funcionario.id } })
+      .then((r) => setTarefas(r.data || []))
+      .finally(() => setLoading(false))
+  }
+  useEffect(carregar, [funcionario.id])
+
+  const criar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErro('')
+    if (!form.titulo.trim()) return setErro('Informe o título da tarefa.')
+    setSalvando(true)
+    try {
+      await api.post('/tarefas', { funcionarioId: funcionario.id, ...form })
+      setForm({ titulo: '', descricao: '', local: '', prioridade: 'NORMAL' })
+      carregar()
+    } catch (err: any) {
+      setErro(err.response?.data?.message || 'Erro ao criar tarefa.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const excluir = async (t: any) => {
+    if (!confirm(`Excluir a tarefa "${t.titulo}"?`)) return
+    await api.post(`/tarefas/${t.id}/excluir`)
+    carregar()
+  }
+
+  const STATUS: Record<string, { label: string; bg: string; cor: string }> = {
+    PENDENTE: { label: 'Pendente', bg: '#F1EFE8', cor: '#888' },
+    EM_ANDAMENTO: { label: 'Em andamento', bg: '#FEF3E2', cor: '#633806' },
+    CONCLUIDA: { label: 'Concluída', bg: '#EAF3DE', cor: '#27500A' },
+  }
+  const PRIO: Record<string, string> = { ALTA: 'Alta', NORMAL: 'Normal', BAIXA: 'Baixa' }
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-white'
+  const inputStyle = { border: '1px solid #E0DDD8' }
+
+  return (
+    <Modal onClose={onClose} maxWidth="max-w-lg">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-display text-lg font-bold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5" style={{ color: '#FFAF06' }} /> Tarefas
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">{funcionario.nome} · #{funcionario.matricula}</p>
+        </div>
+        <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+      </div>
+
+      <form onSubmit={criar} className="space-y-2 rounded-xl border p-3 mb-4" style={{ borderColor: '#E0DDD8', background: '#FBFAF7' }}>
+        <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Título da tarefa *" className={inputCls} style={inputStyle} />
+        <textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={2} placeholder="Descrição (opcional)" className={inputCls} style={inputStyle} />
+        <div className="grid grid-cols-2 gap-2">
+          <input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} placeholder="Local / referência" className={inputCls} style={inputStyle} />
+          <select value={form.prioridade} onChange={(e) => setForm({ ...form, prioridade: e.target.value })} className={inputCls} style={inputStyle}>
+            <option value="BAIXA">Prioridade baixa</option>
+            <option value="NORMAL">Prioridade normal</option>
+            <option value="ALTA">Prioridade alta</option>
+          </select>
+        </div>
+        {erro && <div className="text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {erro}</div>}
+        <button type="submit" disabled={salvando} className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-900 flex items-center justify-center gap-2" style={{ background: salvando ? '#CC8C00' : '#FFAF06' }}>
+          {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Atribuir tarefa
+        </button>
+      </form>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>
+      ) : tarefas.length === 0 ? (
+        <div className="text-center py-8 text-gray-400 text-sm">
+          <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" /> Nenhuma tarefa atribuída.
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+          {tarefas.map((t) => {
+            const st = STATUS[t.status] || STATUS.PENDENTE
+            return (
+              <div key={t.id} className="rounded-xl border p-3" style={{ borderColor: '#E0DDD8' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-gray-900 text-sm">{t.titulo}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: st.bg, color: st.cor }}>{st.label}</span>
+                      {t.prioridade === 'ALTA' && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#FDEEEE', color: '#C62828' }}>Alta</span>}
+                    </div>
+                    {t.descricao && <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{t.descricao}</div>}
+                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-1 flex-wrap">
+                      {t.local && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {t.local}</span>}
+                      {t.prioridade !== 'ALTA' && <span>Prioridade: {PRIO[t.prioridade] || t.prioridade}</span>}
+                      {t.status === 'CONCLUIDA' && t.dtConclusao && (
+                        <span className="flex items-center gap-1" style={{ color: '#27500A' }}>
+                          <CheckCircle2 className="w-3 h-3" /> {new Date(t.dtConclusao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                    {t.observacao && <div className="text-xs text-gray-500 mt-1 italic">"{t.observacao}"</div>}
+                  </div>
+                  <button onClick={() => excluir(t)} title="Excluir" className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Modal>
   )
 }
 

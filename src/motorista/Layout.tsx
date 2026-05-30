@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { Outlet, useNavigate, Link } from 'react-router-dom'
 import { useAuthMotorista } from './AuthMotoristaContext'
-import { LogOut, Truck, ShieldCheck } from 'lucide-react'
+import { LogOut, Truck, ShieldCheck, HardHat } from 'lucide-react'
 import { iconePorTipoCaminhao } from './iconesCaminhao'
 import { dicaAleatoria, type DicaSeguranca } from './dicasSeguranca'
 
 export default function MotoristaLayout() {
-  const { motorista, caminhao, logout } = useAuthMotorista()
+  const { motorista, caminhao, modo, logout } = useAuthMotorista()
   const navigate = useNavigate()
+  const patio = modo === 'patio'
 
   // Mostra uma dica de segurança logo após o login (flag setada no login()).
   const [dica, setDica] = useState<DicaSeguranca | null>(() => {
     if (sessionStorage.getItem('alfer_motorista_dica')) {
       sessionStorage.removeItem('alfer_motorista_dica')
-      return dicaAleatoria()
+      return dicaAleatoria(modo)
     }
     return null
   })
@@ -61,7 +62,7 @@ export default function MotoristaLayout() {
         className="sticky top-0 z-30 bg-white border-b px-4 py-3 flex items-center gap-3"
         style={{ borderColor: '#E0DDD8' }}
       >
-        <Link to="/m/operacoes" className="flex items-center gap-2 flex-1 min-w-0">
+        <Link to={patio ? '/m/tarefas' : '/m/operacoes'} className="flex items-center gap-2 flex-1 min-w-0">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: icone ? '#FFFFFF' : '#FFAF06', border: icone ? '1px solid #E0DDD8' : 'none' }}
@@ -73,14 +74,20 @@ export default function MotoristaLayout() {
                 className="w-7 h-7 object-contain"
                 style={{ mixBlendMode: 'multiply' }}
               />
+            ) : patio ? (
+              <HardHat className="w-5 h-5 text-gray-900" />
             ) : (
               <Truck className="w-5 h-5 text-gray-900" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm text-gray-900 truncate">{motorista?.nome || 'Motorista'}</div>
+            <div className="font-semibold text-sm text-gray-900 truncate">{motorista?.nome || 'Funcionário'}</div>
             <div className="text-xs text-gray-500 truncate">
-              {caminhao ? `${caminhao.codigo} · ${caminhao.placa || caminhao.modelo}` : 'Sem veículo'}
+              {patio
+                ? (motorista?.cargo || 'Operações de pátio')
+                : caminhao
+                  ? `${caminhao.codigo} · ${caminhao.placa || caminhao.modelo}`
+                  : 'Sem veículo'}
             </div>
           </div>
         </Link>

@@ -5,6 +5,8 @@ interface Motorista {
   id: string
   nome: string
   matricula: string
+  cargo?: string | null
+  modo?: 'campo' | 'patio'
 }
 
 interface Caminhao {
@@ -19,6 +21,7 @@ interface CtxValue {
   motorista: Motorista | null
   caminhao: Caminhao | null
   token: string | null
+  modo: 'campo' | 'patio'
   login: (matricula: string, pin: string) => Promise<void>
   logout: () => void
   loading: boolean
@@ -65,6 +68,7 @@ export function AuthMotoristaProvider({ children }: { children: ReactNode }) {
     const { data } = await apiMotorista.post('/auth/motorista/login', { matricula, pin })
     localStorage.setItem('alfer_motorista_token', data.token)
     localStorage.setItem('alfer_motorista_user', JSON.stringify(data.motorista))
+    localStorage.removeItem('alfer_motorista_caminhao')
     if (data.caminhao) localStorage.setItem('alfer_motorista_caminhao', JSON.stringify(data.caminhao))
     // Sinaliza pro Layout exibir a dica de segurança logo após o login.
     sessionStorage.setItem('alfer_motorista_dica', '1')
@@ -82,8 +86,10 @@ export function AuthMotoristaProvider({ children }: { children: ReactNode }) {
     setCaminhao(null)
   }
 
+  const modo: 'campo' | 'patio' = motorista?.modo === 'patio' ? 'patio' : 'campo'
+
   return (
-    <Ctx.Provider value={{ motorista, caminhao, token, login, logout, loading }}>
+    <Ctx.Provider value={{ motorista, caminhao, token, modo, login, logout, loading }}>
       {children}
     </Ctx.Provider>
   )

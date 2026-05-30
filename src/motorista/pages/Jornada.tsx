@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiMotorista from '../api'
+import { useAuthMotorista } from '../AuthMotoristaContext'
 import { Clock, Play, Square, ChevronLeft, Loader2, CheckCircle2 } from 'lucide-react'
 
 // Pega a posição atual (best-effort, não trava se o motorista negar GPS).
@@ -17,6 +18,7 @@ function pegarGeo(): Promise<{ lat?: number; lng?: number }> {
 
 export default function MotoristaJornada() {
   const navigate = useNavigate()
+  const { modo } = useAuthMotorista()
   const [aberta, setAberta] = useState(false)
   const [loading, setLoading] = useState(true)
   const [acao, setAcao] = useState(false)
@@ -63,7 +65,7 @@ export default function MotoristaJornada() {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate('/m/veiculo')}
+        onClick={() => navigate(modo === 'patio' ? '/m/tarefas' : '/m/veiculo')}
         className="flex items-center gap-1 text-sm text-gray-500 -ml-1 active:opacity-70"
       >
         <ChevronLeft className="w-4 h-4" /> Voltar
