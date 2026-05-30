@@ -183,7 +183,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
                     {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                   </button>
                   {isOpen && (
-                    <div className="mt-0.5 ml-2 pl-3 space-y-0.5" style={{ borderLeft: '1px solid #E0DDD8' }}>
+                    <div className="mt-1 ml-2 p-1.5 space-y-0.5 rounded-lg" style={{ background: '#FEF3E2' }}>
                       {item.children.map((c) => {
                         const isInbox = c.to === '/inbox-whatsapp'
                         return (
@@ -192,8 +192,8 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
                             to={c.to}
                             end
                             className={({ isActive }) =>
-                              `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                                isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              `flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                                isActive ? 'text-gray-900' : 'text-gray-700 hover:text-gray-900'
                               }`
                             }
                             style={({ isActive }) => (isActive ? { background: '#FFAF06' } : {})}
