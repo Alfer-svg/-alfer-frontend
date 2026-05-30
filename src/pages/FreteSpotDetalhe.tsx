@@ -67,12 +67,24 @@ export default function FreteSpotDetalhe() {
 
   useEffect(() => {
     if (isNova) {
-      api.post('/frete-spot', {})
-        .then((r) => {
-          setV(r.data)
-          navigate(`/frete-spot/${r.data.id}`, { replace: true })
-        })
-        .catch((e) => setErro(e.response?.data?.message || 'Erro ao criar viagem'))
+      // Não cria no banco ainda — monta o form em memória e só grava no 1º salvar.
+      // Busca a config só pra mostrar o custo fixo por km no cálculo ao vivo.
+      api.get('/frete-spot/config')
+        .then((r) => setV({
+          numero: 'Nova viagem',
+          status: 'AGENDADA',
+          pedagioPorConta: 'TRANSPORTADOR',
+          adiantamentoRecebido: false,
+          saldoRecebido: false,
+          custoFixoPorKm: r.data?.custoFixoPorKm || null,
+        }))
+        .catch(() => setV({
+          numero: 'Nova viagem',
+          status: 'AGENDADA',
+          pedagioPorConta: 'TRANSPORTADOR',
+          adiantamentoRecebido: false,
+          saldoRecebido: false,
+        }))
         .finally(() => setLoading(false))
       return
     }
@@ -89,8 +101,15 @@ export default function FreteSpotDetalhe() {
     if (!v) return
     setSalvando(true); setErro('')
     try {
-      const r = await api.put(`/frete-spot/${v.id}`, v)
-      setV(r.data)
+      if (!v.id) {
+        // Primeira gravação: cria no banco e vai pra URL definitiva da viagem
+        const r = await api.post('/frete-spot', v)
+        navigate(`/frete-spot/${r.data.id}`, { replace: true })
+        setV(r.data)
+      } else {
+        const r = await api.put(`/frete-spot/${v.id}`, v)
+        setV(r.data)
+      }
     } catch (err: any) {
       setErro(err.response?.data?.message || 'Erro ao salvar')
     } finally {
@@ -99,6 +118,7 @@ export default function FreteSpotDetalhe() {
   }
 
   const excluir = async () => {
+    if (!v.id) { navigate('/frete-spot'); return }
     if (!confirm('Excluir esta viagem? Não dá pra desfazer.')) return
     try {
       await api.delete(`/frete-spot/${v.id}`)
@@ -269,7 +289,7 @@ export default function FreteSpotDetalhe() {
       {/* BARRA FIXA */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-60 bg-white border-t p-3 flex gap-2 z-30" style={{ borderColor: '#E0DDD8' }}>
         <button onClick={excluir} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50" style={{ border: '1px solid #FACACA' }}>
-          <Trash2 className="w-4 h-4" /> Excluir
+          <Trash2 className="w-4 h-4" /> {v.id ? 'Excluir' : 'Cancelar'}
         </button>
         <button onClick={() => salvar()} disabled={salvando} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-900 disabled:opacity-50" style={{ background: '#FFAF06' }}>
           {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
