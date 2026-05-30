@@ -3,8 +3,15 @@ import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, Send, ArrowDownLeft, ArrowUpRight, AlertCircle, Loader2, X,
-  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2,
+  Phone, Eye, CheckCheck, Check, Clock, RefreshCcw, UserPlus, Sparkles, Pencil, Trash2, Instagram,
 } from 'lucide-react'
+
+// Cor/ícone do canal pra diferenciar visualmente WhatsApp x Instagram.
+const CANAL_INFO: Record<string, { label: string; cor: string; bg: string; icon: any }> = {
+  WHATSAPP:  { label: 'WhatsApp', cor: '#25D366', bg: '#E8F8EE', icon: Phone },
+  INSTAGRAM: { label: 'Instagram', cor: '#C13584', bg: '#FCE7F3', icon: Instagram },
+}
+const canalInfo = (canal?: string) => CANAL_INFO[canal || 'WHATSAPP'] || CANAL_INFO.WHATSAPP
 
 type Rascunho = {
   id: string
@@ -31,11 +38,23 @@ type Mensagem = {
 
 type Conversa = {
   telefone: string
+  canal?: 'WHATSAPP' | 'INSTAGRAM'
+  nomeContato?: string | null
   mensagens: Mensagem[]
   ultima: string
   inbound: number
   outbound: number
   naoLidas: number
+}
+
+// Rótulo legível pra cada conversa: no Instagram mostra @/nome (o IGSID não diz
+// nada pra um humano); no WhatsApp mostra o telefone.
+function rotuloConversa(c: { canal?: string; nomeContato?: string | null; telefone: string }) {
+  if (c.canal === 'INSTAGRAM') {
+    const h = c.nomeContato
+    return h ? (h.startsWith('@') ? h : `@${h}`) : `Instagram ${c.telefone.slice(-6)}`
+  }
+  return c.telefone
 }
 
 type Envio = {
@@ -106,7 +125,11 @@ export default function InboxWhatsApp() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <MessageCircle className="w-6 h-6" /> WhatsApp 0800
+          <MessageCircle className="w-6 h-6" /> Inbox
+          <span className="inline-flex items-center gap-1 text-gray-400">
+            <Phone className="w-4 h-4" style={{ color: '#25D366' }} />
+            <Instagram className="w-4 h-4" style={{ color: '#C13584' }} />
+          </span>
         </h1>
         <button
           onClick={carregar}
@@ -172,12 +195,17 @@ export default function InboxWhatsApp() {
                 style={{ border: (c.naoLidas || 0) > 0 ? '1px solid #25D366' : '1px solid #F1EFE8' }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#FEF3E2' }}>
-                    <Phone className="w-4 h-4" style={{ color: '#FFAF06' }} />
+                  {(() => { const ci = canalInfo(c.canal); const Icon = ci.icon; return (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: ci.bg }} title={ci.label}>
+                    <Icon className="w-4 h-4" style={{ color: ci.cor }} />
                   </div>
+                  ) })()}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm ${(c.naoLidas || 0) > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{c.telefone}</span>
+                      <span className={`text-sm ${(c.naoLidas || 0) > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>{rotuloConversa(c)}</span>
+                      {c.canal === 'INSTAGRAM' && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#FCE7F3', color: '#C13584' }}>Instagram</span>
+                      )}
                       <span className="text-[10px] text-gray-500">
                         {new Date(c.ultima).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -424,7 +452,11 @@ function ConversaModal({
         <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#F1EFE8' }}>
           <div>
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Phone className="w-4 h-4" /> {conversa.telefone}
+              {(() => { const ci = canalInfo(conversa.canal); const Icon = ci.icon; return <Icon className="w-4 h-4" style={{ color: ci.cor }} /> })()}
+              {rotuloConversa(conversa)}
+              {conversa.canal === 'INSTAGRAM' && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#FCE7F3', color: '#C13584' }}>Instagram</span>
+              )}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {conversa.mensagens.length} mensagens · ↓ {conversa.inbound} recebidas · ↑ {conversa.outbound} enviadas
