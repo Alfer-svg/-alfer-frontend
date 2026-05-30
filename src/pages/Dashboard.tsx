@@ -5,7 +5,7 @@ import api from '../services/api'
 import {
   Package, FileText, DollarSign, AlertTriangle,
   Layers, Clock, CheckCircle, XCircle, Map as MapIcon, ChevronRight,
-  Target, Pencil, Truck, Box
+  Target, Pencil, Truck, Box, TrendingUp, TrendingDown
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import MapaEquipamentos from '../components/MapaEquipamentos'
@@ -309,6 +309,12 @@ export default function Dashboard() {
                 const pct = m.item.meta > 0 ? Math.min((m.item.realizado / m.item.meta) * 100, 100) : 0
                 const pctReal = m.item.meta > 0 ? Math.round((m.item.realizado / m.item.meta) * 100) : 0
                 const batida = m.item.meta > 0 && m.item.realizado >= m.item.meta
+                // Ritmo esperado: % do mês já decorrido (mês corrente) ou 100% (mês fechado).
+                const ehMesCorrente = metas.mes === mesAtual()
+                const hojeD = new Date()
+                const diasNoMes = new Date(hojeD.getFullYear(), hojeD.getMonth() + 1, 0).getDate()
+                const paceEsperado = ehMesCorrente ? (hojeD.getDate() / diasNoMes) * 100 : 100
+                const noRitmo = m.item.meta > 0 && pctReal >= paceEsperado
                 return (
                   <div key={m.label} className="rounded-xl p-4" style={{ background: '#FAFAF9', border: '1px solid #F1EFE8' }}>
                     <div className="flex items-center justify-between mb-3">
@@ -319,7 +325,14 @@ export default function Dashboard() {
                         <span className="text-sm font-semibold text-gray-900">{m.label}</span>
                       </div>
                       {m.item.meta > 0 && (
-                        <span className="text-xs font-bold" style={{ color: batida ? '#27AE60' : m.color }}>
+                        <span
+                          className="flex items-center gap-1 text-xs font-bold"
+                          style={{ color: batida || noRitmo ? '#27AE60' : '#E74C3C' }}
+                          title={batida ? 'Meta batida' : noRitmo ? 'No ritmo da meta' : 'Abaixo do ritmo da meta'}
+                        >
+                          {batida || noRitmo
+                            ? <TrendingUp className="w-3.5 h-3.5" />
+                            : <TrendingDown className="w-3.5 h-3.5" />}
                           {pctReal}%
                         </span>
                       )}
