@@ -93,14 +93,15 @@ export default function InboxWhatsApp() {
   const [salvandoAuto, setSalvandoAuto] = useState<'WHATSAPP' | 'INSTAGRAM' | null>(null)
   const [descobrindoIg, setDescobrindoIg] = useState(false)
 
-  const descobrirInstagram = async () => {
+  const descobrirInstagram = async (tokenColado?: string) => {
     setDescobrindoIg(true)
     try {
-      const r = await api.get('/whatsapp/instagram/descobrir')
+      const r = await api.get('/whatsapp/instagram/descobrir', tokenColado ? { params: { token: tokenColado } } : undefined)
       const d = r.data || {}
+      const achou = Array.isArray(d.contasInstagram) && d.contasInstagram.length > 0
       const linhas: string[] = []
       linhas.push(d.recomendacao || 'Sem recomendação.')
-      if (Array.isArray(d.contasInstagram) && d.contasInstagram.length) {
+      if (achou) {
         linhas.push('')
         linhas.push('Contas Instagram encontradas:')
         d.contasInstagram.forEach((c: any) => {
@@ -112,6 +113,17 @@ export default function InboxWhatsApp() {
         linhas.push(`Páginas administradas pelo token: ${d.paginas.map((p: any) => p.pagina).join(', ')}`)
       }
       alert(linhas.join('\n'))
+
+      // Se não achou e ainda não tentou com token colado, oferece colar um.
+      if (!achou && !tokenColado) {
+        const t = window.prompt(
+          'O token atual não tem acesso ao Instagram.\n\n' +
+          'Gere um token no Graph API Explorer (escopos: instagram_basic, instagram_manage_messages, pages_show_list, pages_manage_metadata) e cole aqui pra eu achar a conta:'
+        )
+        if (t && t.trim()) {
+          await descobrirInstagram(t.trim())
+        }
+      }
     } catch (e: any) {
       alert('Erro ao descobrir: ' + (e.response?.data?.message || e.message))
     } finally {
@@ -249,7 +261,7 @@ export default function InboxWhatsApp() {
           </button>
         ))}
         <button
-          onClick={descobrirInstagram}
+          onClick={() => descobrirInstagram()}
           disabled={descobrindoIg}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white disabled:opacity-50 ml-auto"
           style={{ border: '1px solid #E0DDD8' }}
