@@ -145,7 +145,7 @@ export default function Motoristas() {
                     {caminhao && <span>Caminhão: {caminhao.codigo} ({caminhao.placa})</span>}
                   </div>
                 </div>
-                <StatusJornada jornada={jornadaPorMotorista[m.id]} agora={agora} ativo={m.ativo} />
+                <StatusJornada jornada={jornadaPorMotorista[m.id]} agora={agora} ativo={m.ativo} inicioPadrao={m.jornadaInicio} fimPadrao={m.jornadaFim} />
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => setVerJornadas(m)}
@@ -197,12 +197,23 @@ export default function Motoristas() {
 }
 
 // Chip de status da jornada do dia (cronômetro ao vivo + alertas de horário).
-function StatusJornada({ jornada, agora, ativo }: { jornada: any; agora: number; ativo: boolean }) {
+// Usa a jornada padrão cadastrada no motorista (HH:MM); cai pra 08:00/18:00 se vazio.
+// Tolerância de 15 min antes de alertar atraso.
+const TOLERANCIA_MIN = 15
+function StatusJornada({ jornada, agora, ativo, inicioPadrao, fimPadrao }: {
+  jornada: any; agora: number; ativo: boolean; inicioPadrao?: string | null; fimPadrao?: string | null
+}) {
   if (!ativo) return null
 
-  const hoje = new Date(agora)
-  const limInicio = new Date(hoje); limInicio.setHours(8, 15, 0, 0)
-  const limFim = new Date(hoje); limFim.setHours(18, 15, 0, 0)
+  const horaPadrao = (hhmm: string | null | undefined, fallH: number, fallM: number) => {
+    const d = new Date(agora)
+    const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || '')
+    if (m) d.setHours(+m[1], +m[2], 0, 0)
+    else d.setHours(fallH, fallM, 0, 0)
+    return d
+  }
+  const limInicio = horaPadrao(inicioPadrao, 8, 0); limInicio.setMinutes(limInicio.getMinutes() + TOLERANCIA_MIN)
+  const limFim = horaPadrao(fimPadrao, 18, 0); limFim.setMinutes(limFim.getMinutes() + TOLERANCIA_MIN)
 
   const fmtDur = (ms: number) => {
     const tot = Math.max(0, Math.floor(ms / 1000))
@@ -232,22 +243,33 @@ function StatusJornada({ jornada, agora, ativo }: { jornada: any; agora: number;
   // Jornada em aberto → cronômetro ao vivo.
   if (!jornada.dtFim) {
     const decorrido = fmtDur(agora - new Date(jornada.dtInicio).getTime())
-    const atrasada = agora > limFim.getTime()
+    const naoEncerrou = agora > limFim.getTime()
+    const iniciouAtrasado = new Date(jornada.dtInicio).getTime() > limInicio.getTime()
+    if (naoEncerrou) {
+      return (
+        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 tabular-nums" style={{ background: '#FDEEEE', color: '#C62828' }}>
+          <AlertCircle className="w-3.5 h-3.5" /> Não encerrou · {decorrido}
+        </span>
+      )
+    }
     return (
       <span
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 tabular-nums"
-        style={atrasada ? { background: '#FDEEEE', color: '#C62828' } : { background: '#EAF3DE', color: '#27500A' }}
+        style={iniciouAtrasado ? { background: '#FEF3E2', color: '#B45309' } : { background: '#EAF3DE', color: '#27500A' }}
       >
-        {atrasada ? <AlertCircle className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-        {atrasada ? 'Não encerrou · ' : ''}{decorrido}
+        <Play className="w-3.5 h-3.5" /> {iniciouAtrasado ? 'Atrasada · ' : ''}{decorrido}
       </span>
     )
   }
 
   // Jornada encerrada hoje.
   const total = fmtDur(new Date(jornada.dtFim).getTime() - new Date(jornada.dtInicio).getTime())
+  const foraHorario = new Date(jornada.dtInicio).getTime() > limInicio.getTime() || new Date(jornada.dtFim).getTime() > limFim.getTime()
   return (
-    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0" style={{ background: '#F1EFE8', color: '#555' }}>
+    <span
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0"
+      style={foraHorario ? { background: '#FEF3E2', color: '#B45309' } : { background: '#EAF3DE', color: '#27500A' }}
+    >
       <Square className="w-3.5 h-3.5" /> Encerrada · {total}
     </span>
   )
@@ -389,6 +411,8 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
     telefone: motorista?.telefone || '',
     cnh: motorista?.cnh || '',
     cnhValida: motorista?.cnhValida ? new Date(motorista.cnhValida).toISOString().slice(0, 10) : '',
+    jornadaInicio: motorista?.jornadaInicio || '',
+    jornadaFim: motorista?.jornadaFim || '',
   })
 
   const submit = async (e: FormEvent) => {
@@ -405,6 +429,8 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
         telefone: form.telefone || null,
         cnh: form.cnh || null,
         cnhValida: form.cnhValida || null,
+        jornadaInicio: form.jornadaInicio || null,
+        jornadaFim: form.jornadaFim || null,
       }
       if (form.pin) payload.pin = form.pin
       if (isEdit) {
@@ -465,6 +491,20 @@ function MotoristaModal({ motorista, onClose, onSuccess }: { motorista?: any; on
               <label className="block text-xs text-gray-500 mb-1">CNH válida até</label>
               <input value={form.cnhValida} onChange={(e) => setForm({ ...form, cnhValida: e.target.value })} type="date" className={inputCls} style={inputStyle} />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Jornada padrão (horário de trabalho)</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 w-10">Início</span>
+                <input value={form.jornadaInicio} onChange={(e) => setForm({ ...form, jornadaInicio: e.target.value })} type="time" className={inputCls} style={inputStyle} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 w-10">Fim</span>
+                <input value={form.jornadaFim} onChange={(e) => setForm({ ...form, jornadaFim: e.target.value })} type="time" className={inputCls} style={inputStyle} />
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">Usado pra alertar atraso na tela de motoristas (tolerância de 15 min). Em branco usa 08:00–18:00.</p>
           </div>
           {erro && (<div className="text-xs text-red-700 flex items-center gap-2"><AlertCircle className="w-3 h-3" /> {erro}</div>)}
           <div className="flex gap-2 pt-2">
