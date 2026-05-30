@@ -38,6 +38,7 @@ type Mensagem = {
 }
 
 type Conversa = {
+  chave?: string
   telefone: string
   canal?: 'WHATSAPP' | 'INSTAGRAM' | 'MESSENGER'
   nomeContato?: string | null
@@ -199,6 +200,32 @@ export default function InboxWhatsApp() {
   }
 
   useEffect(() => { carregar() }, [aba])
+
+  // Refresh silencioso (sem spinner) — mantém a lista e a conversa aberta em dia
+  // sem precisar trocar de aba/F5. Mesmo intervalo do alerta sonoro (15s).
+  const carregarSilencioso = async () => {
+    try {
+      const r = await api.get('/whatsapp/inbox')
+      const novas: Conversa[] = r.data.conversas || []
+      setConversas(novas)
+      // Re-sincroniza a conversa aberta (entram mensagens inbound novas em tempo real)
+      setConversaSel((cur) => {
+        if (!cur) return cur
+        const atual = novas.find((c) => c.chave === cur.chave || (c.canal === cur.canal && c.telefone === cur.telefone))
+        return atual || cur
+      })
+    } catch { /* silencioso */ }
+  }
+
+  useEffect(() => {
+    if (aba !== 'inbox') return
+    const tick = setInterval(() => {
+      if (document.visibilityState === 'visible') carregarSilencioso()
+    }, 15000)
+    const onVis = () => { if (document.visibilityState === 'visible') carregarSilencioso() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { clearInterval(tick); document.removeEventListener('visibilitychange', onVis) }
+  }, [aba])
 
   // Exclui a conversa inteira de um telefone (só do nosso banco).
   const excluirConversa = async (telefone: string) => {
